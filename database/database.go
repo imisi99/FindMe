@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -16,12 +15,6 @@ var DB *gorm.DB
 
 // Connection to database
 func Connect() {
-
-	// Load environment variables from .env file
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("[WARNING] Error loading .env file ->", err, "Ignore if in production")
-	}
 
 	// Get database connection details from environment variables
 	dsn := fmt.Sprintf(

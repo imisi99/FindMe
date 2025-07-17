@@ -1,7 +1,10 @@
 package model
 
+import (
+	"strings"
 
-import "gorm.io/gorm"
+	"gorm.io/gorm"
+)
 
 
 type Skill struct {
@@ -9,3 +12,10 @@ type Skill struct {
 	Name string `gorm:"unique;not null"`
 	
 }
+
+
+func (s *Skill) BeforeCreate(tx *gorm.DB) (err error) {
+	s.Name = strings.ToLower(s.Name)
+	return
+}
+
