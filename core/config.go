@@ -3,9 +3,13 @@ package core
 import (
 	"findme/model"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -57,14 +61,36 @@ func GenerateJWT(userID uint) (string, error){
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(JWTSecret)
+	return token.SignedString([]byte(JWTSecret))
+}
+
+
+func ValidateJWT(tokenSting string) (*JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenSting, &JWTClaims{}, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, &CustomMessage{Code: 400, Message: "Invalid Token!"}
+		}
+		return []byte(JWTSecret), nil
+	})
+
+	if err != nil {
+		return nil, &CustomMessage{Code: 400, Message: "Expired Token!", Detail: err.Error()}
+	}
+
+	payload, ok := token.Claims.(*JWTClaims)
+
+	if ok && token.Valid {
+		return payload, nil
+	}
+
+	return nil, &CustomMessage{Code: 400, Message: "Invalid Token!"}
 }
 
 
 func Authorization(db *gorm.DB, username, password string) (string, error) {
 	var user model.User
 
-	err := db.Where("username = ? OR email = ?", username, username).Find(&user).Error
+	err := db.Where("username = ? OR email = ?", username, username).First(&user).Error
 	if err != nil { return "", &CustomMessage{Code: 404, Message: "Invalid Credentials", Detail: err.Error()}}
 
 	err = VerifyHashedPassword(password, user.Password)
@@ -75,3 +101,35 @@ func Authorization(db *gorm.DB, username, password string) (string, error) {
 
 	return jwtToken, nil
 }
+
+
+func Authentication() gin.HandlerFunc{
+	return func(ctx *gin.Context) {
+		authHeader := ctx.GetHeader("Authorization")
+
+		if authHeader == "" {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Authorization header missing!"})
+			return 
+		}
+
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Bearer token not found in the authorization header!"})
+			return 
+		}
+
+		tokenString := parts[1]
+
+		payload, err := ValidateJWT(tokenString)
+		if err != nil {
+			cm := err.(*CustomMessage)
+			ctx.AbortWithStatusJSON(cm.Code, gin.H{"message": cm.Message, "detail": cm.Detail})
+			return 
+		}
+
+		ctx.Set("userID", payload.UserID)
+
+		ctx.Next()
+	}
+}
+

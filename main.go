@@ -1,6 +1,7 @@
 package main
 
 import (
+	"findme/core"
 	"findme/database"
 	"findme/handlers"
 	"log"
@@ -24,9 +25,17 @@ func main() {
 	router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{"message": "APP is up and running"})
 	})
+
+	// User Endpoints
 	router.POST("/signup", handlers.AddUser)
 	router.POST("/login", handlers.VerifyUser)
 
+	protectedUserRoutes := router.Group("/user")
+	protectedUserRoutes.Use(core.Authentication())
 
+	protectedUserRoutes.GET("/profile", handlers.GetUserInfo)
+	protectedUserRoutes.PUT("/update-profile", handlers.UpdateUserInfo)
+
+	
 	router.Run("localhost:8080")
 }

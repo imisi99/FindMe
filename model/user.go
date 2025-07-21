@@ -15,5 +15,5 @@ type User struct {
 
 
 	// Relations:
-	Skills []Skill 			`gorm:"many2many:user_skills"`
+	Skills []*Skill 			`gorm:"many2many:user_skills"`
 }
