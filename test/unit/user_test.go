@@ -259,6 +259,6 @@ func TestUpdateuserProfileDuplicate(t *testing.T){
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusConflict, w.Code)
-	assert.Contains(t, w.Body.String(), "Username already in use!")
+	assert.Contains(t, w.Body.String(), "Username already in use")
 
 }
