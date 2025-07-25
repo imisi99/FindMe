@@ -32,3 +32,13 @@ type UserProfileRequest struct {
 	Email 		string		`json:"email" binding:"required,email"`
 	Bio 		string		`json:"bio" binding:"omitempty,max=50"`
 }
+
+
+type UserAvailabilityStatusRequest struct{
+	Availability bool		`json:"availability" binding:"required"`
+}
+
+
+type UpdateUserSkillsRequest struct {
+	Skills []string			`json:"skills" binding:"required"`
+}

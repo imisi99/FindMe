@@ -53,7 +53,7 @@ func superUser(db *gorm.DB) {
 			Username: "Imisioluwa23",
 			Bio: "I am the super user",
 			Email: "isongrichard234@gmail.com",
-			Password: "heheheheh12.",
+			Password: ".",
 			Availability: true, // for a limited time only
 		}
 
@@ -204,7 +204,7 @@ func TestGetUserProfile(t *testing.T) {
 	getTestDB()
 	router := getTestRouter()
 
-	req, _ := http.NewRequest(http.MethodGet, "/user/profile", bytes.NewBuffer([]byte{}))
+	req, _ := http.NewRequest(http.MethodGet, "/user/profile", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -237,10 +237,8 @@ func TestUpdateuserProfile(t *testing.T) {
 
 
 func TestUpdateuserProfileDuplicate(t *testing.T){
-	defer clearDB(database.DB)
 	getTestDB()
 	router := getTestRouter()
-
 
 	payload := map[string]string{
 		"username": "Imisioluwa23",
@@ -260,5 +258,56 @@ func TestUpdateuserProfileDuplicate(t *testing.T){
 
 	assert.Equal(t, http.StatusConflict, w.Code)
 	assert.Contains(t, w.Body.String(), "Username already in use")
+}
 
+func TestUpdateAvailabilityStatus(t *testing.T) {
+	getTestDB()
+	router := getTestRouter()
+
+	req, _ := http.NewRequest(http.MethodPatch, "/user/update-availability/false", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Contains(t, w.Body.String(), "availability status updated successfully")
+}
+
+
+func TestFailedUpdateAvailibilityStatus(t *testing.T) {
+	getTestDB()
+	router := getTestRouter()
+
+	req, _ := http.NewRequest(http.MethodPatch, "/user/update-availability/nothing", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	assert.Contains(t, w.Body.String(), "Availability status can only be true or false")	
+}
+
+
+func TestUpdateSkills(t *testing.T) {
+	defer clearDB(database.DB)
+	getTestDB()
+	router := getTestRouter()
+
+	payload := map[string][]string{
+		"skills": {"rust", "java"},
+	}
+
+	body, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodPatch, "/user/update-skills", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Contains(t, w.Body.String(), "User skills updated successfully")
 }

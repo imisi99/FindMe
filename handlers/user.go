@@ -6,8 +6,8 @@ import (
 	"findme/model"
 	"findme/schema"
 	"net/http"
+	"strconv"
 	"strings"
-
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,7 +38,7 @@ func AddUser(ctx *gin.Context) {
 	}
 
 
-	// Expensive operation for adding new skills to database To change later on
+	// Expensive operation for adding new skills to database
 
 	var existingSkills []*model.Skill
 
@@ -134,13 +134,13 @@ func GetUserInfo(ctx *gin.Context) {
 
 	userID, exists := ctx.Get("userID")
 	if !exists {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "User ID not found in context"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "User ID not found in context"})
 		return
 	}
 
 	uid, ok :=  userID.(uint)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "User ID is not in the valid format"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "User ID is not in the valid format"})
 		return
 	}
 
@@ -172,18 +172,19 @@ func GetUserInfo(ctx *gin.Context) {
 }
 
 
+// Update user info endpoint 
 func UpdateUserInfo(ctx *gin.Context) {
 	db := database.GetDB()
 
 	userID, exists := ctx.Get("userID")
 	if !exists {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "User ID not found in context"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "User ID not found in context"})
 		return
 	}
 
 	uid, ok := userID.(uint)
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "User ID is not in the valid format"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "User ID is not in the valid format"})
 		return
 	}
 
@@ -222,4 +223,104 @@ func UpdateUserInfo(ctx *gin.Context) {
 	
 	ctx.JSON(http.StatusAccepted, gin.H{"message": "User profile updated successfully."})
 	
+}
+
+
+// Update user avaibility status endpoint 
+func UpdateUserAvaibilityStatus(ctx *gin.Context) {
+	db := database.GetDB()
+
+	userID, exists := ctx.Get("userID")
+	if !exists{
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "User ID not found in context"})
+		return
+	}
+
+	uid := userID.(uint)
+
+	status := ctx.Param("status")
+	statusbool, err := strconv.ParseBool(status)
+	if  err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Availability status can only be true or false"})
+		return
+	}
+
+	var user model.User
+	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	}
+
+	user.Availability = statusbool
+
+	if err := db.Save(&user).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "An error occured while updating availability"})
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"message": "User availability status updated successfully."})
+}
+
+
+// Update user skills status endpoint
+func UpdateUserSkills(ctx *gin.Context) {
+	db := database.GetDB()
+
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "User ID not found in context"})
+		return
+	}
+
+	uid := userID.(uint)
+
+	var user model.User
+	if err := db.Preload("Skills").Where("id = ?", uid).First(&user).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	}
+
+	var payload schema.UpdateUserSkillsRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "An error occured while tyring to parse the payload"})
+		return
+	}
+
+	for i := range payload.Skills {
+		payload.Skills[i] = strings.ToLower(payload.Skills[i])
+	}
+
+	// Expensive operation of updating skills 
+
+	var existingSkills []*model.Skill
+	db.Where("name IN ?", payload.Skills).Find(&existingSkills)
+
+	existingSkillSet := make(map[string]bool)
+	for i := range existingSkills {
+		existingSkillSet[existingSkills[i].Name] = true
+	}
+
+	var newSkill []*model.Skill
+	for i := range payload.Skills {
+		if _, exists := existingSkillSet[payload.Skills[i]]; !exists {
+			newSkill = append(newSkill, &model.Skill{Name: payload.Skills[i]})
+		}
+	}
+
+	if len(newSkill) > 0 {
+		if err := db.Create(newSkill).Error; err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "An error occured while trying to update user skills"})
+			return
+		}
+	}
+
+	allskills := append(newSkill, existingSkills...)
+
+	user.Skills = allskills
+
+	if err := db.Save(&user).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "An error occured while trying to update user skills"})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"message": "User skills updated successfully"})
 }
