@@ -91,13 +91,13 @@ func Authorization(db *gorm.DB, username, password string) (string, error) {
 	var user model.User
 
 	err := db.Where("username = ? OR email = ?", username, username).First(&user).Error
-	if err != nil { return "", &CustomMessage{Code: 404, Message: "Invalid Credentials", Detail: err.Error()}}
+	if err != nil { return "", &CustomMessage{Code: 404, Message: "Invalid Credentials!", Detail: err.Error()}}
 
 	err = VerifyHashedPassword(password, user.Password)
-	if err != nil {return "", &CustomMessage{Code: 404, Message: "Invalid Credentials", Detail: err.Error()}}
+	if err != nil {return "", &CustomMessage{Code: 404, Message: "Invalid Credentials!", Detail: err.Error()}}
 
 	jwtToken, err := GenerateJWT(user.ID) 
-	if err != nil { return "", &CustomMessage{Code: 500, Message: "An error occured while generating jwt token", Detail: err.Error()}}
+	if err != nil { return "", &CustomMessage{Code: 500, Message: "Failed to generate jwt token", Detail: err.Error()}}
 
 	return jwtToken, nil
 }

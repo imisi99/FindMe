@@ -21,6 +21,7 @@ type UserProfileResponse struct {
 	UserName	string		
 	FullName	string		
 	Email 		string
+	GitUserName *string
 	Bio 		string
 	Skills 		[]string
 }
@@ -30,15 +31,21 @@ type UserProfileRequest struct {
 	UserName	string		`json:"username" binding:"required"`
 	FullName	string		`json:"fullname" binding:"required"`
 	Email 		string		`json:"email" binding:"required,email"`
+	GitUserName *string		`json:"gitusername" binding:"omitempty"`
 	Bio 		string		`json:"bio" binding:"omitempty,max=50"`
 }
 
 
-type UserAvailabilityStatusRequest struct{
+type UserAvailabilityStatusRequest struct {
 	Availability bool		`json:"availability" binding:"required"`
 }
 
 
 type UpdateUserSkillsRequest struct {
 	Skills []string			`json:"skills" binding:"required"`
+}
+
+
+type DeleteUserSkillsRequest struct {
+	Skills []string 		`json:"skills" binding:"required"`
 }

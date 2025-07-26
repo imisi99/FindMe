@@ -47,13 +47,15 @@ func getTestDB() {
 func superUser(db *gorm.DB) {
 	var count int64
 	db.Where("username = ?", "Imisioluwa23").Count(&count)
+	gitusername := "imisi99"
 	if count == 0 {
 			super := model.User{
 			FullName: "Isong Imisioluwa",
-			Username: "Imisioluwa23",
+			UserName: "Imisioluwa23",
+			GitUserName: &gitusername,
 			Bio: "I am the super user",
 			Email: "isongrichard234@gmail.com",
-			Password: ".",
+			Password: "",
 			Availability: true, // for a limited time only
 		}
 
@@ -77,6 +79,7 @@ var (
 		"fullname": "John Doe",
 		"email": "johndoe@gmail.com",
 		"password": "JohnDoe234",
+		"gitusername": "johndoe23",
 	}
 )
 
@@ -98,8 +101,8 @@ func TestSignup(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Signed up successfully")
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Contains(t, w.Body.String(), "Signed up successfully.")
 
 }
 
@@ -148,7 +151,7 @@ func TestSignupInvalidPayload(t *testing.T) {
 
 
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
-	assert.Contains(t, w.Body.String(), "An error occured while tyring to parse the payload")
+	assert.Contains(t, w.Body.String(), "Failed to parse the payload.")
 }
 
 
@@ -196,7 +199,7 @@ func TestLoginInvalid(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid Credentials")
+	assert.Contains(t, w.Body.String(), "Invalid Credentials!")
 }
 
 
@@ -232,7 +235,7 @@ func TestUpdateuserProfile(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "User profile updated successfully")
+	assert.Contains(t, w.Body.String(), "User profile updated successfully.")
 }
 
 
@@ -257,7 +260,7 @@ func TestUpdateuserProfileDuplicate(t *testing.T){
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusConflict, w.Code)
-	assert.Contains(t, w.Body.String(), "Username already in use")
+	assert.Contains(t, w.Body.String(), "Username already in use!")
 }
 
 func TestUpdateAvailabilityStatus(t *testing.T) {
@@ -271,7 +274,7 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "availability status updated successfully")
+	assert.Contains(t, w.Body.String(), "User availability updated successfully.")
 }
 
 
@@ -286,12 +289,11 @@ func TestFailedUpdateAvailibilityStatus(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
-	assert.Contains(t, w.Body.String(), "Availability status can only be true or false")	
+	assert.Contains(t, w.Body.String(), "Availability status can only be true or false.")	
 }
 
 
 func TestUpdateSkills(t *testing.T) {
-	defer clearDB(database.DB)
 	getTestDB()
 	router := getTestRouter()
 
@@ -309,5 +311,28 @@ func TestUpdateSkills(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "User skills updated successfully")
+	assert.Contains(t, w.Body.String(), "User skills updated successfully.")
+}
+
+
+func TestDeleteSkills(t *testing.T) {
+	defer clearDB(database.DB)
+	getTestDB()
+	router := getTestRouter()
+
+	payload := map[string][]string{
+		"skills": {"rust"},
+	}
+
+	body, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodDelete, "/user/delete-skills", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
+	assert.Contains(t, w.Body.String(), "")
 }

@@ -23,5 +23,6 @@ func SetupHandler(router *gin.Engine) {
 	protectedUserRoutes.PUT("/update-profile", UpdateUserInfo)
 	protectedUserRoutes.PATCH("/update-availability/:status", UpdateUserAvaibilityStatus)
 	protectedUserRoutes.PATCH("/update-skills", UpdateUserSkills)
+	protectedUserRoutes.DELETE("/delete-skills", DeleteUserSkills)
 }
 
