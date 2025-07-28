@@ -1,17 +1,23 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
 	"findme/core"
 	"findme/database"
 	"findme/model"
 	"findme/schema"
+	"fmt"
+	"io"
+	"log"
 	"net/http"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
-
 
 // Sign up endpoint for user
 func AddUser(ctx *gin.Context) {
@@ -94,6 +100,151 @@ func AddUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{"message": "Signed up successfully.", "token": jwtToken})
+}
+
+
+// Signing up user using github
+func GitHubAddUser(ctx *gin.Context) {
+	state, err := core.GenerateState()
+	if err != nil {
+		ctx.JSON(500, gin.H{"message": "Failed to generate user state."})
+		return
+	}
+
+	ctx.SetCookie("state", state, 150, "/", "", false, true)
+
+	redirectURL := fmt.Sprintf("https://github.com/login/oauth/authorize?client_id=%s&state=%s&scope=read:user user:email", os.Getenv("GIT_CLIENT_ID"), state)
+	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
+}
+
+
+func GitHubAddUserCallback(ctx *gin.Context) {
+	code := ctx.Query("code")
+	state := ctx.Query("state")
+
+	if storedState, err := ctx.Cookie("state"); err != nil || state != storedState {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid or expired state"})
+		return
+	}
+
+	data := url.Values{}
+	data.Add("client_id", os.Getenv("GIT_CLIENT_ID"))
+	data.Add("client_secret", os.Getenv("GIT_CLIENT_SECRET"))
+	data.Add("code", code)
+
+	req, _ := http.NewRequest(http.MethodPost,"https://github.com/login/oauth/access_token", bytes.NewBufferString(data.Encode()))
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-type", "application/x-www-form-urlencoded")
+
+	resp, err := core.HttpClient.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK{
+		log.Println("Failed to fetch access token from github ->", err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to fetch access token from github"})
+		return
+	}
+
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	var token struct {AccessToken string		`json:"access_token"`}
+	
+	if err := json.Unmarshal(body, &token); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse access token."})
+		return
+	}
+
+	userReq, _ := http.NewRequest(http.MethodGet, "https://api.github.com/user", nil)
+	userReq.Header.Set("Authorization", "Bearer "+token.AccessToken)
+
+	userResp, err := core.HttpClient.Do(userReq)
+	if err != nil || userResp.StatusCode != http.StatusOK {
+		log.Println("Failed to fetch user info from github ->", err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to fetch user info."})
+		return
+	}
+	
+	defer userResp.Body.Close()
+
+	userBody, _ := io.ReadAll(userResp.Body)
+	var user schema.GitHubUser
+	if err := json.Unmarshal(userBody, &user); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse user info."})
+		return
+	}
+
+	if user.Email == "" {
+		emailReq, _ := http.NewRequest(http.MethodGet, "https://api.github.com/user/emails", nil)
+		emailReq.Header.Set("Authorization", "Bearer "+token.AccessToken)
+		emailReq.Header.Set("Accept", "application/vnd.github+json")
+
+		emailResp, err := core.HttpClient.Do(emailReq)
+		if err != nil ||emailResp.StatusCode != http.StatusOK {
+			log.Println("Failed to fetch user email from github ->", err.Error())
+			ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to fetch user email."})
+			return
+		}
+
+		defer emailResp.Body.Close()
+
+		emailBody, _ := io.ReadAll(emailResp.Body)
+		var email []struct {
+			Email		string  `json:"email"`
+			Primary		bool 	`json:"primary"`
+			Verified	bool 	`json:"verified"`
+		}
+
+		if err := json.Unmarshal(emailBody, &email); err != nil {
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse user github emails."})
+			return
+		}
+		for _, e := range email {
+			if e.Primary{
+				user.Email = e.Email
+				break
+			}
+		}
+		if user.Email == "" {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Unable to signup with github."})
+		}
+
+	}
+
+	var existingUser model.User
+	db := database.GetDB()
+	if err := db.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
+		userToken, err := core.GenerateJWT(existingUser.ID)
+		if err != nil {
+			log.Println("Failed to generate jwt token for user -> ", err.Error())
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
+			return
+		}
+		ctx.JSON(http.StatusOK, gin.H{"token": userToken, "message": "Logged in successfully."})
+		return
+	}
+
+	newUser := model.User{
+		FullName : user.FullName,
+		Email : user.Email,
+		GitUserName : &user.UserName,
+		UserName :user.UserName,
+		Availability : true,
+		Bio : user.Bio,
+	}
+
+	if err := db.Create(&newUser).Error; err != nil {
+			log.Println("Failed to store user in db -> ", err.Error())
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to create user."})
+			return
+	}
+	
+	userToken, err := core.GenerateJWT(newUser.ID)
+	if err != nil {
+		log.Println("Failed to generate jwt token for user -> ", err.Error())
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"token": userToken, "message": "Logged in successfully."})
 }
 
 

@@ -11,6 +11,9 @@ import (
 
 func main() {
 	// Load environment variables from .env file
+	log.SetPrefix("[FindMe]")
+	log.SetFlags(log.Lshortfile)
+
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("[WARNING] Error loading .env file ->", err, "Ignore if in production")

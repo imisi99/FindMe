@@ -1,6 +1,8 @@
 package core
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"findme/model"
 	"fmt"
 	"net/http"
@@ -18,7 +20,8 @@ import (
 
 var (
 	JWTSecret = os.Getenv("JWTSECRET")
-	JWTExpiry = time.Hour * 24
+ 	JWTExpiry = time.Hour * 24
+	HttpClient = &http.Client{Timeout: 10 * time.Second,}
 )
 
 
@@ -43,6 +46,14 @@ func (cm *CustomMessage) Error() string{
 func HashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(hashedPassword), err
+}
+
+
+func GenerateState() (string, error) {
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	if err != nil {return "", err}
+	return base64.URLEncoding.EncodeToString(b), nil
 }
 
 

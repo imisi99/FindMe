@@ -9,7 +9,7 @@ type User struct {
 	FullName 		string 	`gorm:"column:fullname;not null"`
 	UserName 	string 		`gorm:"column:username;unique;not null"`
 	Email 		string	 	`gorm:"unique;not null"`
-	Password 	string 		`gorm:"not null"`
+	Password 	string
 	GitUserName *string		`gorm:"column:gitusername;unique"`
 	Bio 		string
 	Availability  bool

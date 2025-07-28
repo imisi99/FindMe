@@ -15,8 +15,10 @@ func SetupHandler(router *gin.Engine) {
 	// User Endpoints
 	router.POST("/signup", AddUser)
 	router.POST("/login", VerifyUser)
+	router.GET("/github-signup", GitHubAddUser)
+	router.GET("/api/v1/auth/github/callback", GitHubAddUserCallback)
 
-	protectedUserRoutes := router.Group("/user")
+	protectedUserRoutes := router.Group("/api/v1/user")
 	protectedUserRoutes.Use(core.Authentication())
 
 	protectedUserRoutes.GET("/profile", GetUserInfo)
@@ -25,4 +27,3 @@ func SetupHandler(router *gin.Engine) {
 	protectedUserRoutes.PATCH("/update-skills", UpdateUserSkills)
 	protectedUserRoutes.DELETE("/delete-skills", DeleteUserSkills)
 }
-
