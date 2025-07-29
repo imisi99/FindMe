@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	norm "math/rand"
 
 	"os"
 	"time"
@@ -22,6 +23,10 @@ var (
 	JWTSecret = os.Getenv("JWTSECRET")
  	JWTExpiry = time.Hour * 24
 	HttpClient = &http.Client{Timeout: 10 * time.Second,}
+)
+
+const (
+	charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-+_?,."
 )
 
 
@@ -54,6 +59,15 @@ func GenerateState() (string, error) {
 	_, err := rand.Read(b)
 	if err != nil {return "", err}
 	return base64.URLEncoding.EncodeToString(b), nil
+}
+
+
+func GenerateUsername(username string) string {
+	b := make([]byte, 9)
+	for i := range b {
+		b[i] = charset[norm.Intn(len(charset))]
+	}
+	return username+"_"+string(b)
 }
 
 

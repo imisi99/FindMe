@@ -83,6 +83,7 @@ func AddUser(ctx *gin.Context) {
 		Email: payload.Email,
 		Password: hashedPassword,
 		Bio: payload.Bio,
+		GitUser: false,
 
 		Skills: allskills,
 		Availability: true,
@@ -191,7 +192,6 @@ func GitHubAddUserCallback(ctx *gin.Context) {
 		var email []struct {
 			Email		string  `json:"email"`
 			Primary		bool 	`json:"primary"`
-			Verified	bool 	`json:"verified"`
 		}
 
 		if err := json.Unmarshal(emailBody, &email); err != nil {
@@ -212,22 +212,61 @@ func GitHubAddUserCallback(ctx *gin.Context) {
 
 	var existingUser model.User
 	db := database.GetDB()
-	if err := db.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
+	if err := db.Where("gitid = ?", user.ID).First(&existingUser).Error; err == nil {
 		userToken, err := core.GenerateJWT(existingUser.ID)
 		if err != nil {
 			log.Println("Failed to generate jwt token for user -> ", err.Error())
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
 			return
 		}
+		if existingUser.GitUserName != &user.UserName {
+			existingUser.GitUserName = &user.UserName
+		}
+		if err := db.Save(&existingUser).Error; err != nil {
+			log.Println("Failed to update user git username -> ", err.Error())
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to log in user."})
+			return
+		}
 		ctx.JSON(http.StatusOK, gin.H{"token": userToken, "message": "Logged in successfully."})
 		return
 	}
+
+	if err := db.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
+		if !existingUser.GitUser{
+			existingUser.GitID = &user.ID
+			existingUser.GitUserName = &user.UserName
+			existingUser.GitUser = true
+
+			userToken, err := core.GenerateJWT(existingUser.ID)
+			if err != nil {
+				log.Println("Failed to generate jwt token for user -> ", err.Error())
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
+				return
+			}
+
+			if err := db.Save(&existingUser).Error; err != nil {
+				log.Println("Failed to update user git identity -> ", err.Error())
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to log in user."})
+				return
+			}
+
+			ctx.JSON(http.StatusOK, gin.H{"token": userToken, "message": "Logged in successfully."})
+			return
+		}
+	}
+
+	var newUsername string
+	if err := db.Where("username = ?", user.UserName).First(&existingUser).Error; err == nil {
+		newUsername = core.GenerateUsername(existingUser.UserName)
+	}else {newUsername = user.UserName}
 
 	newUser := model.User{
 		FullName : user.FullName,
 		Email : user.Email,
 		GitUserName : &user.UserName,
-		UserName :user.UserName,
+		GitID: &user.ID,
+		GitUser: true,
+		UserName :newUsername,
 		Availability : true,
 		Bio : user.Bio,
 	}
@@ -339,7 +378,6 @@ func UpdateUserInfo(ctx *gin.Context) {
 	user.Bio = payload.Bio
 	user.FullName = payload.FullName
 	user.UserName = payload.UserName
-	user.GitUserName = payload.GitUserName
 
 	if err := db.Save(&user).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user profile."})

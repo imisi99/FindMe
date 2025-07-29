@@ -12,10 +12,11 @@ type SignupRequest struct {
 
 
 type GitHubUser struct {
+	ID 			int64		`json:"id" binding:"required"`
 	FullName	string		`json:"name" binding:"required"`
 	UserName 	string		`json:"login" binding:"required"`
 	Email		string		`json:"email"`
-	Bio			string		`json:"bio" binding:"required"`
+	Bio			string		`json:"bio"`
 }
 
 
