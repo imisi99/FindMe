@@ -158,6 +158,8 @@ func GitHubAddUserCallback(ctx *gin.Context) {
 	userReq, _ := http.NewRequest(http.MethodGet, "https://api.github.com/user", nil)
 	userReq.Header.Set("Authorization", "Bearer "+token.AccessToken)
 
+	ctx.SetCookie("git-access-token", token.AccessToken, 60 * 60 * 24, "/", "", false, true)
+
 	userResp, err := core.HttpClient.Do(userReq)
 	if err != nil || userResp.StatusCode != http.StatusOK {
 		log.Println("Failed to fetch user info from github ->", err.Error())
@@ -329,11 +331,55 @@ func GetUserInfo(ctx *gin.Context) {
 		skills = append(skills, skill.Name)
 	}
 
+	var gitusername *string
+	if user.GitUser{
+		token, err := ctx.Cookie("git-access-token")
+		if err != nil {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "Git access token not found in cookie."})
+			return
+		}
+		req, _ := http.NewRequest(http.MethodGet, "https://api.github.com/user", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		resp, err := core.HttpClient.Do(req)
+		if err != nil || resp.StatusCode != http.StatusOK{
+			ctx.JSON(http.StatusBadRequest, gin.H{"message": "Failed to fetch user info from github."})
+			return
+		}
+
+		defer resp.Body.Close()
+
+		body, _ := io.ReadAll(resp.Body)
+
+		var gitUser schema.GitHubUser
+		if err := json.Unmarshal(body, &gitUser); err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse user github info."})
+			return
+		}
+
+		if gitUser.ID != *user.GitID {
+			ctx.JSON(http.StatusBadRequest, gin.H{"message": "Unidentified user."})
+			return
+		}
+
+		gitusername = &gitUser.UserName
+
+		if gitUser.UserName != *user.GitUserName {
+			user.GitUserName = &gitUser.UserName
+
+			if err := db.Save(&user).Error; err != nil{
+				log.Println("An error occured while trying to update user github username -> ", err.Error())
+				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "An error occured while trying to update user info."})
+				return
+			}
+		}
+	}
+
 	payload := schema.UserProfileResponse{
 		UserName: user.UserName,
 		FullName: user.FullName,
 		Email: user.Email,
-		GitUserName: user.GitUserName,
+		GitUserName: gitusername,
 		Bio: user.Bio,
 		Skills: skills,
 	}
