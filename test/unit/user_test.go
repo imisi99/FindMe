@@ -3,6 +3,7 @@ package unit
 import (
 	"bytes"
 	"encoding/json"
+	"findme/core"
 	"findme/database"
 	"findme/handlers"
 	"findme/model"
@@ -28,7 +29,7 @@ func getTestRouter() *gin.Engine {
 }
 
 
-func getTestDB() {
+func getTestDB() *gorm.DB{
 	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
@@ -41,6 +42,7 @@ func getTestDB() {
 	superUser(db)
 
 	database.DB = db
+	return db
 }
 
 
@@ -49,13 +51,14 @@ func superUser(db *gorm.DB) {
 	db.Where("username = ?", "Imisioluwa23").Count(&count)
 	gitusername := "imisi99"
 	if count == 0 {
+			hashpass, _ := core.HashPassword("Password")
 			super := model.User{
 			FullName: "Isong Imisioluwa",
 			UserName: "Imisioluwa23",
 			GitUserName: &gitusername,
 			Bio: "I am the super user",
 			Email: "isongrichard234@gmail.com",
-			Password: "",
+			Password: hashpass,
 			Availability: true, // for a limited time only
 		}
 
@@ -207,7 +210,7 @@ func TestGetUserProfile(t *testing.T) {
 	getTestDB()
 	router := getTestRouter()
 
-	req, _ := http.NewRequest(http.MethodGet, "/user/profile", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/profile", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -227,7 +230,7 @@ func TestUpdateuserProfile(t *testing.T) {
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPut, "/user/update-profile", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPut, "/api/v1/user/update-profile", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -252,7 +255,7 @@ func TestUpdateuserProfileDuplicate(t *testing.T){
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPut, "/user/update-profile", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPut, "/api/v1/user/update-profile", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -267,7 +270,7 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 	getTestDB()
 	router := getTestRouter()
 
-	req, _ := http.NewRequest(http.MethodPatch, "/user/update-availability/false", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-availability/false", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -282,7 +285,7 @@ func TestFailedUpdateAvailibilityStatus(t *testing.T) {
 	getTestDB()
 	router := getTestRouter()
 
-	req, _ := http.NewRequest(http.MethodPatch, "/user/update-availability/nothing", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-availability/nothing", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -303,7 +306,7 @@ func TestUpdateSkills(t *testing.T) {
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPatch, "/user/update-skills", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-skills", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -326,7 +329,7 @@ func TestDeleteSkills(t *testing.T) {
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodDelete, "/user/delete-skills", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-skills", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
