@@ -19,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+
 // Sign up endpoint for user
 func AddUser(ctx *gin.Context) {
 	db := database.GetDB()
@@ -119,6 +120,7 @@ func GitHubAddUser(ctx *gin.Context) {
 }
 
 
+// Callback for the github signup endpoint
 func GitHubAddUserCallback(ctx *gin.Context) {
 	code := ctx.Query("code")
 	state := ctx.Query("state")
@@ -562,6 +564,31 @@ func DeleteUserSkills(ctx *gin.Context) {
 
 	if err := db.Model(&user).Association("Skills").Delete(skillsToDelete); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete user skills."})
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, nil)
+}
+
+
+// Delete user account endpoint using sof deleting 
+func DeleteUserAccount(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid := ctx.GetUint("userID")
+	if uid == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	var user model.User
+	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db"})
+		return
+	}
+
+	if err := db.Delete(&user).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete user account"})
 		return
 	}
 

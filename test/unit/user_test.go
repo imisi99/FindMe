@@ -319,7 +319,6 @@ func TestUpdateSkills(t *testing.T) {
 
 
 func TestDeleteSkills(t *testing.T) {
-	defer clearDB(database.DB)
 	getTestDB()
 	router := getTestRouter()
 
@@ -331,6 +330,22 @@ func TestDeleteSkills(t *testing.T) {
 
 	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-skills", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
+	assert.Contains(t, w.Body.String(), "")
+}
+
+
+func TestDeleteUser(t *testing.T) {
+	defer clearDB(database.DB)
+	getTestDB()
+	router := getTestRouter()
+	
+	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-user", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
