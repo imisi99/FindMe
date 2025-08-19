@@ -22,6 +22,8 @@ func SetupHandler(router *gin.Engine) {
 	protectedUserRoutes.Use(core.Authentication())
 
 	protectedUserRoutes.GET("/profile", GetUserInfo)
+	protectedUserRoutes.POST("/create-post", CreatePost)
+	protectedUserRoutes.PUT("/edit-post/:id", EditPost)
 	protectedUserRoutes.PUT("/update-profile", UpdateUserInfo)
 	protectedUserRoutes.PATCH("/update-availability/:status", UpdateUserAvaibilityStatus)
 	protectedUserRoutes.PATCH("/update-skills", UpdateUserSkills)
