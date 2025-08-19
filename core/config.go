@@ -1,19 +1,23 @@
 package core
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"findme/model"
 	"fmt"
+	"log"
+	norm "math/rand"
 	"net/http"
 	"strings"
-	norm "math/rand"
 
 	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -158,3 +162,44 @@ func Authentication() gin.HandlerFunc{
 	}
 }
 
+
+func CacheSkills(db *gorm.DB, rdb *redis.Client) {
+	var skills []model.Skill
+	if err := db.Find(&skills).Error; err != nil {
+		log.Fatalf("An error occured while fetching skills from db -> %v", err)
+	}
+
+	skillName := make(map[string]bool, 0)
+
+	for _, skill := range skills {
+		skillName[skill.Name] = true
+	}
+
+	data, _ := json.Marshal(skillName)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := rdb.Set(ctx, "skills", data, 0).Result(); err != nil {
+		log.Fatalf("An error occured while trying to set skills in redis -> %v", err)
+	}
+}	
+
+
+func RetrieveCachedSkills(rdb *redis.Client) map[string]bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	val, err := rdb.Get(ctx, "skills").Result()
+	if err != nil {
+		log.Printf("Error retrieving cached skills: %v", err)
+		return nil
+	}
+
+	var skills map[string]bool
+	if err := json.Unmarshal([]byte(val), &skills); err != nil {
+		log.Printf("Error unmarshalling cached skills: %v", err)
+		return nil
+	}
+
+	return skills
+}

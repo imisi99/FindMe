@@ -1,6 +1,7 @@
 package main
 
 import (
+	"findme/core"
 	"findme/database"
 	"findme/handlers"
 	"log"
@@ -10,6 +11,7 @@ import (
 )
 
 func main() {
+	
 	// Load environment variables from .env file
 	log.SetPrefix("[FindMe]")
 	log.SetFlags(log.Lshortfile)
@@ -18,7 +20,11 @@ func main() {
 	if err != nil {
 		log.Println("[WARNING] Error loading .env file ->", err, "Ignore if in production")
 	}
+
+	// Setup db and redis 
 	database.Connect()
+	database.ConnectRedis()
+	core.CacheSkills(database.GetDB(), database.GetRDB())
 
 	router := gin.Default()
 	handlers.SetupHandler(router)
