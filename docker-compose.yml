@@ -26,7 +26,7 @@ services:
     command: [
       "redis-server", "--appendonly", "yes",
       "--requirepass", "${REDIS_PASS}",
-      "--maxmemory", "50",
+      "--maxmemory", "50mb",
       "--maxmemory-policy", "volatile-ttl"
     ]
 

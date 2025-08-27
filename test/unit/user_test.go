@@ -18,6 +18,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"github.com/go-redis/redismock/v9"
 )
 
 
@@ -38,13 +39,20 @@ func getTestDB() *gorm.DB{
 		log.Println("An error occured while trying to connect to db")
 	}
 
-	db.AutoMigrate(&model.Skill{}, &model.User{})
+	db.AutoMigrate(&model.Skill{}, &model.User{}, &model.Post{})
 	superUser(db)
 
-	database.DB = db
+	database.SetDB(db)
 	return db
 }
 
+
+func getTestRDB() redismock.ClientMock{
+	rdb, mock := redismock.NewClientMock()
+
+	database.SetRDB(rdb)
+	return mock
+}
 
 func superUser(db *gorm.DB) {
 	var count int64
@@ -70,8 +78,11 @@ func superUser(db *gorm.DB) {
 
 func clearDB(db *gorm.DB) {
 	db.Exec("DELETE FROM user_skills")
+	db.Exec("DELETE FROM post_skills")
 	db.Exec("DELETE FROM skills")
+	db.Exec("DELETE FROM posts")
 	db.Exec("DELETE FROM users")
+	db.Exec("DELETE FROM sqlite_sequence")
 }
 
 
@@ -341,7 +352,7 @@ func TestDeleteSkills(t *testing.T) {
 
 
 func TestDeleteUser(t *testing.T) {
-	defer clearDB(database.DB)
+	defer clearDB(database.GetDB())
 	getTestDB()
 	router := getTestRouter()
 	

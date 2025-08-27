@@ -6,7 +6,7 @@ import "gorm.io/gorm"
 type Post struct {
 	gorm.Model
 	Description		string		`gorm:"not null"`
-	
+	Views 			int 		`gorm:"not null"`
 
 	// Relations:
 	UserID 			uint		`gorm:"not null"`

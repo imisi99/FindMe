@@ -38,3 +38,9 @@ func ConnectRedis() {
 func GetRDB() *redis.Client {
 	return redDB
 }
+
+
+// Set redis client for tests
+func SetRDB(client *redis.Client) {
+	redDB = client
+}

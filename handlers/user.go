@@ -463,6 +463,7 @@ func UpdateUserAvaibilityStatus(ctx *gin.Context) {
 
 	if err := db.Save(&user).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user availability."})
+		return
 	}
 
 	ctx.JSON(http.StatusAccepted, gin.H{"message": "User availability updated successfully."})
@@ -519,7 +520,7 @@ func UpdateUserSkills(ctx *gin.Context) {
 	}
 
 	newSkill = append(newSkill, existingSkills...)
-	if err := db.Model(&user).Association("Skills").Append(newSkill); err != nil {
+	if err := db.Model(&user).Association("Skills").Replace(newSkill); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user skills."})
 		return
 	}
@@ -571,7 +572,7 @@ func DeleteUserSkills(ctx *gin.Context) {
 }
 
 
-// Delete user account endpoint using sof deleting 
+// Delete user account endpoint using soft deleting 
 func DeleteUserAccount(ctx *gin.Context) {
 	db := database.GetDB()
 

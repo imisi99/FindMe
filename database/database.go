@@ -11,7 +11,7 @@ import (
 )
 
 
-var DB *gorm.DB
+var dbClient *gorm.DB
 
 // Connection to database
 func Connect() {
@@ -37,7 +37,7 @@ func Connect() {
 		log.Fatalf("[ERROR] Failed to create tables -> %s", err.Error())
 	}
 
-	DB = db
+	dbClient = db
 
 	log.Println("[INFO] Connected to the database successfully.")
 
@@ -45,5 +45,11 @@ func Connect() {
 
 // Returns database connection session
 func GetDB() *gorm.DB {
-	return DB
+	return dbClient
+}
+
+
+// Set database connection for test
+func SetDB(client *gorm.DB) {
+	dbClient = client
 }

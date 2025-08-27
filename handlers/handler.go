@@ -19,14 +19,21 @@ func SetupHandler(router *gin.Engine) {
 	router.GET("/api/v1/auth/github/callback", GitHubAddUserCallback)
 
 	protectedUserRoutes := router.Group("/api/v1/user")
+	protectedPostRoutes := router.Group("/api/v1/post")
 	protectedUserRoutes.Use(core.Authentication())
+	protectedPostRoutes.Use(core.Authentication())
 
 	protectedUserRoutes.GET("/profile", GetUserInfo)
-	protectedUserRoutes.POST("/create-post", CreatePost)
-	protectedUserRoutes.PUT("/edit-post/:id", EditPost)
+
 	protectedUserRoutes.PUT("/update-profile", UpdateUserInfo)
 	protectedUserRoutes.PATCH("/update-availability/:status", UpdateUserAvaibilityStatus)
 	protectedUserRoutes.PATCH("/update-skills", UpdateUserSkills)
 	protectedUserRoutes.DELETE("/delete-skills", DeleteUserSkills)
 	protectedUserRoutes.DELETE("/delete-user", DeleteUserAccount)
+
+	protectedPostRoutes.POST("/create", CreatePost)
+	protectedPostRoutes.PUT("/edit/:id", EditPost)
+	protectedPostRoutes.GET("/posts/all", GetPosts)
+	protectedPostRoutes.PATCH("/edit-view/:id", EditPostView)
+	protectedPostRoutes.DELETE("/delete/:id", DeletePost)
 }
