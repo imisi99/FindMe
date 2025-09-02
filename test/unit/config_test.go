@@ -12,7 +12,7 @@ var id uint = 12
 var hashPassword string
 
 func TestGenerateJWT(t *testing.T) {
-	token, _ = core.GenerateJWT(id)
+	token, _ = core.GenerateJWT(id, "login", core.JWTExpiry)
 }
 
 

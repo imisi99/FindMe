@@ -1,7 +1,10 @@
 package model
 
+import (
+	"time"
 
-import "gorm.io/gorm"
+	"gorm.io/gorm"
+)
 
 
 type User struct {
@@ -19,4 +22,17 @@ type User struct {
 
 	// Relations:
 	Skills []*Skill 			`gorm:"many2many:user_skills"`
+}
+
+
+type OTP struct {
+	gorm.Model
+	Token 		string
+	ExpiresAt	time.Time
+	IsUsed 		bool			
+
+
+	// Relations:
+	UserID 			uint		`gorm:"not null"`
+	User			User		`gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }

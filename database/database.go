@@ -32,7 +32,7 @@ func Connect() {
 	}
 
 
-	err = db.AutoMigrate(&model.User{}, &model.Skill{}, &model.Post{})
+	err = db.AutoMigrate(&model.User{}, &model.Skill{}, &model.Post{}, &model.OTP{})
 	if err != nil {
 		log.Fatalf("[ERROR] Failed to create tables -> %s", err.Error())
 	}

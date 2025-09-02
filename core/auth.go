@@ -1,13 +1,10 @@
 package core
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"findme/model"
 	"fmt"
-	"log"
 	norm "math/rand"
 	"net/http"
 	"strings"
@@ -17,7 +14,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -26,16 +22,19 @@ import (
 var (
 	JWTSecret = os.Getenv("JWTSECRET")
  	JWTExpiry = time.Hour * 24
-	HttpClient = &http.Client{Timeout: 10 * time.Second,}
+	JWTRExpiry = time.Minute * 5
+	HttpClient = &http.Client{Timeout: 30 * time.Second,}
 )
 
 const (
 	charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-+_?,."
+	otpset = "1234567890"
 )
 
 
 type JWTClaims struct {
 	UserID uint 
+	Purpose string
 	jwt.RegisteredClaims
 }
 
@@ -66,6 +65,15 @@ func GenerateState() (string, error) {
 }
 
 
+func GenerateOTP() string{
+	b := make([]byte, 6)
+	for i := range b {
+		b[i] = otpset[norm.Intn(len(otpset))]
+	}
+	return string(b)
+}
+
+
 func GenerateUsername(username string) string {
 	b := make([]byte, 9)
 	for i := range b {
@@ -81,15 +89,17 @@ func VerifyHashedPassword(password, hashedPassword string) error {
 }
 
 
-func GenerateJWT(userID uint) (string, error){
+func GenerateJWT(userID uint, purpose string, expiry time.Duration) (string, error){
 	claims := JWTClaims{
 		UserID: userID,
+		Purpose: purpose,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(JWTExpiry)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiry)),
 			IssuedAt: jwt.NewNumericDate(time.Now()),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	fmt.Println(JWTSecret)
 	return token.SignedString([]byte(JWTSecret))
 }
 
@@ -125,7 +135,7 @@ func Authorization(db *gorm.DB, username, password string) (string, error) {
 	err = VerifyHashedPassword(password, user.Password)
 	if err != nil {return "", &CustomMessage{Code: 404, Message: "Invalid Credentials!", Detail: err.Error()}}
 
-	jwtToken, err := GenerateJWT(user.ID) 
+	jwtToken, err := GenerateJWT(user.ID, "login", JWTExpiry) 
 	if err != nil { return "", &CustomMessage{Code: 500, Message: "Failed to generate jwt token", Detail: err.Error()}}
 
 	return jwtToken, nil
@@ -157,49 +167,8 @@ func Authentication() gin.HandlerFunc{
 		}
 
 		ctx.Set("userID", payload.UserID)
+		ctx.Set("purpose", payload.Purpose)
 
 		ctx.Next()
 	}
-}
-
-
-func CacheSkills(db *gorm.DB, rdb *redis.Client) {
-	var skills []model.Skill
-	if err := db.Find(&skills).Error; err != nil {
-		log.Fatalf("An error occured while fetching skills from db -> %v", err)
-	}
-
-	skillName := make(map[string]uint, 0)
-
-	for _, skill := range skills {
-		skillName[skill.Name] = skill.ID
-	}
-
-	data, _ := json.Marshal(skillName)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if _, err := rdb.Set(ctx, "skills", data, 0).Result(); err != nil {
-		log.Fatalf("An error occured while trying to set skills in redis -> %v", err)
-	}
-}	
-
-
-func RetrieveCachedSkills(rdb *redis.Client) map[string]uint {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	val, err := rdb.Get(ctx, "skills").Result()
-	if err != nil {
-		log.Printf("Error retrieving cached skills: %v", err)
-		return nil
-	}
-
-	var skills map[string]uint
-	if err := json.Unmarshal([]byte(val), &skills); err != nil {
-		log.Printf("Error unmarshalling cached skills: %v", err)
-		return nil
-	}
-
-	return skills
 }

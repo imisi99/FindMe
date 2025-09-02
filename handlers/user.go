@@ -15,10 +15,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
-
 
 // Sign up endpoint for user
 func AddUser(ctx *gin.Context) {
@@ -95,7 +95,7 @@ func AddUser(ctx *gin.Context) {
 		return
 	}
 
-	jwtToken, err := core.GenerateJWT(user.ID)
+	jwtToken, err := core.GenerateJWT(user.ID, "login", core.JWTExpiry)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token.", "detail": err.Error()})
 		return
@@ -217,7 +217,7 @@ func GitHubAddUserCallback(ctx *gin.Context) {
 	var existingUser model.User
 	db := database.GetDB()
 	if err := db.Where("gitid = ?", user.ID).First(&existingUser).Error; err == nil {
-		userToken, err := core.GenerateJWT(existingUser.ID)
+		userToken, err := core.GenerateJWT(existingUser.ID,"login", core.JWTExpiry)
 		if err != nil {
 			log.Println("Failed to generate jwt token for user -> ", err.Error())
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
@@ -241,7 +241,7 @@ func GitHubAddUserCallback(ctx *gin.Context) {
 			existingUser.GitUserName = &user.UserName
 			existingUser.GitUser = true
 
-			userToken, err := core.GenerateJWT(existingUser.ID)
+			userToken, err := core.GenerateJWT(existingUser.ID, "login", core.JWTExpiry)
 			if err != nil {
 				log.Println("Failed to generate jwt token for user -> ", err.Error())
 				ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
@@ -281,7 +281,7 @@ func GitHubAddUserCallback(ctx *gin.Context) {
 			return
 	}
 	
-	userToken, err := core.GenerateJWT(newUser.ID)
+	userToken, err := core.GenerateJWT(newUser.ID, "login", core.JWTExpiry)
 	if err != nil {
 		log.Println("Failed to generate jwt token for user -> ", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
@@ -317,7 +317,9 @@ func GetUserInfo(ctx *gin.Context) {
 	db := database.GetDB()
 
 	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	tp := ctx.GetString("purpose")
+
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
@@ -383,10 +385,181 @@ func GetUserInfo(ctx *gin.Context) {
 		Email: user.Email,
 		GitUserName: gitusername,
 		Bio: user.Bio,
+		Availability: user.Availability,
 		Skills: skills,
 	}
 	
 	ctx.JSON(http.StatusOK, payload)	
+}
+
+
+// search for user with username endpoint
+func ViewUser(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid := ctx.GetUint("userID")
+	if uid == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	username := ctx.Param("name")
+	if username == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Username not in query."})
+		return
+	}
+
+	var user model.User
+	if err := db.Preload("Skills").Where("username = ?", username).First(&user).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
+		return
+	}
+
+	var skills []string
+	for _, skill := range user.Skills {skills = append(skills, skill.Name)}
+	userprofile := schema.UserProfileResponse{
+		UserName: user.UserName,
+		FullName: user.FullName,
+		GitUserName: user.GitUserName,
+		Bio: user.Bio,
+		Email: user.Email,
+		Skills: skills,
+		Availability: user.Availability,
+	}
+
+	var userPosts []*model.Post
+	if err := db.Preload("Tags").Where("user_id = ?", user.ID).Find(&userPosts).Error; err != nil {
+		ctx.JSON(http.StatusMultipleChoices, gin.H{"message": "Unable to retrieve user posts.", "user": userprofile})
+		return
+	}
+
+	var posts []schema.PostResponse
+	for _, post := range userPosts {
+		var tags []string
+		for _, tag := range post.Tags {tags = append(tags, tag.Name)}
+		posts = append(posts, schema.PostResponse{
+			Description: post.Description,
+			Tags: tags,
+			CreatedAt: post.CreatedAt,
+			UpdatedAt: post.UpdatedAt,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"user": userprofile, "posts": posts})
+}
+
+
+// send otp for password reset endpoint 
+func ForgotPassword(ctx *gin.Context) {
+	db := database.GetDB()
+
+	var payload schema.ForgotPasswordEmail
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload."})
+		return
+	}
+
+	var user model.User
+	if err := db.Where("email = ?", payload.Email).First(&user).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "User record not found."})
+		return
+	}
+
+	token := core.GenerateOTP()
+
+	otp := model.OTP {
+		Token: token,
+		ExpiresAt: time.Now().Add(10 * time.Minute),
+		UserID: user.ID,
+	}
+
+	if err := db.Create(&otp).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to add otp to database"})
+		return
+	}
+
+	if err := core.SendForgotPassEmail(user.Email, token); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to send email"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Email sent successfully."})
+}
+
+
+// verify otp for password reset endpoint
+func VerifyOTP(ctx *gin.Context) {
+	db := database.GetDB()
+
+	var payload schema.VerifyOTP
+
+	if err := ctx.BindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload"})
+		return
+	}
+
+	var token model.OTP
+	if err := db.Where("token = ?", payload.Token).First(&token); err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "Invalid token."})
+		return
+	}
+
+	exp := token.ExpiresAt.After(time.Now())
+
+	if token.IsUsed || exp {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "Expired token."})
+		return
+	}
+
+	jwt, err := core.GenerateJWT(token.UserID, "reset", core.JWTRExpiry)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create jwt token"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": jwt})
+}
+
+
+// Actual reset password endpoint
+func ResetPassword(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid := ctx.GetUint("userID")
+	tp := ctx.GetString("purpose")
+
+	if uid == 0 || tp != "reset" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user"})
+		return
+	}
+
+	var payload schema.ResetPassword
+	
+	if err := ctx.BindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload"})
+		return
+	}
+
+	var user model.User
+	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		return
+	}
+
+	hashed, err := core.HashPassword(payload.Password)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Unable to hash password"})
+		return
+	}
+
+	user.Password = hashed
+
+	if err := db.Save(&user).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to reset password."})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "password reset successfully."})	
 }
 
 
@@ -395,10 +568,13 @@ func UpdateUserInfo(ctx *gin.Context) {
 	db := database.GetDB()
 
 	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	tp := ctx.GetString("purpose")
+
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
+
 
 	var user, existingUser model.User
 	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
@@ -441,10 +617,13 @@ func UpdateUserAvaibilityStatus(ctx *gin.Context) {
 	db := database.GetDB()
 
 	uid := ctx.GetUint("userID")
-	if uid == 0{
+	tp := ctx.GetString("purpose")
+
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
+
 
 	var user model.User
 	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
@@ -475,7 +654,9 @@ func UpdateUserSkills(ctx *gin.Context) {
 	db := database.GetDB()
 
 	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	tp := ctx.GetString("purpose")
+
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
@@ -534,7 +715,9 @@ func DeleteUserSkills(ctx *gin.Context) {
 	db := database.GetDB()
 
 	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	tp := ctx.GetString("purpose")
+
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
@@ -577,10 +760,13 @@ func DeleteUserAccount(ctx *gin.Context) {
 	db := database.GetDB()
 
 	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	tp := ctx.GetString("purpose")
+
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
+
 
 	var user model.User
 	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {

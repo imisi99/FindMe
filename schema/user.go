@@ -32,6 +32,7 @@ type UserProfileResponse struct {
 	Email 		string
 	GitUserName *string
 	Bio 		string
+	Availability bool
 	Skills 		[]string
 }
 
@@ -57,4 +58,19 @@ type UpdateUserSkillsRequest struct {
 
 type DeleteUserSkillsRequest struct {
 	Skills []string 		`json:"skills" binding:"required"`
+}
+
+
+type ForgotPasswordEmail struct {
+	Email 		string 		`json:"email" binding:"required,email"`
+}
+
+
+type VerifyOTP struct {
+	Token 		string		`json:"otp" binding:"required"`
+}
+
+
+type ResetPassword struct {
+	Password 	string		`json:"password" binding:"required,min=8"`
 }

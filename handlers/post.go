@@ -23,19 +23,20 @@ func checkSkills(db *gorm.DB, rdb *redis.Client, payload *schema.NewPostRequest)
 	fmt.Println(skills)
 	var newSkills, allskills []*model.Skill
 	for _, skill := range payload.Tags {
-		if _ , exists := skills[strings.ToLower(skill)]; !exists {
+		id , exists := skills[strings.ToLower(skill)] 
+		if !exists {
 			newSkills = append(newSkills, &model.Skill{Name: skill})
 			continue
 		} 
-		allskills = append(allskills, &model.Skill{Name: skill, Model: gorm.Model{ID: skills[strings.ToLower(skill)]}})
+		allskills = append(allskills, &model.Skill{Name: skill, Model: gorm.Model{ID: id}})
 	}
 
 
 	if len(newSkills) > 0 {
-		if err := db.Create(newSkills).Error; err != nil {     // Add a way to also keep track of new skills after startup in redis
+		if err := db.Create(&newSkills).Error; err != nil {   
 			return nil, err
 		}
-
+		core.AddNewSkillToCache(rdb, newSkills)
 	}
 
 	allskills = append(allskills, newSkills...)
@@ -73,6 +74,46 @@ func GetPosts(ctx *gin.Context) {
 		})
 	}
 	ctx.JSON(http.StatusOK, reuslt)	 
+}
+
+
+// Endpoint for viewing a single post
+func ViewPost(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid := ctx.GetUint("userID")
+	if uid == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	pidStr := ctx.Param("id")
+	pid, err := strconv.ParseUint(pidStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid post id."})
+		return
+	}
+
+	id := uint(pid)
+	var post model.Post
+	var result schema.DetailedPostResponse
+
+	if err := db.Preload("Tags").Preload("User").Where("id = ?", id).First(&post); err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
+		return
+	}
+
+	var tags []string
+
+	for _, tag := range post.Tags {tags = append(tags, tag.Name)}
+
+	result.CreatedAt = post.CreatedAt
+	result.UpdatedAt = post.UpdatedAt
+	result.Description = post.Description
+	result.Tags = tags
+	result.Username = post.User.UserName
+
+	ctx.JSON(http.StatusOK, result)
 }
 
 

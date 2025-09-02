@@ -24,7 +24,7 @@ func TestCreatePost(t *testing.T) {
 	mock := getTestRDB()
 
 	mock.ExpectGet("skills").SetVal(`{}`)
-	tokenString, _ = core.GenerateJWT(1)
+	tokenString, _ = core.GenerateJWT(1, "login", core.JWTExpiry)
 	router := getTestRouter()
 
 	payload := postPayload

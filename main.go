@@ -29,5 +29,5 @@ func main() {
 	router := gin.Default()
 	handlers.SetupHandler(router)
 	router.Run("localhost:8080")
-
+	
 }

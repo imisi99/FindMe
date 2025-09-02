@@ -14,3 +14,9 @@ type PostResponse struct {
 	CreatedAt 	time.Time
 	UpdatedAt   time.Time
 }
+
+
+type DetailedPostResponse struct {
+	PostResponse
+	Username		string
+}
