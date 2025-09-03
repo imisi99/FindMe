@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"findme/model"
+	"findme/schema"
 	"log"
 	"strings"
 
 	"time"
-	
+
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -72,3 +73,36 @@ func AddNewSkillToCache(rdb *redis.Client, newskills []*model.Skill) {
 	}
 }
 
+
+func SetOTP(rdb *redis.Client, otp string, userID uint) error {
+
+	otpInfo := schema.OTPInfo{UserID: userID}
+	data, _ := json.Marshal(otpInfo)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	defer cancel()
+
+	if _, err := rdb.Get(ctx, otp).Result(); err != redis.Nil {return &CustomMessage{}}
+	if _, err := rdb.Set(ctx, otp, data, 10*time.Minute).Result(); err != nil {
+		log.Printf("An error occured while trying to set otp in redis -> %v", err)
+		return err
+	}
+	return nil
+}
+
+
+func GetOTP(rdb *redis.Client, otp string) (*schema.OTPInfo, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	defer cancel()
+
+	val, err := rdb.Get(ctx, otp).Result()
+
+	if err != nil {return nil, redis.Nil}
+
+	var otpInfo schema.OTPInfo
+	if err := json.Unmarshal([]byte(val), &otpInfo); err != nil {
+		return nil, err
+	}
+
+	return &otpInfo, nil
+}

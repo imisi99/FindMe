@@ -4,12 +4,12 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"findme/model"
-	"fmt"
 	norm "math/rand"
 	"net/http"
 	"strings"
 
 	"os"
+	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -99,7 +99,6 @@ func GenerateJWT(userID uint, purpose string, expiry time.Duration) (string, err
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	fmt.Println(JWTSecret)
 	return token.SignedString([]byte(JWTSecret))
 }
 

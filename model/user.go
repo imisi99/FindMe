@@ -1,8 +1,6 @@
 package model
 
 import (
-	"time"
-
 	"gorm.io/gorm"
 )
 
@@ -25,14 +23,17 @@ type User struct {
 }
 
 
-type OTP struct {
-	gorm.Model
-	Token 		string
-	ExpiresAt	time.Time
-	IsUsed 		bool			
+type UserSkill struct {
+	UserID     uint				`gorm:"primaryKey"`
+	SkillID    uint				`gorm:"primaryKey"`
 
 
 	// Relations:
-	UserID 			uint		`gorm:"not null"`
-	User			User		`gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	User 		User			`gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+}
+
+
+func (u *User) BeforeDelete(tx *gorm.DB) (err error) {
+	if err := tx.Model(&Post{}).Where("user_id = ?", u.ID).Delete(&Post{}).Error; err != nil {return err}
+	return nil
 }

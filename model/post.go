@@ -14,3 +14,13 @@ type Post struct {
 	Tags 			[]*Skill 	`gorm:"many2many:post_skills"`
 }
 
+
+type PostSkill struct {
+	PostID 		uint		`gorm:"primaryKey"`
+	SkillID 	uint		`gorm:"primaryKey"`
+
+
+	// Relations:
+	Post		Post		`gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+}
+

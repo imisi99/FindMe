@@ -9,13 +9,8 @@ import (
 )
 
 
-var (
-	EMAIL = os.Getenv("EMAIL")
-	PASSWORD = os.Getenv("EMAIL_APP_PASSWORD")
-)
 
-
-func SendForgotPassEmail(email string, token string) error {
+func SendForgotPassEmail(email string, username string, token string) error {
 htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -36,7 +31,7 @@ htmlBody := fmt.Sprintf(`
 			</tr>
 			<tr>
 				<td style="padding:30px;">
-				<p style="font-size:16px; color:#111827; margin-bottom:20px;">Hello,</p>
+				<p style="font-size:16px; color:#111827; margin-bottom:20px;">Hello %s,</p>
 				<p style="font-size:15px; color:#374151; margin-bottom:20px;">
 					We received a request to reset your password. Please use the OTP code below:
 				</p>
@@ -64,16 +59,15 @@ htmlBody := fmt.Sprintf(`
 	</table>
 
 	</body>
-	</html>`, token)
+	</html>`, token, username)
 
 	msg := gomail.NewMessage()
-	msg.SetHeader("From", EMAIL)
+	msg.SetHeader("From", os.Getenv("EMAIL"))
 	msg.SetHeader("To", email)
 	msg.SetHeader("Subject", "Password reset OTP")
 	msg.SetBody("text/html", htmlBody)
 
-	fmt.Printf("Sender email -> %v, Receiver email -> %v, Email pass -> %v", EMAIL, email, PASSWORD)
-	mail := gomail.NewDialer("smtp.gmail.com", 587, EMAIL, PASSWORD)
+	mail := gomail.NewDialer("smtp.gmail.com", 587, os.Getenv("EMAIL"), os.Getenv("EMAIL_APP_PASSWORD"))
 
 	if err := mail.DialAndSend(msg); err != nil {
 		log.Printf("Unable to send email -> %v", err)

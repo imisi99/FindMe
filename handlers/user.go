@@ -15,7 +15,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -452,6 +451,7 @@ func ViewUser(ctx *gin.Context) {
 // send otp for password reset endpoint 
 func ForgotPassword(ctx *gin.Context) {
 	db := database.GetDB()
+	rdb := database.GetRDB()
 
 	var payload schema.ForgotPasswordEmail
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -466,19 +466,12 @@ func ForgotPassword(ctx *gin.Context) {
 	}
 
 	token := core.GenerateOTP()
-
-	otp := model.OTP {
-		Token: token,
-		ExpiresAt: time.Now().Add(10 * time.Minute),
-		UserID: user.ID,
-	}
-
-	if err := db.Create(&otp).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to add otp to database"})
+	if err := core.SetOTP(rdb, token, user.ID); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store otp"})
 		return
 	}
 
-	if err := core.SendForgotPassEmail(user.Email, token); err != nil {
+	if err := core.SendForgotPassEmail(user.Email, user.UserName, token); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to send email"})
 		return
 	}
@@ -489,7 +482,7 @@ func ForgotPassword(ctx *gin.Context) {
 
 // verify otp for password reset endpoint
 func VerifyOTP(ctx *gin.Context) {
-	db := database.GetDB()
+	rdb := database.GetRDB()
 
 	var payload schema.VerifyOTP
 
@@ -498,16 +491,9 @@ func VerifyOTP(ctx *gin.Context) {
 		return
 	}
 
-	var token model.OTP
-	if err := db.Where("token = ?", payload.Token).First(&token); err != nil {
+	token, err := core.GetOTP(rdb, payload.Token)
+	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"message": "Invalid token."})
-		return
-	}
-
-	exp := token.ExpiresAt.After(time.Now())
-
-	if token.IsUsed || exp {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Expired token."})
 		return
 	}
 
@@ -517,6 +503,7 @@ func VerifyOTP(ctx *gin.Context) {
 		return
 	}
 
+	
 	ctx.JSON(http.StatusOK, gin.H{"message": jwt})
 }
 
@@ -609,6 +596,45 @@ func UpdateUserInfo(ctx *gin.Context) {
 	}
 	
 	ctx.JSON(http.StatusAccepted, gin.H{"message": "User profile updated successfully."})
+}
+
+
+// Update user password endpoint
+func UpdateUserPassword(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid := ctx.GetUint("userID")
+	tp := ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	var user model.User
+	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
+		return
+	}
+
+	var payload schema.ResetPassword
+	if err := ctx.BindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload."})
+		return
+	}
+
+	hashed, err := core.HashPassword(payload.Password)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate hash for user password"})
+		return
+	}
+	user.Password = hashed
+
+	if err := db.Save(&user).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user password."})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"message": "User password updated successfully."})
 }
 
 

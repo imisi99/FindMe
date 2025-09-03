@@ -74,3 +74,8 @@ type VerifyOTP struct {
 type ResetPassword struct {
 	Password 	string		`json:"password" binding:"required,min=8"`
 }
+
+
+type OTPInfo struct {
+	UserID	uint
+}
