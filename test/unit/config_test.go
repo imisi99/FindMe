@@ -2,6 +2,7 @@ package unit
 
 import (
 	"findme/core"
+	"findme/database"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,7 @@ func TestValidateJWT(t *testing.T) {
 
 
 func TestAuthorization(t *testing.T) {
-	db := getTestDB()
+	db := database.GetDB()
 	_, err := core.Authorization(db, "Imisioluwa23", "Password")
 
 	assert.Nil(t, err)
@@ -31,7 +32,7 @@ func TestAuthorization(t *testing.T) {
 
 
 func TestFailedAuthorization(t *testing.T) {
-	db := getTestDB()
+	db := database.GetDB()
 	_, err := core.Authorization(db, "Imisioluwa", "Password..")
 
 	assert.Contains(t, err.Error(), "record not found")

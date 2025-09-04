@@ -16,13 +16,14 @@ import (
 	"gorm.io/gorm"
 )
 
+
 // Helper func for checking and updating skills
-func checkSkills(db *gorm.DB, rdb *redis.Client, payload *schema.NewPostRequest) ([]*model.Skill, error) {
+func checkSkills(db *gorm.DB, rdb *redis.Client, payload []string) ([]*model.Skill, error) {
 	skills := core.RetrieveCachedSkills(rdb)
 	
 	fmt.Println(skills)
 	var newSkills, allskills []*model.Skill
-	for _, skill := range payload.Tags {
+	for _, skill := range payload {
 		id , exists := skills[strings.ToLower(skill)] 
 		if !exists {
 			newSkills = append(newSkills, &model.Skill{Name: skill})
@@ -36,7 +37,7 @@ func checkSkills(db *gorm.DB, rdb *redis.Client, payload *schema.NewPostRequest)
 		if err := db.Create(&newSkills).Error; err != nil {   
 			return nil, err
 		}
-		core.AddNewSkillToCache(rdb, newSkills)
+		core.AddNewSkillToCache(rdb, newSkills, skills)
 	}
 
 	allskills = append(allskills, newSkills...)
@@ -98,7 +99,7 @@ func ViewPost(ctx *gin.Context) {
 	var post model.Post
 	var result schema.DetailedPostResponse
 
-	if err := db.Preload("Tags").Preload("User").Where("id = ?", id).First(&post); err != nil {
+	if err := db.Preload("Tags").Preload("User").Where("id = ?", id).First(&post).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
 		return
 	}
@@ -134,7 +135,7 @@ func CreatePost(ctx *gin.Context) {
 		return
 	}
 
-	allskills, err := checkSkills(db, rdb, &payload)
+	allskills, err := checkSkills(db, rdb, payload.Tags)
 
 	if err != nil {
 		log.Printf("An error occured while trying to add a new skill to db %v", err)
@@ -195,7 +196,7 @@ func EditPost(ctx *gin.Context) {
 		return
 	}
 
-	allskills, err := checkSkills(db, rdb, &payload)
+	allskills, err := checkSkills(db, rdb, payload.Tags)
 	if err != nil {
 		log.Printf("An error occured while trying to add a new skill to db %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Error while trying to add new skills to db"})

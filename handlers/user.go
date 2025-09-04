@@ -17,11 +17,13 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // Sign up endpoint for user
 func AddUser(ctx *gin.Context) {
 	db := database.GetDB()
+	rdb := database.GetRDB()
 
 	var payload schema.SignupRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -40,42 +42,18 @@ func AddUser(ctx *gin.Context) {
 			return
 		}
 	}
-
-	// Expensive operation for adding new skills to database
-	var existingSkills []*model.Skill
-	for i := range payload.Skills {
-		payload.Skills[i] = strings.ToLower(payload.Skills[i])
-	}
 	
-	db.Where("name IN ?", payload.Skills).Find(&existingSkills)
-
-	existingSkillSet := make(map[string]bool)
-	for _, name := range existingSkills {
-		existingSkillSet[name.Name] = true
+	allskills, err := checkSkills(db, rdb, payload.Skills)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create the skills for the user"})
+		return
 	}
 
-	var newSkill []*model.Skill
-	for _, skills := range payload.Skills {
-		if _, exist := existingSkillSet[skills]; !exist {
-			newSkill = append(newSkill, &model.Skill{Name: skills})
-		}
-	}
-
-	if len(newSkill) > 0 {
-		if err := db.Create(newSkill).Error; err != nil {
-			ctx.JSON((http.StatusInternalServerError), gin.H{"message": "Failed to add new skills."})
-			return			
-		}
-	}
-
-	// Adding the new user to the database
 	hashedPassword, err := core.HashPassword(payload.Password)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to encrypt the user password."})
 		return
 	}
-
-	allskills := append(newSkill, existingSkills...)
 
 	user := model.User{
 		FullName: payload.FullName,
@@ -467,6 +445,7 @@ func ForgotPassword(ctx *gin.Context) {
 
 	token := core.GenerateOTP()
 	if err := core.SetOTP(rdb, token, user.ID); err != nil {
+		log.Printf("Failed to store token in redis -> %s", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store otp"})
 		return
 	}
@@ -493,6 +472,7 @@ func VerifyOTP(ctx *gin.Context) {
 
 	token, err := core.GetOTP(rdb, payload.Token)
 	if err != nil {
+		log.Println(err)
 		ctx.JSON(http.StatusNotFound, gin.H{"message": "Invalid token."})
 		return
 	}
@@ -504,7 +484,7 @@ func VerifyOTP(ctx *gin.Context) {
 	}
 
 	
-	ctx.JSON(http.StatusOK, gin.H{"message": jwt})
+	ctx.JSON(http.StatusOK, gin.H{"message": "otp verified", "token": jwt})
 }
 
 
@@ -546,7 +526,7 @@ func ResetPassword(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "password reset successfully."})	
+	ctx.JSON(http.StatusAccepted, gin.H{"message": "password reset successfully."})	
 }
 
 
@@ -678,6 +658,7 @@ func UpdateUserAvaibilityStatus(ctx *gin.Context) {
 // Update user skills endpoint
 func UpdateUserSkills(ctx *gin.Context) {
 	db := database.GetDB()
+	rdb := database.GetRDB()
 
 	uid := ctx.GetUint("userID")
 	tp := ctx.GetString("purpose")
@@ -699,35 +680,13 @@ func UpdateUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	for i := range payload.Skills {
-		payload.Skills[i] = strings.ToLower(payload.Skills[i])
+	allskills, err := checkSkills(db, rdb, payload.Skills)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user skills."})
+		return
 	}
-
-	// Expensive operation of updating skills 
-	var existingSkills []*model.Skill
-	db.Where("name IN ?", payload.Skills).Find(&existingSkills)
-
-	existingSkillSet := make(map[string]bool)
-	for _, skill := range existingSkills {
-		existingSkillSet[skill.Name] = true
-	}
-
-	var newSkill []*model.Skill
-	for _, skill := range payload.Skills {
-		if _, exists := existingSkillSet[skill]; !exists {
-			newSkill = append(newSkill, &model.Skill{Name: skill})
-		}
-	}
-
-	if len(newSkill) > 0 {
-		if err := db.Create(newSkill).Error; err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user skills."})
-			return
-		}
-	}
-
-	newSkill = append(newSkill, existingSkills...)
-	if err := db.Model(&user).Association("Skills").Replace(newSkill); err != nil {
+	
+	if err := db.Model(&user).Association("Skills").Replace(allskills); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user skills."})
 		return
 	}
@@ -739,6 +698,7 @@ func UpdateUserSkills(ctx *gin.Context) {
 // Delete user skills endpoint
 func DeleteUserSkills(ctx *gin.Context) {
 	db := database.GetDB()
+	rdb := database.GetRDB()
 
 	uid := ctx.GetUint("userID")
 	tp := ctx.GetString("purpose")
@@ -760,16 +720,13 @@ func DeleteUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	deletedSkills := make(map[string]bool)
-	for _, skill := range payload.Skills {
-		deletedSkills[strings.ToLower(skill)] = true
-	}
-
+	skills := core.RetrieveCachedSkills(rdb)
 	var skillsToDelete []*model.Skill
-	for _, skill := range user.Skills {
-		if _, exists := deletedSkills[skill.Name]; exists {
-			skillsToDelete = append(skillsToDelete, skill)
-		}
+	for _, skill := range payload.Skills {
+		skillLower := strings.ToLower(skill)
+		if id, exists := skills[skillLower]; exists {
+			skillsToDelete = append(skillsToDelete, &model.Skill{Name: skillLower, Model: gorm.Model{ID: id}})
+		}	
 	}
 
 	if err := db.Model(&user).Association("Skills").Delete(skillsToDelete); err != nil {

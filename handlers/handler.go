@@ -15,11 +15,11 @@ func SetupHandler(router *gin.Engine) {
 	// User Endpoints
 	router.POST("/signup", AddUser)
 	router.POST("/login", VerifyUser)
+
 	router.GET("/github-signup", GitHubAddUser)
 	router.GET("/api/v1/auth/github/callback", GitHubAddUserCallback)
 	router.GET("/forgot-password", ForgotPassword)
 	router.GET("/verify-otp", VerifyOTP)
-
 
 	protectedUserRoutes := router.Group("/api/v1/user")
 	protectedPostRoutes := router.Group("/api/v1/post")
@@ -27,19 +27,19 @@ func SetupHandler(router *gin.Engine) {
 	protectedPostRoutes.Use(core.Authentication())
 
 	protectedUserRoutes.GET("/profile", GetUserInfo)
+	protectedUserRoutes.GET("/view/:name", ViewUser)
 	protectedUserRoutes.PUT("/update-profile", UpdateUserInfo)
+	protectedUserRoutes.PATCH("/update-password", UpdateUserPassword)
 	protectedUserRoutes.PATCH("/update-availability/:status", UpdateUserAvaibilityStatus)
 	protectedUserRoutes.PATCH("/update-skills", UpdateUserSkills)
-	protectedUserRoutes.PATCH("/update-password", UpdateUserPassword)
 	protectedUserRoutes.PATCH("/reset-password", ResetPassword)
 	protectedUserRoutes.DELETE("/delete-skills", DeleteUserSkills)
 	protectedUserRoutes.DELETE("/delete-user", DeleteUserAccount)
-	protectedUserRoutes.GET("/view/:name", ViewUser)
-	
 
+	protectedPostRoutes.GET("/posts/all", GetPosts)
+	protectedPostRoutes.GET("/:id", ViewPost)
 	protectedPostRoutes.POST("/create", CreatePost)
 	protectedPostRoutes.PUT("/edit/:id", EditPost)
-	protectedPostRoutes.GET("/posts/all", GetPosts)
 	protectedPostRoutes.PATCH("/edit-view/:id", EditPostView)
 	protectedPostRoutes.DELETE("/delete/:id", DeletePost)
 }

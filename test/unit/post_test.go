@@ -19,13 +19,24 @@ var (
 	}
 )
 
-func TestCreatePost(t *testing.T) {
-	getTestDB()
-	mock := getTestRDB()
 
-	mock.ExpectGet("skills").SetVal(`{}`)
+
+func TestGetPost(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/post/1", nil)
 	tokenString, _ = core.GenerateJWT(1, "login", core.JWTExpiry)
-	router := getTestRouter()
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "Working on a platform for finding developers for contributive project")
+}
+
+
+func TestCreatePost(t *testing.T) {
+	mock.ExpectGet("skills").SetVal(`{"frontend-dev": 1}`)
+	
 
 	payload := postPayload
 
@@ -45,17 +56,14 @@ func TestCreatePost(t *testing.T) {
 
 
 func TestEditPost(t *testing.T) {
-	getTestDB()
-	mock := getTestRDB()
-	mock.ExpectGet("skills").SetVal(`{"ml": 1, "backend": 2}`)
-	router := getTestRouter()
+	mock.ExpectGet("skills").SetVal(`{"frontend-dev": 1, "ml": 2, "backend": 3}`)
 
 	payload := postPayload
 	payload["description"] = "Testing the edit post endpoint"
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPut, "/api/v1/post/edit/1", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPut, "/api/v1/post/edit/2", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -68,9 +76,6 @@ func TestEditPost(t *testing.T) {
 
 
 func TestGetPosts(t *testing.T) {
-	getTestDB()
-	router := getTestRouter()
-
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/post/posts/all", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -79,13 +84,11 @@ func TestGetPosts(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "Testing the edit post endpoint")
+	assert.Contains(t, w.Body.String(), "Working on a platform for finding developers for contributive project")
 }
 
 
 func TestEditPostView(t *testing.T) {
-	getTestDB()
-	router := getTestRouter()
-
 	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/post/edit-view/1", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -93,22 +96,15 @@ func TestEditPostView(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
-	assert.Contains(t, w.Body.String(), "")
 }
 
 
 func TestDeletePost(t *testing.T) {
-	getTestDB()
-	router := getTestRouter()
-
-	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/post/delete/1", nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/post/delete/2", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
-	assert.Contains(t, w.Body.String(), "")
 }
-
-

@@ -61,6 +61,8 @@ htmlBody := fmt.Sprintf(`
 	</body>
 	</html>`, token, username)
 
+	if os.Getenv("Testing") == "True" {return nil} // For testing the forgot password endpoint
+
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", os.Getenv("EMAIL"))
 	msg.SetHeader("To", email)
