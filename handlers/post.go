@@ -5,7 +5,6 @@ import (
 	"findme/database"
 	"findme/model"
 	"findme/schema"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,33 +15,53 @@ import (
 	"gorm.io/gorm"
 )
 
-
 // Helper func for checking and updating skills
-func checkSkills(db *gorm.DB, rdb *redis.Client, payload []string) ([]*model.Skill, error) {
-	skills := core.RetrieveCachedSkills(rdb)
+func CheckAndUpdateSkills(db *gorm.DB, rdb *redis.Client, payload []string) ([]*model.Skill, error) {
+	skills, err := core.RetrieveCachedSkills(rdb, payload)
 	
-	fmt.Println(skills)
-	var newSkills, allskills []*model.Skill
-	for _, skill := range payload {
-		id , exists := skills[strings.ToLower(skill)] 
-		if !exists {
-			newSkills = append(newSkills, &model.Skill{Name: skill})
-			continue
-		} 
-		allskills = append(allskills, &model.Skill{Name: skill, Model: gorm.Model{ID: id}})
-	}
+	if err != nil { 																		// Falling back to the db if the redis fails 
+		var existingSkills []*model.Skill
 
-
-	if len(newSkills) > 0 {
-		if err := db.Create(&newSkills).Error; err != nil {   
+		if err := db.Where("name IN ?", payload).Find(&existingSkills).Error; err != nil{
 			return nil, err
 		}
-		core.AddNewSkillToCache(rdb, newSkills, skills)
+
+		existingSkillSet := make(map[string]bool)
+		for _, name := range existingSkills {existingSkillSet[name.Name] = true}
+
+		var newSkill []*model.Skill
+		for _, skill := range payload {
+			if _, exists := existingSkillSet[skill]; !exists {
+				newSkill = append(newSkill, &model.Skill{Name: skill})
+			}
+		}
+
+		if len(newSkill) > 0 {
+			if err := db.Create(&newSkill).Error; err != nil {
+				return nil, err
+			}
+		}
+		newSkill = append(newSkill, existingSkills...)
+		return newSkill, nil
 	}
 
-	allskills = append(allskills, newSkills...)
+	var newskills, allskills []*model.Skill
+	for _, skill := range payload {
+		if id, exists := skills[skill]; exists {
+			allskills = append(allskills, &model.Skill{Name: skill, Model: gorm.Model{ID: id}})
+			continue
+		}
+		newskills = append(newskills, &model.Skill{Name: skill})
+	}
 
-	return allskills, nil
+	if len(newskills) > 0 {
+		if err := db.Create(&newskills).Error; err != nil {
+			return nil, err
+		}
+		core.AddNewSkillToCache(rdb, newskills)
+	}
+	allskills = append(allskills, newskills...)
+	return allskills, nil 
 } 
 
 
@@ -135,11 +154,11 @@ func CreatePost(ctx *gin.Context) {
 		return
 	}
 
-	allskills, err := checkSkills(db, rdb, payload.Tags)
-
+	for i := range payload.Tags {payload.Tags[i] = strings.ToLower(payload.Tags[i])}
+	allskills, err := CheckAndUpdateSkills(db, rdb, payload.Tags)
 	if err != nil {
 		log.Printf("An error occured while trying to add a new skill to db %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Error while trying to add new skills to db"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create new post."})
 		return
 	}
 
@@ -196,17 +215,19 @@ func EditPost(ctx *gin.Context) {
 		return
 	}
 
-	allskills, err := checkSkills(db, rdb, payload.Tags)
+	for i := range payload.Tags {payload.Tags[i] = strings.ToLower(payload.Tags[i])}
+	allskills, err := CheckAndUpdateSkills(db, rdb, payload.Tags)
 	if err != nil {
 		log.Printf("An error occured while trying to add a new skill to db %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Error while trying to add new skills to db"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update post."})
 		return
 	}
 
 	post.Description = payload.Description
 
 	if err := db.Model(&post).Association("Tags").Replace(allskills); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update tags on post"})
+		log.Printf("An error occured while trying to model skill tag %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update post."})
 		return
 	}
 

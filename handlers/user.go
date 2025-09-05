@@ -43,10 +43,15 @@ func AddUser(ctx *gin.Context) {
 		}
 	}
 	
-	allskills, err := checkSkills(db, rdb, payload.Skills)
+	var allskills []*model.Skill
+	var err error
+	if len(payload.Skills) > 0 {
+		for i := range payload.Skills {payload.Skills[i] = strings.ToLower(payload.Skills[i])}
+		allskills, err = CheckAndUpdateSkills(db, rdb, payload.Skills)
+	}
+
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create the skills for the user"})
-		return
+		log.Printf("Failed to create skills for new user -> %s", err)
 	}
 
 	hashedPassword, err := core.HashPassword(payload.Password)
@@ -472,7 +477,6 @@ func VerifyOTP(ctx *gin.Context) {
 
 	token, err := core.GetOTP(rdb, payload.Token)
 	if err != nil {
-		log.Println(err)
 		ctx.JSON(http.StatusNotFound, gin.H{"message": "Invalid token."})
 		return
 	}
@@ -482,7 +486,6 @@ func VerifyOTP(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create jwt token"})
 		return
 	}
-
 	
 	ctx.JSON(http.StatusOK, gin.H{"message": "otp verified", "token": jwt})
 }
@@ -680,7 +683,8 @@ func UpdateUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	allskills, err := checkSkills(db, rdb, payload.Skills)
+	for i := range payload.Skills {payload.Skills[i] = strings.ToLower(payload.Skills[i])}
+	allskills, err := CheckAndUpdateSkills(db, rdb, payload.Skills)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user skills."})
 		return
@@ -720,13 +724,20 @@ func DeleteUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	skills := core.RetrieveCachedSkills(rdb)
+	for i := range payload.Skills {payload.Skills[i] = strings.ToLower(payload.Skills[i])}
+	skills, err := core.RetrieveCachedSkills(rdb, payload.Skills)
 	var skillsToDelete []*model.Skill
-	for _, skill := range payload.Skills {
-		skillLower := strings.ToLower(skill)
-		if id, exists := skills[skillLower]; exists {
-			skillsToDelete = append(skillsToDelete, &model.Skill{Name: skillLower, Model: gorm.Model{ID: id}})
-		}	
+	if err != nil {																								// If redis fails fallback to db for verifying the skillstodelete
+		if err := db.Where("name IN ?", payload.Skills).Find(&skillsToDelete).Error; err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete skills"})
+			return
+		}
+	}else {
+		for _, skill := range payload.Skills {
+			if id, exists := skills[skill]; exists {
+				skillsToDelete = append(skillsToDelete, &model.Skill{Name: skill, Model: gorm.Model{ID: id}})
+			}	
+		}
 	}
 
 	if err := db.Model(&user).Association("Skills").Delete(skillsToDelete); err != nil {

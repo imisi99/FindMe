@@ -8,6 +8,7 @@ import (
 	"findme/handlers"
 	"findme/model"
 	"findme/schema"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -120,12 +121,10 @@ var (
 
 
 func TestSignup(t *testing.T) {
-	mock.ExpectGet("skills").SetVal(`{"frontend-dev": 1, "ml": 2, "backend": 3}`)
 
 	payload := defPayload
 
 	body, _ := json.Marshal(payload)
-
 
 	req, _ := http.NewRequest(http.MethodPost, "/signup", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -398,11 +397,16 @@ func TestFailedUpdateAvailibilityStatus(t *testing.T) {
 
 
 func TestUpdateSkills(t *testing.T) {
-	mock.ExpectGet("skills").SetVal(`{"frontend-dev": 1, "ml": 2, "backend": 3}`)
-
 	payload := map[string][]string{
 		"skills": {"rust", "java"},
 	}
+
+	value := make(map[string]string, 0)
+	for i := range payload["skills"] {
+		value[payload["skills"][i]] = fmt.Sprintf("%d", i+4)
+	}
+	mock.ExpectHMGet("skills", payload["skills"]...).SetVal([]any{nil, nil})
+	mock.ExpectHSet("skills", value).SetVal(int64(len(value)))
 
 	body, _ := json.Marshal(payload)
 
@@ -419,11 +423,11 @@ func TestUpdateSkills(t *testing.T) {
 
 
 func TestDeleteSkills(t *testing.T) {
-	mock.ExpectGet("skills").SetVal(`{"frontend-dev": 1, "ml": 2, "backend": 3, "rust": 4, "java": 5}`)
 	payload := map[string][]string{
 		"skills": {"rust"},
 	}
 
+	mock.ExpectHMGet("skills", payload["skills"]...).SetVal([]any{"4"})
 	body, _ := json.Marshal(payload)
 
 	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-skills", bytes.NewBuffer(body))

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"findme/core"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -35,12 +36,19 @@ func TestGetPost(t *testing.T) {
 
 
 func TestCreatePost(t *testing.T) {
-	mock.ExpectGet("skills").SetVal(`{"frontend-dev": 1}`)
-	
-
 	payload := postPayload
 
 	body, _ := json.Marshal(payload)
+
+	fields := payload["tags"]
+	field := fields.([]string)
+	mock.ExpectHMGet("skills", field...).SetVal([]any{nil, nil})
+
+	value := make(map[string]string, 0)
+	for i, tag := range field {
+		value[tag] = fmt.Sprintf("%d", i+2)
+	}
+	mock.ExpectHSet("skills", value).SetVal(int64(len(value)))
 
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/post/create", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -56,13 +64,15 @@ func TestCreatePost(t *testing.T) {
 
 
 func TestEditPost(t *testing.T) {
-	mock.ExpectGet("skills").SetVal(`{"frontend-dev": 1, "ml": 2, "backend": 3}`)
 
 	payload := postPayload
 	payload["description"] = "Testing the edit post endpoint"
 
 	body, _ := json.Marshal(payload)
 
+	fields := payload["tags"]
+	field := fields.([]string)
+	mock.ExpectHMGet("skills", field...).SetVal([]any{"2", "3"})
 	req, _ := http.NewRequest(http.MethodPut, "/api/v1/post/edit/2", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)

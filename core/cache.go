@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"findme/model"
 	"findme/schema"
+	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"time"
@@ -20,54 +22,52 @@ func CacheSkills(db *gorm.DB, rdb *redis.Client) {
 		log.Fatalf("An error occured while fetching skills from db -> %v", err)
 	}
 
-	skillName := make(map[string]uint, 0)
+	skillName := make(map[string]string, 0)
 
 	for _, skill := range skills {
-		skillName[skill.Name] = skill.ID
+		skillName[skill.Name] = fmt.Sprintf("%d", skill.ID)
 	}
 
-	data, _ := json.Marshal(skillName)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if _, err := rdb.Set(ctx, "skills", data, 0).Result(); err != nil {
-		log.Fatalf("An error occured while trying to set skills in redis -> %v", err)
+	if _, err := rdb.HSet(ctx, "skills", skillName).Result(); err != nil {
+		log.Printf("An error occured while trying to set skills in redis -> %v", err)
 	}
 }	
 
 
-func RetrieveCachedSkills(rdb *redis.Client) map[string]uint {
+func RetrieveCachedSkills(rdb *redis.Client, skills []string) (map[string]uint, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	val, err := rdb.Get(ctx, "skills").Result()
+	skill, err := rdb.HMGet(ctx, "skills", skills...).Result()
 	if err != nil {
-		log.Printf("Error retrieving cached skills: %v", err)
-		return nil
+		log.Printf("Failed to receive skills from redis-> %s", err)
+		return nil, err
 	}
 
-	var skills map[string]uint
-	if err := json.Unmarshal([]byte(val), &skills); err != nil {
-		log.Printf("Error unmarshalling cached skills: %v", err)
-		return nil
-	}
+	foundskills := make(map[string]uint, 0)
 
-	return skills
+	for i, val := range skill {
+		if val == nil {continue}
+		idstr := val.(string)
+		id, _ := strconv.ParseUint(idstr, 10, 64)
+		foundskills[skills[i]] = uint(id)
+	}
+	return foundskills, nil
 }
 
 
-func AddNewSkillToCache(rdb *redis.Client, newskills []*model.Skill, skills map[string]uint) {
-
+func AddNewSkillToCache(rdb *redis.Client, newskills []*model.Skill) {
+	skills := make(map[string]string, 0)
 	for _, skill := range newskills {
-		skills[strings.ToLower(skill.Name)] = skill.ID
+		skills[strings.ToLower(skill.Name)] = fmt.Sprintf("%d", skill.ID)
 	}
-
-	data, _ := json.Marshal(skills)
-
+ 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if _, err := rdb.Set(ctx, "skills", data, 0).Result(); err != nil {
+	if _, err := rdb.HSet(ctx, "skills", skills).Result(); err != nil {
 		log.Printf("An error occured while trying to set new skill in redis -> %v", err)
 	}
 }
@@ -81,7 +81,9 @@ func SetOTP(rdb *redis.Client, otp string, userID uint) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 	defer cancel()
 
-	if _, err := rdb.Get(ctx, otp).Result(); err != redis.Nil {return &CustomMessage{Detail: "Token already exists."}}
+	if _, err := rdb.Get(ctx, otp).Result(); err != redis.Nil {
+		return &CustomMessage{Detail: "Token already exists."}
+	}
 	if _, err := rdb.Set(ctx, otp, data, 10*time.Minute).Result(); err != nil {
 		log.Printf("An error occured while trying to set otp in redis -> %v", err)
 		return err
