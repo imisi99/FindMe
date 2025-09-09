@@ -323,6 +323,45 @@ func TestViewUserFriends(t *testing.T) {
 }
 
 
+func TestDeleteFriend(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-user-friend?id="+superUserName, nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
+
+func TestAddReqToTestDelete(t *testing.T) {
+	payload := map[string]string{
+		"username": superUserName,
+	}
+	body, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/user/send-user-req", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "Friend request sent successfully.")
+}
+
+
+func TestDeleteReq(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-friend-req?id="+superUserName, nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
+
 func TestForgotPassword(t *testing.T) {
 	otp := schema.OTPInfo{UserID: 2}
 	data, _ := json.Marshal(otp)
@@ -515,7 +554,6 @@ func TestDeleteSkills(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
-	assert.Contains(t, w.Body.String(), "")
 }
 
 
@@ -527,7 +565,6 @@ func TestDeleteUser(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
-	assert.Contains(t, w.Body.String(), "")
 }
 
 

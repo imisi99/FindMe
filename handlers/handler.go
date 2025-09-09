@@ -39,6 +39,8 @@ func SetupHandler(router *gin.Engine) {
 	protectedUserRoutes.PATCH("/reset-password", ResetPassword)
 	protectedUserRoutes.DELETE("/delete-skills", DeleteUserSkills)
 	protectedUserRoutes.DELETE("/delete-user", DeleteUserAccount)
+	protectedUserRoutes.DELETE("/delete-friend-req", DeleteSentReq)
+	protectedUserRoutes.DELETE("/delete-user-friend", DeleteUserFriend)
 
 	protectedPostRoutes.GET("/posts/all", GetPosts)
 	protectedPostRoutes.GET("/:id", ViewPost)

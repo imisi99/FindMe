@@ -97,7 +97,6 @@ func GetOTP(rdb *redis.Client, otp string) (*schema.OTPInfo, error) {
 	defer cancel()
 
 	val, err := rdb.Get(ctx, otp).Result()
-	log.Println(val, err)
 	if err != nil {return nil, redis.Nil}
 
 	var otpInfo schema.OTPInfo
