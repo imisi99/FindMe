@@ -19,7 +19,21 @@ type User struct {
 
 
 	// Relations:
-	Skills []*Skill 			`gorm:"many2many:user_skills"`
+	Skills  []*Skill 			`gorm:"many2many:user_skills"`
+	Posts 	[]*Post				`gorm:"foreignKey:UserID"`
+	Friends []*User				`gorm:"many2many:user_friends"`
+	FriendReq []*FriendReq		`gorm:"foreignKey:UserID"`
+	RecFriendReq []*FriendReq	`gorm:"foreignKey:FriendID"`
+}
+
+
+type UserFriend struct {
+	UserID     uint					`gorm:"primaryKey"`
+	FriendID   uint 				`gorm:"primaryKey"`
+
+	// Relations:
+	User	   User					`gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Friend	   User 				`gorm:"foreignKey:FriendID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 
@@ -32,6 +46,19 @@ type UserSkill struct {
 	User 		User			`gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
+
+type FriendReq struct {
+	gorm.Model
+	UserFriend
+	Status 		string 			`gorm:"not null;default:'pending'"`		
+	Message 	string			`gorm:"default:'Hey let's be friends'"`
+}
+
+
+const (
+	StatusAccepted = "accepted"
+	StatusRejected = "rejected"
+)
 
 func (u *User) BeforeDelete(tx *gorm.DB) (err error) {
 	if err := tx.Model(&Post{}).Where("user_id = ?", u.ID).Delete(&Post{}).Error; err != nil {return err}

@@ -431,6 +431,199 @@ func ViewUser(ctx *gin.Context) {
 }
 
 
+// Send friend request endpoint 
+func SendFriendReq(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid := ctx.GetUint("userID")
+	if uid == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	var payload schema.SendFriendReq
+	if err := ctx.BindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload"})
+		return
+	}
+
+	var friend, user model.User
+	if err := db.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		return
+	}
+
+	if err := db.Where("username = ?", payload.UserName).First(&friend).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		return
+	}
+
+	for _, fr := range user.Friends {
+		if fr.ID == friend.ID {
+			ctx.JSON(http.StatusConflict, gin.H{"message": "User is already your friend."})
+			return
+		}
+	}
+
+	if friend.ID == user.ID {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "You can't friend yourself."})
+		return
+	}
+
+	var existingreq model.FriendReq
+	if err := db.Where("user_id = ?", user.ID).Where("friend_id = ?", friend.ID).First(&existingreq).Error; err == nil {
+		ctx.JSON(http.StatusConflict, gin.H{"message": "You have to delete the previous request to this user to send another."})
+		return
+	}
+	if err := db.Where("user_id = ?", friend.ID).Where("friend_id = ?", user.ID).First(&existingreq).Error; err == nil {
+		ctx.JSON(http.StatusConflict, gin.H{"message": "This user has already sent you a request."})
+		return
+	}
+
+	req := model.FriendReq{
+		UserFriend: model.UserFriend{
+			UserID: user.ID,
+			FriendID: friend.ID,
+		},
+	}
+
+	if len(payload.Message) > 0 {req.Message = payload.Message}
+	
+	if err := db.Create(&req).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to send request."})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Friend request sent sucessfully."})
+}
+
+
+// View friend requests endpoint 
+func ViewFriendReq(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid := ctx.GetUint("userID")
+	if uid == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	var user model.User
+	if err := db.Preload("FriendReq.Friend").Preload("RecFriendReq.User").Where("id = ?", uid).First(&user).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		return
+	}
+
+	var sentRec, recReq []schema.FriendReqStatus
+	for _, fr := range user.FriendReq {
+		sentRec = append(sentRec, schema.FriendReqStatus{
+			Status: fr.Status,
+			Username: fr.Friend.UserName,
+			Message: fr.Message,
+		})
+	}
+
+	for _, fr := range user.RecFriendReq {
+		recReq = append(recReq, schema.FriendReqStatus{
+			Status: fr.Status,
+			Username: fr.User.UserName,
+			Message: fr.Message,
+		})
+	}
+	
+	ctx.JSON(http.StatusOK, gin.H{"sent_req": sentRec, "rec_req": recReq})
+}
+
+
+// Update friend request endpoint
+func UpdateFriendReqStatus(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid := ctx.GetUint("userID")
+	if uid == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	username, status := ctx.Query("id"), ctx.Query("status")
+
+	var user, friend model.User
+
+	if err := db.Preload("RecFriendReq").Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message":"User not found."})
+		return
+	}
+	if err := db.Preload("Friends").Where("username = ?", username).First(&friend).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "Friend not found."})
+		return
+	}
+
+	var userreq *model.FriendReq
+	for i := range user.RecFriendReq {
+		if user.RecFriendReq[i].UserID == friend.ID {
+			userreq = user.RecFriendReq[i]
+			break
+		}
+	}
+
+	switch status {
+		case model.StatusRejected:
+			if err := db.Model(userreq).Update("Status", model.StatusRejected).Error; err != nil {
+				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to reject request."})
+				return
+			}
+		case model.StatusAccepted:
+			if err := db.Transaction(func(tx *gorm.DB) error {
+				if err := tx.Unscoped().Delete(userreq).Error; err != nil {return err}
+
+				if err := tx.Model(&user).Association("Friends").Append(&friend); err != nil {return err}
+
+				if err := tx.Model(&friend).Association("Friends").Append(&user); err != nil {return err}
+
+				return nil
+			}); err != nil {
+				log.Println(err)
+				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update request status"})
+				return
+			}
+		default:
+			ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid status."})
+			return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"message": "Status updated successfully"})
+}
+
+
+// view all user friend endpoint 
+func ViewUserFriends(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid := ctx.GetUint("userID")
+	tp := ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	var user model.User
+	if err := db.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch user info"})
+		return
+	}
+
+	var friends []schema.ViewFriends
+	for _, fr := range user.Friends {
+		friends = append(friends, schema.ViewFriends{
+			Username: fr.UserName,
+			Bio: fr.Bio,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"friends": friends})
+}
+
+
 // send otp for password reset endpoint 
 func ForgotPassword(ctx *gin.Context) {
 	db := database.GetDB()

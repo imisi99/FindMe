@@ -91,6 +91,7 @@ func GetPosts(ctx *gin.Context) {
 			Tags: tags,
 			CreatedAt: post.CreatedAt,
 			UpdatedAt: post.UpdatedAt,
+			Views: post.Views,
 		})
 	}
 	ctx.JSON(http.StatusOK, reuslt)	 
@@ -132,6 +133,7 @@ func ViewPost(ctx *gin.Context) {
 	result.Description = post.Description
 	result.Tags = tags
 	result.Username = post.User.UserName
+	result.Views = post.Views
 
 	ctx.JSON(http.StatusOK, result)
 }
@@ -166,6 +168,7 @@ func CreatePost(ctx *gin.Context) {
 		Description: payload.Description,
 		Tags: allskills,
 		UserID: uid,
+		Views: 0,
 	}
 
 	if err := db.Create(&post).Error; err != nil {
@@ -318,4 +321,3 @@ func DeletePost(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusNoContent, nil)
 }
-

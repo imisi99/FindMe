@@ -28,7 +28,11 @@ func SetupHandler(router *gin.Engine) {
 
 	protectedUserRoutes.GET("/profile", GetUserInfo)
 	protectedUserRoutes.GET("/view/:name", ViewUser)
+	protectedUserRoutes.GET("/view-user-req", ViewFriendReq)
+	protectedUserRoutes.GET("/view-user-friend", ViewUserFriends)
+	protectedUserRoutes.POST("/send-user-req/:username", SendFriendReq)
 	protectedUserRoutes.PUT("/update-profile", UpdateUserInfo)
+	protectedUserRoutes.PATCH("/update-user-req", UpdateFriendReqStatus)
 	protectedUserRoutes.PATCH("/update-password", UpdateUserPassword)
 	protectedUserRoutes.PATCH("/update-availability/:status", UpdateUserAvaibilityStatus)
 	protectedUserRoutes.PATCH("/update-skills", UpdateUserSkills)

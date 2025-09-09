@@ -26,17 +26,6 @@ type LoginRequest struct {
 }
 
 
-type UserProfileResponse struct {
-	UserName	string		
-	FullName	string		
-	Email 		string
-	GitUserName *string
-	Bio 		string
-	Availability bool
-	Skills 		[]string
-}
-
-
 type UserProfileRequest struct {
 	UserName	string		`json:"username" binding:"required"`
 	FullName	string		`json:"fullname" binding:"required"`
@@ -73,6 +62,36 @@ type VerifyOTP struct {
 
 type ResetPassword struct {
 	Password 	string		`json:"password" binding:"required,min=8"`
+}
+
+
+type SendFriendReq struct {
+	Message 		string		`json:"message" binding:"omitempty,max=50"`
+	UserName 		string 		`json:"username" binding:"required"`
+}
+
+
+type UserProfileResponse struct {
+	UserName	string		
+	FullName	string		
+	Email 		string
+	GitUserName *string
+	Bio 		string
+	Availability bool
+	Skills 		[]string
+}
+
+
+type FriendReqStatus struct {
+	Username 		string
+	Message 		string
+	Status 			string
+}
+
+
+type ViewFriends struct {
+	Username	string
+	Bio 		string
 }
 
 

@@ -32,7 +32,7 @@ func Connect() {
 	}
 
 
-	err = db.AutoMigrate(&model.User{}, &model.Skill{}, &model.Post{}, &model.PostSkill{}, &model.UserSkill{})
+	err = db.AutoMigrate(&model.User{}, &model.Skill{}, &model.Post{}, &model.PostSkill{}, &model.UserSkill{}, &model.UserFriend{}, &model.FriendReq{})
 	if err != nil {
 		log.Fatalf("[ERROR] Failed to create tables -> %s", err.Error())
 	}
@@ -47,6 +47,11 @@ func Connect() {
 		log.Fatalf("[ERROR] Failed to create join table on user and skills -> %s", err.Error())
 	}
 
+	err = db.SetupJoinTable(&model.User{}, "Friends", &model.UserFriend{})
+	if err != nil {
+		log.Fatalf("[ERROR] Failed to create join table on user and friends -> %s", err.Error())
+	}
+	
 	dbClient = db
 
 	log.Println("[INFO] Connected to the database successfully.")

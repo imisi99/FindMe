@@ -13,6 +13,7 @@ type PostResponse struct {
 	Tags 		[]string
 	CreatedAt 	time.Time
 	UpdatedAt   time.Time
+	Views 		uint
 }
 
 
