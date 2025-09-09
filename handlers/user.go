@@ -488,13 +488,13 @@ func SendFriendReq(ctx *gin.Context) {
 	}
 
 	if len(payload.Message) > 0 {req.Message = payload.Message}
-	
+
 	if err := db.Create(&req).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to send request."})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Friend request sent sucessfully."})
+	ctx.JSON(http.StatusOK, gin.H{"message": "Friend request sent successfully."})
 }
 
 
@@ -549,7 +549,7 @@ func UpdateFriendReqStatus(ctx *gin.Context) {
 
 	var user, friend model.User
 
-	if err := db.Preload("RecFriendReq").Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
+	if err := db.Preload("RecFriendReq.User").Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"message":"User not found."})
 		return
 	}
@@ -558,12 +558,18 @@ func UpdateFriendReqStatus(ctx *gin.Context) {
 		return
 	}
 
+	log.Println(user.RecFriendReq)
 	var userreq *model.FriendReq
-	for i := range user.RecFriendReq {
-		if user.RecFriendReq[i].UserID == friend.ID {
-			userreq = user.RecFriendReq[i]
+	for _, fr := range user.RecFriendReq {
+		if fr.User.ID == friend.ID {
+			userreq = fr
 			break
 		}
+	}
+
+	if userreq == nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "Request not found."})
+		return
 	}
 
 	switch status {
@@ -592,6 +598,79 @@ func UpdateFriendReqStatus(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusAccepted, gin.H{"message": "Status updated successfully"})
+}
+
+
+// Delete sent request endpoint
+func DeleteSentReq(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid := ctx.GetUint("userID")
+	tp := ctx.GetString("purpuse")
+	if uid == 0 || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	username := ctx.Query("id")
+
+	var user, friend model.User
+	if err := db.Preload("FriendReq.Friend").Where("id = ?").First(&user).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		return
+	}
+	if err := db.Where("username = ?", username).First(&friend).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "Friend not found."})
+		return
+	}
+
+	log.Println(user.FriendReq)
+	var req *model.FriendReq
+	for _, fr := range user.FriendReq {
+		if fr.Friend.ID == friend.ID {
+			req = fr
+			break
+		}
+	}
+	if err := db.Unscoped().Delete(req).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete req."})
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, nil)
+}
+
+
+// Delete user from friend endpoint
+func DeleteUserFriend(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid := ctx.GetUint("userID")
+	tp := ctx.GetString("purpose")
+	if uid == 0 || tp == "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	username := ctx.Query("id")
+
+	var user, friend model.User
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := db.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {return err}
+
+		if err := db.Preload("Friends").Where("username = ?", username).First(&friend).Error; err != nil {return err}
+
+		if err := db.Model(&user).Association("Friends").Delete(&friend); err != nil {return err}
+
+		if err := db.Model(&friend).Association("Friends").Delete(&user); err != nil {return err}
+
+		return nil
+	}); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to remove friend"})
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, nil)
 }
 
 

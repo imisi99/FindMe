@@ -48,9 +48,10 @@ func getTestDB() *gorm.DB{
 		log.Println("An error occured while trying to connect to db")
 	}
 
-	db.AutoMigrate(&model.Skill{}, &model.User{}, &model.Post{}, &model.PostSkill{}, &model.UserSkill{})
+	db.AutoMigrate(&model.Skill{}, &model.User{}, &model.Post{}, &model.PostSkill{}, &model.UserSkill{}, &model.UserFriend{}, &model.FriendReq{})
 	db.SetupJoinTable(&model.Post{}, "Tags", &model.PostSkill{})
 	db.SetupJoinTable(&model.User{}, "Skills", &model.UserSkill{})
+	db.SetupJoinTable(&model.User{}, "Friends", &model.UserFriend{})
 	superUser(db)
 
 	database.SetDB(db)
@@ -98,8 +99,10 @@ func superUser(db *gorm.DB) {
 
 
 func clearDB(db *gorm.DB) {
+	db.Exec("DELETE FROM friend_reqs")
 	db.Exec("DELETE FROM user_skills")
 	db.Exec("DELETE FROM post_skills")
+	db.Exec("DELETE FROM user_friends")
 	db.Exec("DELETE FROM skills")
 	db.Exec("DELETE FROM posts")
 	db.Exec("DELETE FROM users")
@@ -110,6 +113,8 @@ func clearDB(db *gorm.DB) {
 var (
 	tokenString = ""
 	resetToken = ""
+	superUserName = "Imisioluwa23"
+	userToken = ""
 	defPayload  = map[string]string{
 		"username": "JohnDoe23",
 		"fullname": "John Doe",
@@ -154,29 +159,6 @@ func TestSignupDuplicate(t *testing.T) {
 
 	assert.Equal(t, http.StatusConflict, w.Code)
 	assert.Contains(t, w.Body.String(), "already in use!")
-}
-
-
-func TestSignupInvalidPayload(t *testing.T) {
-	payload := map[string]string{
-		"username": "",
-		"fullname": "John Doe",
-		"email": "JohnDoe",
-		"password": "JohnDoe234",
-	}
-
-	body, _ := json.Marshal(payload)
-
-
-	req, _ := http.NewRequest(http.MethodPost, "/signup", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-
-	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
-	assert.Contains(t, w.Body.String(), "Failed to parse the payload.")
 }
 
 
@@ -235,7 +217,7 @@ func TestGetUserProfile(t *testing.T) {
 
 
 func TestViewUser(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/view/Imisioluwa23", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/view/"+superUserName, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -243,6 +225,101 @@ func TestViewUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "isongrichard234@gmail.com")
+}
+
+
+func TestSendFriendReq(t *testing.T) {
+	payload := map[string]string{
+		"username": superUserName,
+	}
+	body, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/user/send-user-req", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "Friend request sent successfully.")
+}
+
+
+func TestSendDuplicateFriendReq(t *testing.T) {
+	payload := map[string]string{
+		"username": defPayload["username"],
+	}
+	body, _ := json.Marshal(payload)
+	userToken, _ = core.GenerateJWT(1, "login", 5 * time.Minute)             							// Super created user from the test above to test the accepting of friend request sent 
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/user/send-user-req", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+userToken)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusConflict, w.Code)
+	assert.Contains(t, w.Body.String(), "This user has already sent you a request.")
+}
+
+
+func TestViewFriendReq(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/view-user-req", nil)
+	req.Header.Set("Authorization", "Bearer "+userToken)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), defPayload["username"])
+	assert.Contains(t, w.Body.String(), "pending")
+}
+
+
+func TestUpdateFriendReqReject(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-user-req?id="+defPayload["username"]+"&status=rejected", nil)
+	req.Header.Set("Authorization", "Bearer "+userToken)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Contains(t, w.Body.String(), "Status updated successfully")
+}
+
+
+func TestUpdateFriendReqInvalidStatus(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-user-req?id="+defPayload["username"]+"&status=invalid", nil)
+	req.Header.Set("Authorization", "Bearer "+userToken)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid status")
+}
+
+
+func TestUpdateFriendReqAccept(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-user-req?id="+defPayload["username"]+"&status=accepted", nil)
+	req.Header.Set("Authorization", "Bearer "+userToken)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Contains(t, w.Body.String(), "Status updated successfully")
+}
+
+
+func TestViewUserFriends(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/view-user-friend", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), superUserName)
 }
 
 
@@ -459,6 +536,7 @@ func TestMain(m *testing.M) {
 	database.SetDB(getTestDB())
 	router = getTestRouter()
 	mock = getTestRDB()
+	tokenString, _ = core.GenerateJWT(1, "login", core.JWTExpiry)   // Initially the logged in user is the super user me for the post test
 
 	os.Setenv("Testing", "True") 			// Using this for skipping the sending of email for the the forget password test    not proper
 

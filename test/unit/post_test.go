@@ -3,7 +3,6 @@ package unit
 import (
 	"bytes"
 	"encoding/json"
-	"findme/core"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -21,10 +20,8 @@ var (
 )
 
 
-
 func TestGetPost(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/post/1", nil)
-	tokenString, _ = core.GenerateJWT(1, "login", core.JWTExpiry)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
