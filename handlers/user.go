@@ -89,9 +89,12 @@ func AddUser(ctx *gin.Context) {
 
 // Signing up user using github
 func GitHubAddUser(ctx *gin.Context) {
+	if _, err := ctx.Cookie("git-access-token"); err == nil {
+		ctx.Redirect(http.StatusTemporaryRedirect, "http://localhost:8080/github-signup")
+	}
 	state, err := core.GenerateState()
 	if err != nil {
-		ctx.JSON(500, gin.H{"message": "Failed to generate user state."})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate user state."})
 		return
 	}
 
@@ -104,50 +107,53 @@ func GitHubAddUser(ctx *gin.Context) {
 
 // Callback for the github signup endpoint
 func GitHubAddUserCallback(ctx *gin.Context) {
-	code := ctx.Query("code")
-	state := ctx.Query("state")
+	var token string
+	token, err := ctx.Cookie("git-access-token")
+	if err != nil {
+		code := ctx.Query("code")
+		state := ctx.Query("state")
 
-	if storedState, err := ctx.Cookie("state"); err != nil || state != storedState {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid or expired state"})
-		return
-	}
+		if storedState, err := ctx.Cookie("state"); err != nil || state != storedState {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid or expired state"})
+			return
+		}
 
-	data := url.Values{}
-	data.Add("client_id", os.Getenv("GIT_CLIENT_ID"))
-	data.Add("client_secret", os.Getenv("GIT_CLIENT_SECRET"))
-	data.Add("code", code)
+		data := url.Values{}
+		data.Add("client_id", os.Getenv("GIT_CLIENT_ID"))
+		data.Add("client_secret", os.Getenv("GIT_CLIENT_SECRET"))
+		data.Add("code", code)
 
-	req, _ := http.NewRequest(http.MethodPost,"https://github.com/login/oauth/access_token", bytes.NewBufferString(data.Encode()))
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-type", "application/x-www-form-urlencoded")
+		req, _ := http.NewRequest(http.MethodPost,"https://github.com/login/oauth/access_token", bytes.NewBufferString(data.Encode()))
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("Content-type", "application/x-www-form-urlencoded")
 
-	resp, err := core.HttpClient.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK{
-		log.Println("Failed to fetch access token from github ->", err.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to fetch access token from github"})
-		return
-	}
+		resp, err := core.HttpClient.Do(req)
+		if err != nil || resp.StatusCode != http.StatusOK{
+			ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to signup with github."})
+			return
+		}
 
-	defer resp.Body.Close()
+		defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 
-	var token struct {AccessToken string		`json:"access_token"`}
-	
-	if err := json.Unmarshal(body, &token); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse access token."})
-		return
+		var gitToken struct {AccessToken string	`json:"access_token"`}
+		
+		if err := json.Unmarshal(body, &gitToken); err != nil {
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse access token."})
+			return
+		}
+		token = gitToken.AccessToken
 	}
 
 	userReq, _ := http.NewRequest(http.MethodGet, "https://api.github.com/user", nil)
-	userReq.Header.Set("Authorization", "Bearer "+token.AccessToken)
+	userReq.Header.Set("Authorization", "Bearer "+token)
 
-	ctx.SetCookie("git-access-token", token.AccessToken, 60 * 60 * 24, "/", "", false, true)
+	ctx.SetCookie("git-access-token", token, 60 * 60 * 24, "/", "", false, true)
 
 	userResp, err := core.HttpClient.Do(userReq)
 	if err != nil || userResp.StatusCode != http.StatusOK {
-		log.Println("Failed to fetch user info from github ->", err.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to fetch user info."})
+		ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to signup with github."})
 		return
 	}
 	
@@ -162,12 +168,11 @@ func GitHubAddUserCallback(ctx *gin.Context) {
 
 	if user.Email == "" {
 		emailReq, _ := http.NewRequest(http.MethodGet, "https://api.github.com/user/emails", nil)
-		emailReq.Header.Set("Authorization", "Bearer "+token.AccessToken)
+		emailReq.Header.Set("Authorization", "Bearer "+token)
 		emailReq.Header.Set("Accept", "application/vnd.github+json")
 
 		emailResp, err := core.HttpClient.Do(emailReq)
 		if err != nil ||emailResp.StatusCode != http.StatusOK {
-			log.Println("Failed to fetch user email from github ->", err.Error())
 			ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to fetch user email."})
 			return
 		}
@@ -192,6 +197,7 @@ func GitHubAddUserCallback(ctx *gin.Context) {
 		}
 		if user.Email == "" {
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Unable to signup with github."})
+			return
 		}
 
 	}
@@ -201,16 +207,7 @@ func GitHubAddUserCallback(ctx *gin.Context) {
 	if err := db.Where("gitid = ?", user.ID).First(&existingUser).Error; err == nil {
 		userToken, err := core.GenerateJWT(existingUser.ID,"login", core.JWTExpiry)
 		if err != nil {
-			log.Println("Failed to generate jwt token for user -> ", err.Error())
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
-			return
-		}
-		if existingUser.GitUserName != &user.UserName {
-			existingUser.GitUserName = &user.UserName
-		}
-		if err := db.Save(&existingUser).Error; err != nil {
-			log.Println("Failed to update user git username -> ", err.Error())
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to log in user."})
 			return
 		}
 		ctx.JSON(http.StatusOK, gin.H{"token": userToken, "message": "Logged in successfully."})
@@ -218,33 +215,34 @@ func GitHubAddUserCallback(ctx *gin.Context) {
 	}
 
 	if err := db.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
-		if !existingUser.GitUser{
+		if !existingUser.GitUser {
 			existingUser.GitID = &user.ID
 			existingUser.GitUserName = &user.UserName
 			existingUser.GitUser = true
 
-			userToken, err := core.GenerateJWT(existingUser.ID, "login", core.JWTExpiry)
-			if err != nil {
-				log.Println("Failed to generate jwt token for user -> ", err.Error())
-				ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
+			if err := db.Save(&existingUser).Error; err != nil {
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to log in user."})
 				return
 			}
 
-			if err := db.Save(&existingUser).Error; err != nil {
-				log.Println("Failed to update user git identity -> ", err.Error())
-				ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to log in user."})
+			userToken, err := core.GenerateJWT(existingUser.ID, "login", core.JWTExpiry)
+			if err != nil {
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
 				return
 			}
 
 			ctx.JSON(http.StatusOK, gin.H{"token": userToken, "message": "Logged in successfully."})
 			return
+		}else {
+			ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": "Email already in use"})
+			return
 		}
 	}
 
-	var newUsername string
+	var newUsername = user.UserName
 	if err := db.Where("username = ?", user.UserName).First(&existingUser).Error; err == nil {
 		newUsername = core.GenerateUsername(existingUser.UserName)
-	}else {newUsername = user.UserName}
+	}
 
 	newUser := model.User{
 		FullName : user.FullName,
@@ -258,14 +256,12 @@ func GitHubAddUserCallback(ctx *gin.Context) {
 	}
 
 	if err := db.Create(&newUser).Error; err != nil {
-			log.Println("Failed to store user in db -> ", err.Error())
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to create user."})
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to signup with github."})
 			return
 	}
 	
 	userToken, err := core.GenerateJWT(newUser.ID, "login", core.JWTExpiry)
 	if err != nil {
-		log.Println("Failed to generate jwt token for user -> ", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
 		return
 	}
@@ -298,8 +294,7 @@ func VerifyUser(ctx *gin.Context) {
 func GetUserInfo(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	tp := ctx.GetString("purpose")
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -354,7 +349,6 @@ func GetUserInfo(ctx *gin.Context) {
 			user.GitUserName = &gitUser.UserName
 
 			if err := db.Save(&user).Error; err != nil{
-				log.Println("An error occured while trying to update user github username -> ", err.Error())
 				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "An error occured while trying to update user info."})
 				return
 			}
@@ -366,6 +360,7 @@ func GetUserInfo(ctx *gin.Context) {
 		FullName: user.FullName,
 		Email: user.Email,
 		GitUserName: gitusername,
+		Gituser: user.GitUser,
 		Bio: user.Bio,
 		Availability: user.Availability,
 		Skills: skills,
@@ -379,8 +374,8 @@ func GetUserInfo(ctx *gin.Context) {
 func ViewUser(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
@@ -392,7 +387,7 @@ func ViewUser(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := db.Preload("Skills").Where("username = ?", username).First(&user).Error; err != nil {
+	if err := db.Preload("Skills").Preload("Posts").Where("username = ?", username).First(&user).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
 		return
 	}
@@ -403,20 +398,15 @@ func ViewUser(ctx *gin.Context) {
 		UserName: user.UserName,
 		FullName: user.FullName,
 		GitUserName: user.GitUserName,
+		Gituser: user.GitUser,
 		Bio: user.Bio,
 		Email: user.Email,
 		Skills: skills,
 		Availability: user.Availability,
 	}
 
-	var userPosts []*model.Post
-	if err := db.Preload("Tags").Where("user_id = ?", user.ID).Find(&userPosts).Error; err != nil {
-		ctx.JSON(http.StatusMultipleChoices, gin.H{"message": "Unable to retrieve user posts.", "user": userprofile})
-		return
-	}
-
 	var posts []schema.PostResponse
-	for _, post := range userPosts {
+	for _, post := range user.Posts {
 		var tags []string
 		for _, tag := range post.Tags {tags = append(tags, tag.Name)}
 		posts = append(posts, schema.PostResponse{
@@ -435,8 +425,8 @@ func ViewUser(ctx *gin.Context) {
 func SendFriendReq(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
@@ -502,8 +492,8 @@ func SendFriendReq(ctx *gin.Context) {
 func ViewFriendReq(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
@@ -539,8 +529,8 @@ func ViewFriendReq(ctx *gin.Context) {
 func UpdateFriendReqStatus(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
@@ -603,8 +593,7 @@ func UpdateFriendReqStatus(ctx *gin.Context) {
 func DeleteSentReq(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	tp := ctx.GetString("purpose")
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
@@ -653,13 +642,13 @@ func DeleteUserFriend(ctx *gin.Context) {
 
 	var user, friend model.User
 	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := db.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {return err}
+		if err := tx.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {return err}
 
-		if err := db.Preload("Friends").Where("username = ?", username).First(&friend).Error; err != nil {return err}
+		if err := tx.Preload("Friends").Where("username = ?", username).First(&friend).Error; err != nil {return err}
 
-		if err := db.Model(&user).Association("Friends").Delete(&friend); err != nil {return err}
+		if err := tx.Model(&user).Association("Friends").Delete(&friend); err != nil {return err}
 
-		if err := db.Model(&friend).Association("Friends").Delete(&user); err != nil {return err}
+		if err := tx.Model(&friend).Association("Friends").Delete(&user); err != nil {return err}
 
 		return nil
 	}); err != nil {
@@ -675,8 +664,7 @@ func DeleteUserFriend(ctx *gin.Context) {
 func ViewUserFriends(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	tp := ctx.GetString("purpose")
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
@@ -764,9 +752,7 @@ func VerifyOTP(ctx *gin.Context) {
 func ResetPassword(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	tp := ctx.GetString("purpose")
-
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "reset" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user"})
 		return
@@ -806,9 +792,7 @@ func ResetPassword(ctx *gin.Context) {
 func UpdateUserInfo(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	tp := ctx.GetString("purpose")
-
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
@@ -855,8 +839,7 @@ func UpdateUserInfo(ctx *gin.Context) {
 func UpdateUserPassword(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	tp := ctx.GetString("purpose")
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
@@ -894,14 +877,11 @@ func UpdateUserPassword(ctx *gin.Context) {
 func UpdateUserAvaibilityStatus(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	tp := ctx.GetString("purpose")
-
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
-
 
 	var user model.User
 	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
@@ -932,9 +912,7 @@ func UpdateUserSkills(ctx *gin.Context) {
 	db := database.GetDB()
 	rdb := database.GetRDB()
 
-	uid := ctx.GetUint("userID")
-	tp := ctx.GetString("purpose")
-
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
@@ -971,11 +949,8 @@ func UpdateUserSkills(ctx *gin.Context) {
 // Delete user skills endpoint
 func DeleteUserSkills(ctx *gin.Context) {
 	db := database.GetDB()
-	rdb := database.GetRDB()
 
-	uid := ctx.GetUint("userID")
-	tp := ctx.GetString("purpose")
-
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
@@ -993,19 +968,12 @@ func DeleteUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	for i := range payload.Skills {payload.Skills[i] = strings.ToLower(payload.Skills[i])}
-	skills, err := core.RetrieveCachedSkills(rdb, payload.Skills)
+	userSkillSet := make(map[string]*model.Skill)
+	for _, skill := range user.Skills {userSkillSet[skill.Name] = skill}
 	var skillsToDelete []*model.Skill
-	if err != nil {																								// If redis fails fallback to db for verifying the skillstodelete
-		if err := db.Where("name IN ?", payload.Skills).Find(&skillsToDelete).Error; err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete skills"})
-			return
-		}
-	}else {
-		for _, skill := range payload.Skills {
-			if id, exists := skills[skill]; exists {
-				skillsToDelete = append(skillsToDelete, &model.Skill{Name: skill, Model: gorm.Model{ID: id}})
-			}	
+	for _, skill := range payload.Skills {
+		if delete, exists := userSkillSet[strings.ToLower(skill)]; exists {
+			skillsToDelete = append(skillsToDelete, delete)
 		}
 	}
 
@@ -1022,14 +990,11 @@ func DeleteUserSkills(ctx *gin.Context) {
 func DeleteUserAccount(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	tp := ctx.GetString("purpose")
-
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
-
 
 	var user model.User
 	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {

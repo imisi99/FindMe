@@ -76,6 +76,7 @@ type UserProfileResponse struct {
 	FullName	string		
 	Email 		string
 	GitUserName *string
+	Gituser 	bool
 	Bio 		string
 	Availability bool
 	Skills 		[]string

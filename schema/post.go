@@ -9,6 +9,7 @@ type NewPostRequest struct {
 
 
 type PostResponse struct {
+	ID			uint
 	Description string
 	Tags 		[]string
 	CreatedAt 	time.Time

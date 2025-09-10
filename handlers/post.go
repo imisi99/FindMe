@@ -69,24 +69,25 @@ func CheckAndUpdateSkills(db *gorm.DB, rdb *redis.Client, payload []string) ([]*
 func GetPosts(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
 
-	var posts []model.Post
+	var user model.User
 	var reuslt []schema.PostResponse
 
-	if err := db.Preload("Tags").Where("user_id = ?", uid).Find(&posts).Error; err != nil {
+	if err := db.Preload("Posts.Tags").Where("id = ?", uid).First(&user).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch user posts"})
 		return
 	}
 
-	for _, post := range posts {
+	for _, post := range user.Posts {
 		var tags []string
 		for _, tag := range post.Tags {tags = append(tags, tag.Name)}
 		reuslt = append(reuslt, schema.PostResponse{
+			ID: post.ID,
 			Description: post.Description,
 			Tags: tags,
 			CreatedAt: post.CreatedAt,
@@ -102,8 +103,8 @@ func GetPosts(ctx *gin.Context) {
 func ViewPost(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
@@ -144,8 +145,8 @@ func CreatePost(ctx *gin.Context) {
 	db := database.GetDB()
 	rdb := database.GetRDB()
 
-	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
@@ -186,16 +187,10 @@ func EditPost(ctx *gin.Context) {
 	db := database.GetDB()
 	rdb := database.GetRDB()
 
-	uid := ctx.GetUint("userID")
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	idStr := ctx.Param("id")
-	if uid == 0 {
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
-		return
-	}
-
-	var payload schema.NewPostRequest
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload."})
 		return
 	}
 
@@ -206,6 +201,12 @@ func EditPost(ctx *gin.Context) {
 	}
 
 	postID := uint(id)
+
+	var payload schema.NewPostRequest
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload."})
+		return
+	}
 
 	var post model.Post
 	if err := db.Where("id = ?", postID).First(&post).Error; err != nil {
@@ -228,15 +229,15 @@ func EditPost(ctx *gin.Context) {
 
 	post.Description = payload.Description
 
-	if err := db.Model(&post).Association("Tags").Replace(allskills); err != nil {
-		log.Printf("An error occured while trying to model skill tag %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update post."})
-		return
-	}
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&post).Association("Tags").Replace(allskills); err != nil {return err}
 
-	if err := db.Save(&post).Error; err != nil {
-		log.Printf("An error occured while trying to update post %v -> %v", post.ID, err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update post."})
+		if err := tx.Save(&post).Error; err != nil {return err}
+
+		return nil
+	}); err != nil {
+		log.Printf("An error occured during the editing of the post with id -> %v, -> %v", post.ID, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"messasge": "Failed to update post."})
 		return
 	}
 
@@ -248,8 +249,8 @@ func EditPost(ctx *gin.Context) {
 func EditPostView(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
@@ -286,8 +287,8 @@ func EditPostView(ctx *gin.Context) {
 func DeletePost(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	if uid == 0 {
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}

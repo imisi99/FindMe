@@ -543,7 +543,6 @@ func TestDeleteSkills(t *testing.T) {
 		"skills": {"rust"},
 	}
 
-	mock.ExpectHMGet("skills", payload["skills"]...).SetVal([]any{"4"})
 	body, _ := json.Marshal(payload)
 
 	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-skills", bytes.NewBuffer(body))
