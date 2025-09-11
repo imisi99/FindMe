@@ -17,6 +17,7 @@ var (
 		"description": "Testing the post creation endpoint.",
 		"tags": []string{"ml", "backend"},
 	}
+	defPostDescription = "Working on a platform for finding developers for contributive project"
 )
 
 
@@ -28,7 +29,7 @@ func TestGetPost(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Working on a platform for finding developers for contributive project")
+	assert.Contains(t, w.Body.String(), defPostDescription)
 }
 
 

@@ -5,12 +5,11 @@ import "gorm.io/gorm"
 
 type UserMessage struct {
 	gorm.Model
-	From 		uint 	
-	To			uint	
+	FromID		uint 	
+	ToID		uint	
 	Message 	string		
 
 	// Relations:
-	FromUser 	User	`gorm:"foreignKey:From;constraint:OnUpdated:CASCADE,OnDelete:CASCADE"`
-	ToUser		User	`gorm:"foreignKey:To;constraint:OnUpdated:CASCADE,OnDelete:CASCADE"`
+	FromUser 	User	`gorm:"foreignKey:FromID;constraint:OnUpdated:CASCADE,OnDelete:CASCADE"`
+	ToUser		User	`gorm:"foreignKey:ToID;constraint:OnUpdated:CASCADE,OnDelete:CASCADE"`
 }
-

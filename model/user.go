@@ -24,8 +24,8 @@ type User struct {
 	Friends []*User				`gorm:"many2many:user_friends"`
 	FriendReq []*FriendReq		`gorm:"foreignKey:UserID"`
 	RecFriendReq []*FriendReq	`gorm:"foreignKey:FriendID"`
-	Message 	[]*UserMessage	`gorm:"foreignKey:From"`
-	RecMessage  []*UserMessage	`gorm:"foreignKey:To"`
+	Message 	[]*UserMessage	`gorm:"foreignKey:FromID"`
+	RecMessage  []*UserMessage	`gorm:"foreignKey:ToID"`
 }
 
 

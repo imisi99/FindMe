@@ -60,10 +60,15 @@ type VerifyOTP struct {
 }
 
 
-type ResetPassword struct {
-	Password 	string		`json:"password" binding:"required,min=8"`
+type UpdatePassword struct {
+	FormerPassword string   `json:"password" binding:"required"`
+	Password 	string		`json:"new_password" binding:"required,min=8"`
 }
 
+
+type ResetPassword struct {
+	Password 		string 	`json:"password" binding:"required,min=8"`
+}
 
 type SendFriendReq struct {
 	Message 		string		`json:"message" binding:"omitempty,max=50"`

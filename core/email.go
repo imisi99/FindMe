@@ -59,7 +59,7 @@ htmlBody := fmt.Sprintf(`
 	</table>
 
 	</body>
-	</html>`, token, username)
+	</html>`, username, token)
 
 	if os.Getenv("Testing") == "True" {return nil} // For testing the forgot password endpoint
 

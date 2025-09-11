@@ -48,7 +48,17 @@ func getTestDB() *gorm.DB{
 		log.Println("An error occured while trying to connect to db")
 	}
 
-	db.AutoMigrate(&model.Skill{}, &model.User{}, &model.Post{}, &model.PostSkill{}, &model.UserSkill{}, &model.UserFriend{}, &model.FriendReq{})
+	db.AutoMigrate(
+		&model.Skill{},
+		&model.User{},
+		&model.Post{},
+		&model.PostSkill{},
+		&model.UserSkill{},
+		&model.UserFriend{},
+		&model.FriendReq{},
+		&model.UserMessage{},
+	)
+
 	db.SetupJoinTable(&model.Post{}, "Tags", &model.PostSkill{})
 	db.SetupJoinTable(&model.User{}, "Skills", &model.UserSkill{})
 	db.SetupJoinTable(&model.User{}, "Friends", &model.UserFriend{})
@@ -76,13 +86,24 @@ func superUser(db *gorm.DB) {
 		FullName: "Isong Imisioluwa",
 		UserName: "Imisioluwa23",
 		GitUserName: &gitusername,
+		GitUser: true,
 		Bio: "I am the super user",
 		Email: "isongrichard234@gmail.com",
 		Password: hashpass,
 		Availability: true,
 	}
 
-	db.Create(&super)
+	super1 := model.User{
+		FullName: "Isong Imisioluwa",
+		UserName: "knightmares23",
+		Email: "knightmares234@gmail.com",
+		Password: hashpass,
+		Availability: true,
+		Bio: "I'm the second super user",
+	}
+
+	users := []*model.User{&super, &super1}
+	db.Create(users)
 	skill := model.Skill{
 		Name: "frontend-dev",
 	}
@@ -94,7 +115,10 @@ func superUser(db *gorm.DB) {
 		Tags: []*model.Skill{&skill},
 	}
 
+	log.Println(super.ID, super1.ID)
 	db.Create(&post)
+	db.Model(&super).Association("Friends").Append(&super1)
+	db.Model(&super1).Association("Friends").Append(&super)
 }
 
 
@@ -103,6 +127,7 @@ func clearDB(db *gorm.DB) {
 	db.Exec("DELETE FROM user_skills")
 	db.Exec("DELETE FROM post_skills")
 	db.Exec("DELETE FROM user_friends")
+	db.Exec("DELETE FROM user_messages")
 	db.Exec("DELETE FROM skills")
 	db.Exec("DELETE FROM posts")
 	db.Exec("DELETE FROM users")
@@ -114,6 +139,7 @@ var (
 	tokenString = ""
 	resetToken = ""
 	superUserName = "Imisioluwa23"
+	superUserName1 = "knightmares23"
 	userToken = ""
 	defPayload  = map[string]string{
 		"username": "JohnDoe23",
@@ -363,7 +389,7 @@ func TestDeleteReq(t *testing.T) {
 
 
 func TestForgotPassword(t *testing.T) {
-	otp := schema.OTPInfo{UserID: 2}
+	otp := schema.OTPInfo{UserID: 3}
 	data, _ := json.Marshal(otp)
 
 	mock.Regexp().ExpectGet("[0-9]{6}").SetErr(redis.Nil)
@@ -387,7 +413,7 @@ func TestForgotPassword(t *testing.T) {
 
 
 func TestVerifyOPT(t *testing.T) {
-	mock.ExpectGet("123456").SetVal(`{"UserID": 2}`)
+	mock.ExpectGet("123456").SetVal(`{"UserID": 3}`)
 	payload := map[string]string{
 		"otp": "123456",
 	}
@@ -471,7 +497,8 @@ func TestUpdateuserProfileDuplicate(t *testing.T){
 
 func TestUpdateuserPassword(t *testing.T) {
 	payload := map[string]string{
-		"password": "Johndoe12.",
+		"password": "johndoe66.",
+		"new_password": "Johndoe12.",
 	}
 
 	body, _ := json.Marshal(payload)
@@ -485,6 +512,26 @@ func TestUpdateuserPassword(t *testing.T) {
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
 	assert.Contains(t, w.Body.String(), "password updated successfully")
+}
+
+
+func TestUpdateuserPasswordFail(t *testing.T) {
+	payload := map[string]string{
+		"password": "wrongPassword",
+		"new_password": "Johndoe12.",
+	}
+
+	body, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-password", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Contains(t, w.Body.String(), "Unauthorized user.")
 }
 
 

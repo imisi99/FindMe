@@ -90,7 +90,7 @@ func AddUser(ctx *gin.Context) {
 // Signing up user using github
 func GitHubAddUser(ctx *gin.Context) {
 	if _, err := ctx.Cookie("git-access-token"); err == nil {
-		ctx.Redirect(http.StatusTemporaryRedirect, "http://localhost:8080/github-signup")
+		ctx.Redirect(http.StatusTemporaryRedirect, "http://localhost:8080/api/v1/auth/github/callback")
 	}
 	state, err := core.GenerateState()
 	if err != nil {
@@ -618,6 +618,11 @@ func DeleteSentReq(ctx *gin.Context) {
 			break
 		}
 	}
+	if req == nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "Request not found"})
+		return
+	}
+
 	if err := db.Unscoped().Delete(req).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete req."})
 		return
@@ -851,9 +856,14 @@ func UpdateUserPassword(ctx *gin.Context) {
 		return
 	}
 
-	var payload schema.ResetPassword
+	var payload schema.UpdatePassword
 	if err := ctx.BindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload."})
+		return
+	}
+
+	if err := core.VerifyHashedPassword(payload.FormerPassword, user.Password); err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
 

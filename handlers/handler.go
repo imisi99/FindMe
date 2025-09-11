@@ -42,6 +42,11 @@ func SetupHandler(router *gin.Engine) {
 	protectedUserRoutes.DELETE("/delete-friend-req", DeleteSentReq)
 	protectedUserRoutes.DELETE("/delete-user-friend", DeleteUserFriend)
 
+	protectedUserRoutes.GET("/view-message", ViewMessages)
+	protectedUserRoutes.POST("/send-message", CreateMessage)
+	protectedUserRoutes.PATCH("/edit-message", EditMessage)
+	protectedUserRoutes.DELETE("/delete-message", DeleteMessage)
+
 	protectedPostRoutes.GET("/posts/all", GetPosts)
 	protectedPostRoutes.GET("/:id", ViewPost)
 	protectedPostRoutes.POST("/create", CreatePost)
