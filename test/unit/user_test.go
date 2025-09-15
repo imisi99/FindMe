@@ -115,7 +115,6 @@ func superUser(db *gorm.DB) {
 		Tags: []*model.Skill{&skill},
 	}
 
-	log.Println(super.ID, super1.ID)
 	db.Create(&post)
 	db.Model(&super).Association("Friends").Append(&super1)
 	db.Model(&super1).Association("Friends").Append(&super)
@@ -137,6 +136,7 @@ func clearDB(db *gorm.DB) {
 
 var (
 	tokenString = ""
+	tokenString1 = ""
 	resetToken = ""
 	superUserName = "Imisioluwa23"
 	superUserName1 = "knightmares23"
@@ -149,6 +149,24 @@ var (
 		"gitusername": "johndoe23",
 	}
 )
+
+
+func TestMain(m *testing.M) {
+
+	database.SetDB(getTestDB())
+	router = getTestRouter()
+	mock = getTestRDB()
+	tokenString, _ = core.GenerateJWT(1, "login", core.JWTExpiry)   // Initially the logged in user is the super user me for the post test
+	tokenString1, _ = core.GenerateJWT(2, "login", core.JWTExpiry)  // User for saving post
+
+
+	os.Setenv("Testing", "True") 			// Using this for skipping the sending of email for the the forget password test    not proper
+
+	code := m.Run()
+
+	clearDB(database.GetDB())
+	os.Exit(code)
+}
 
 
 func TestSignup(t *testing.T) {
@@ -611,20 +629,4 @@ func TestDeleteUser(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
-}
-
-
-func TestMain(m *testing.M) {
-
-	database.SetDB(getTestDB())
-	router = getTestRouter()
-	mock = getTestRDB()
-	tokenString, _ = core.GenerateJWT(1, "login", core.JWTExpiry)   // Initially the logged in user is the super user me for the post test
-
-	os.Setenv("Testing", "True") 			// Using this for skipping the sending of email for the the forget password test    not proper
-
-	code := m.Run()
-
-	clearDB(database.GetDB())
-	os.Exit(code)
 }

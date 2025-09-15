@@ -483,6 +483,7 @@ func SendFriendReq(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to send request."})
 		return
 	}
+	
 	url := "http://localhost:8080/update-user-req?id="+user.UserName+"&status="
 	core.SendFriendReqEmail(friend.Email, user.UserName, friend.UserName, req.Message, url+"accepted", url+"rejected")
 

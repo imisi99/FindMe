@@ -21,6 +21,7 @@ type User struct {
 	// Relations:
 	Skills  []*Skill 			`gorm:"many2many:user_skills"`
 	Posts 	[]*Post				`gorm:"foreignKey:UserID"`
+	SavedPosts 	[]*Post 		`gorm:"many2many:user_saved_posts"`
 	Friends []*User				`gorm:"many2many:user_friends"`
 	FriendReq []*FriendReq		`gorm:"foreignKey:UserID"`
 	RecFriendReq []*FriendReq	`gorm:"foreignKey:FriendID"`
@@ -46,6 +47,16 @@ type UserSkill struct {
 
 	// Relations:
 	User 		User			`gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+}
+
+
+type UserSavedPost struct {
+	UserID		uint			`gorm:"primaryKey"`
+	PostID 		uint			`gorm:"primaryKey"`
+
+	// Relations:
+	User		User			`gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Post 		Post			`gorm:"constraint:OnUpdate:CASCADE,OnDelete;CASCADE"`
 }
 
 

@@ -283,6 +283,81 @@ func EditPostView(ctx *gin.Context) {
 }
 
 
+// Endpoint for saving a post
+func SavePost(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid, tp, idStr := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
+	if uid == 0 || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid post id."})
+		return
+	}
+	pid := uint(id)
+
+	var user model.User
+	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	}
+
+	var post model.Post
+	if err := db.Where("id = ?", pid).First(&post).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found"})
+		return
+	}
+
+	if post.UserID == user.ID {
+		ctx.JSON(http.StatusForbidden, gin.H{"message": "You can't save a post created by you."})
+		return
+	}
+
+	if err := db.Model(&user).Association("SavedPosts").Append(&post); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to save post."})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"message": "Post saved successfully"})
+}
+
+
+// Endpoint for viewing saved post
+func ViewSavedPost(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unautorized user."})
+		return
+	}
+
+	var user model.User
+	if err := db.Preload("SavedPosts").Where("id = ?", uid).First(&user).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
+		return
+	}
+
+	var savedPosts []schema.PostResponse
+	for _, post := range user.SavedPosts {
+		var tags []string
+		for _, tag := range post.Tags {tags = append(tags, tag.Name)}
+		savedPosts = append(savedPosts, schema.PostResponse{
+			ID: post.ID,
+			Description: post.Description,
+			Tags: tags,
+			CreatedAt: post.CreatedAt,
+			UpdatedAt: post.UpdatedAt,
+		})
+	}
+	ctx.JSON(http.StatusOK, savedPosts)
+}
+
+
 // Endpoint for deleting a post
 func DeletePost(ctx *gin.Context) {
 	db := database.GetDB()

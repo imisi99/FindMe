@@ -141,6 +141,8 @@ func SendFriendReqEmail(email string, fromUsername string, toUsername string, me
 		rejectURL,
 	)
 
+	if os.Getenv("Testing") == "True" {return nil}  // For tests not ideal
+
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", os.Getenv("EMAIL"))
 	msg.SetHeader("To", email)

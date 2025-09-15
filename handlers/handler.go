@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+
 func SetupHandler(router *gin.Engine) {
 
 	router.GET("/", func(ctx *gin.Context) {
@@ -49,7 +50,9 @@ func SetupHandler(router *gin.Engine) {
 
 	protectedPostRoutes.GET("/posts/all", GetPosts)
 	protectedPostRoutes.GET("/:id", ViewPost)
+	protectedPostRoutes.GET("/view/saved-post", ViewSavedPost)
 	protectedPostRoutes.POST("/create", CreatePost)
+	protectedPostRoutes.PUT("/save-post", SavePost)
 	protectedPostRoutes.PUT("/edit/:id", EditPost)
 	protectedPostRoutes.PATCH("/edit-view/:id", EditPostView)
 	protectedPostRoutes.DELETE("/delete/:id", DeletePost)

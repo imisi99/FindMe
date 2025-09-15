@@ -92,7 +92,7 @@ func TestGetPosts(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "Testing the edit post endpoint")
-	assert.Contains(t, w.Body.String(), "Working on a platform for finding developers for contributive project")
+	assert.Contains(t, w.Body.String(), defPostDescription)
 }
 
 
@@ -104,6 +104,42 @@ func TestEditPostView(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
+
+func TestSavePostFailed(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPut, "/api/v1/post/save-post?id=1", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "You can't save a post created by you.")
+}
+
+
+func TestSavePost(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPut, "/api/v1/post/save-post?id=1", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString1)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Contains(t, w.Body.String(), "Post saved successfully")
+}
+
+
+func TestViewSavedPost(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/post/view/saved-post", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString1)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), defPostDescription)
 }
 
 
