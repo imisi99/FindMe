@@ -35,7 +35,7 @@ func TestFailedAuthorization(t *testing.T) {
 	db := database.GetDB()
 	_, err := core.Authorization(db, "Imisioluwa", "Password..")
 
-	assert.Contains(t, err.Error(), "record not found")
+	assert.Contains(t, err.Error(), "Invalid Credentials!")
 }
 
 

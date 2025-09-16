@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"findme/core"
 	"findme/database"
 	"findme/model"
@@ -33,7 +34,8 @@ func AddUser(ctx *gin.Context) {
 
 	// Checking for existing username | email 
 	var existingUser model.User
-	if err := db.Where("username = ? OR email = ?", payload.UserName, payload.Email).First(&existingUser).Error; err == nil {
+	var err error
+	if err = db.Where("username = ? OR email = ?", payload.UserName, payload.Email).First(&existingUser).Error; err == nil {
 		if existingUser.Email == payload.Email {
 			ctx.JSON(http.StatusConflict, gin.H{"message": "Email already in use!"})
 			return
@@ -43,15 +45,18 @@ func AddUser(ctx *gin.Context) {
 		}
 	}
 	
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
+		return
+	}
+	
 	var allskills []*model.Skill
-	var err error
 	if len(payload.Skills) > 0 {
 		for i := range payload.Skills {payload.Skills[i] = strings.ToLower(payload.Skills[i])}
 		allskills, err = CheckAndUpdateSkills(db, rdb, payload.Skills)
-	}
-
-	if err != nil {
+		if err != nil {
 		log.Printf("Failed to create skills for new user -> %s", err)
+		}
 	}
 
 	hashedPassword, err := core.HashPassword(payload.Password)
@@ -234,7 +239,7 @@ func GitHubAddUserCallback(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, gin.H{"token": userToken, "message": "Logged in successfully."})
 			return
 		}else {
-			ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": "Email already in use"})
+			ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": "Email already in use."})
 			return
 		}
 	}
@@ -282,7 +287,7 @@ func VerifyUser(ctx *gin.Context) {
 	jwtToken, err := core.Authorization(db, payload.UserName, payload.Password)
 	if err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message, "detail": cm.Detail})
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -303,16 +308,28 @@ func GetUserInfo(ctx *gin.Context) {
 
 	var user model.User
 	if err := db.Preload("Skills").Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
 
 	var skills []string
-	for _, skill := range user.Skills{
-		skills = append(skills, skill.Name)
-	}
+	for _, skill := range user.Skills {skills = append(skills, skill.Name)}
 
 	var gitusername *string
+
+	profile := schema.UserProfileResponse{
+		UserName: user.UserName,
+		FullName: user.FullName,
+		Email: user.Email,
+		GitUserName: gitusername,
+		Gituser: user.GitUser,
+		Bio: user.Bio,
+		Availability: user.Availability,
+		Skills: skills,
+	}
+	
 	if user.GitUser{
 		token, err := ctx.Cookie("git-access-token")
 		if err != nil {
@@ -324,7 +341,7 @@ func GetUserInfo(ctx *gin.Context) {
 
 		resp, err := core.HttpClient.Do(req)
 		if err != nil || resp.StatusCode != http.StatusOK{
-			ctx.JSON(http.StatusBadRequest, gin.H{"message": "Failed to fetch user info from github."})
+			ctx.JSON(http.StatusOK, gin.H{"user": profile})
 			return
 		}
 
@@ -343,30 +360,18 @@ func GetUserInfo(ctx *gin.Context) {
 			return
 		}
 
-		gitusername = &gitUser.UserName
-
 		if gitUser.UserName != *user.GitUserName {
 			user.GitUserName = &gitUser.UserName
 
 			if err := db.Save(&user).Error; err != nil{
-				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "An error occured while trying to update user info."})
+				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user info."})
 				return
 			}
 		}
+		profile.GitUserName = user.GitUserName
 	}
 
-	payload := schema.UserProfileResponse{
-		UserName: user.UserName,
-		FullName: user.FullName,
-		Email: user.Email,
-		GitUserName: gitusername,
-		Gituser: user.GitUser,
-		Bio: user.Bio,
-		Availability: user.Availability,
-		Skills: skills,
-	}
-	
-	ctx.JSON(http.StatusOK, payload)	
+	ctx.JSON(http.StatusOK, gin.H{"user": profile})	
 }
 
 
@@ -374,13 +379,12 @@ func GetUserInfo(ctx *gin.Context) {
 func ViewUser(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	uid, tp, username := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Param("name")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
 
-	username := ctx.Param("name")
 	if username == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Username not in query."})
 		return
@@ -388,7 +392,9 @@ func ViewUser(ctx *gin.Context) {
 
 	var user model.User
 	if err := db.Preload("Skills").Preload("Posts").Where("username = ?", username).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
 
@@ -433,18 +439,22 @@ func SendFriendReq(ctx *gin.Context) {
 
 	var payload schema.SendFriendReq
 	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload"})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload."})
 		return
 	}
 
 	var friend, user model.User
 	if err := db.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
 
 	if err := db.Where("username = ?", payload.UserName).First(&friend).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "Friend not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retreive user from db."})}
 		return
 	}
 
@@ -461,12 +471,21 @@ func SendFriendReq(ctx *gin.Context) {
 	}
 
 	var existingreq model.FriendReq
-	if err := db.Where("user_id = ?", user.ID).Where("friend_id = ?", friend.ID).First(&existingreq).Error; err == nil {
+	var err error
+	if err = db.Where("user_id = ?", user.ID).Where("friend_id = ?", friend.ID).First(&existingreq).Error; err == nil {
 		ctx.JSON(http.StatusConflict, gin.H{"message": "You have to delete the previous request to this user to send another."})
 		return
 	}
-	if err := db.Where("user_id = ?", friend.ID).Where("friend_id = ?", user.ID).First(&existingreq).Error; err == nil {
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve request from db."})
+		return
+	}
+	if err = db.Where("user_id = ?", friend.ID).Where("friend_id = ?", user.ID).First(&existingreq).Error; err == nil {
 		ctx.JSON(http.StatusConflict, gin.H{"message": "This user has already sent you a request."})
+		return
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve request from db."})
 		return
 	}
 
@@ -484,8 +503,7 @@ func SendFriendReq(ctx *gin.Context) {
 		return
 	}
 	
-	url := "http://localhost:8080/update-user-req?id="+user.UserName+"&status="
-	core.SendFriendReqEmail(friend.Email, user.UserName, friend.UserName, req.Message, url+"accepted", url+"rejected")
+	core.SendFriendReqEmail(friend.Email, user.UserName, friend.UserName, req.Message, "")
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Friend request sent successfully."})
 }
@@ -503,13 +521,16 @@ func ViewFriendReq(ctx *gin.Context) {
 
 	var user model.User
 	if err := db.Preload("FriendReq.Friend").Preload("RecFriendReq.User").Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
 
 	var sentRec, recReq []schema.FriendReqStatus
 	for _, fr := range user.FriendReq {
 		sentRec = append(sentRec, schema.FriendReqStatus{
+			ID: fr.ID,
 			Status: fr.Status,
 			Username: fr.Friend.UserName,
 			Message: fr.Message,
@@ -518,6 +539,7 @@ func ViewFriendReq(ctx *gin.Context) {
 
 	for _, fr := range user.RecFriendReq {
 		recReq = append(recReq, schema.FriendReqStatus{
+			ID: fr.ID,
 			Status: fr.Status,
 			Username: fr.User.UserName,
 			Message: fr.Message,
@@ -532,47 +554,55 @@ func ViewFriendReq(ctx *gin.Context) {
 func UpdateFriendReqStatus(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	uid, tp, reqID, status := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id"), ctx.Query("status")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
 
-	username, status := ctx.Query("id"), ctx.Query("status")
-
-	var user, friend model.User
-
-	if err := db.Preload("RecFriendReq.User").Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message":"User not found."})
-		return
-	}
-	if err := db.Preload("Friends").Where("username = ?", username).First(&friend).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Friend not found."})
+	rid, err := strconv.ParseUint(reqID, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Invalid request id."})
 		return
 	}
 
-	var userreq *model.FriendReq
-	for _, fr := range user.RecFriendReq {
-		if fr.User.ID == friend.ID {
-			userreq = fr
-			break
-		}
+	var req model.FriendReq
+	if err := db.Where("id = ?", uint(rid)).First(&req).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "Request not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve request from db."})}
 	}
 
-	if userreq == nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Request not found."})
+	var user model.User
+	if err := db.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message":"User not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
+		return
+	}
+
+	if req.FriendID != user.ID {
+		ctx.JSON(http.StatusForbidden, gin.H{"message": "You can't update the status of this request."})
+		return
+	}
+	
+	var friend model.User
+	if err := db.Preload("Friends").Where("id = ?", req.UserID).First(&friend).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "Friend not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve friend from db."})}
 		return
 	}
 
 	switch status {
 		case model.StatusRejected:
-			if err := db.Model(userreq).Update("Status", model.StatusRejected).Error; err != nil {
+			if err := db.Model(&req).Update("Status", model.StatusRejected).Error; err != nil {
 				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to reject request."})
 				return
 			}
 		case model.StatusAccepted:
 			if err := db.Transaction(func(tx *gorm.DB) error {
-				if err := tx.Unscoped().Delete(userreq).Error; err != nil {return err}
+				if err := tx.Unscoped().Delete(&req).Error; err != nil {return err}
 
 				if err := tx.Model(&user).Association("Friends").Append(&friend); err != nil {return err}
 
@@ -580,7 +610,7 @@ func UpdateFriendReqStatus(ctx *gin.Context) {
 
 				return nil
 			}); err != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update request status"})
+				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update request status."})
 				return
 			}
 		default:
@@ -588,7 +618,7 @@ func UpdateFriendReqStatus(ctx *gin.Context) {
 			return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"message": "Status updated successfully"})
+	ctx.JSON(http.StatusAccepted, gin.H{"message": "Status updated successfully."})
 }
 
 
@@ -596,33 +626,36 @@ func UpdateFriendReqStatus(ctx *gin.Context) {
 func DeleteSentReq(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	uid, tp, reqID := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
 
-	username := ctx.Query("id")
-
-	var user, friend model.User
-	if err := db.Preload("FriendReq.Friend").Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		return
-	}
-	if err := db.Where("username = ?", username).First(&friend).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Friend not found."})
+	rid, err := strconv.ParseUint(reqID, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Invalid request id."})
 		return
 	}
 
-	var req *model.FriendReq
-	for _, fr := range user.FriendReq {
-		if fr.Friend.ID == friend.ID {
-			req = fr
-			break
-		}
+	var req model.FriendReq
+	if err := db.Where("id = ?", uint(rid)).First(&req).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "Request not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve request from db."})}
+		return
 	}
-	if req == nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Request not found"})
+
+	var user model.User
+	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
+		return
+	}
+
+	if req.UserID != user.ID {
+		ctx.JSON(http.StatusForbidden, gin.H{"message": "You can't delete this request."})
 		return
 	}
 
@@ -639,24 +672,37 @@ func DeleteSentReq(ctx *gin.Context) {
 func DeleteUserFriend(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid := ctx.GetUint("userID")
-	tp := ctx.GetString("purpose")
+	uid, tp, username := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
 		return
 	}
 
-	username := ctx.Query("id")
+	var user model.User
+	if err := db.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
+		return
+	}
 
-	var user, friend model.User
+	var friend *model.User
+	for _, fr := range user.Friends {
+		if username == fr.UserName {
+			friend = fr
+			break
+		}
+	}
+	if friend == nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "User is not your friend."})
+		return
+	}
+
 	if err := db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {return err}
 
-		if err := tx.Preload("Friends").Where("username = ?", username).First(&friend).Error; err != nil {return err}
+		if err := tx.Model(&user).Association("Friends").Delete(friend); err != nil {return err}
 
-		if err := tx.Model(&user).Association("Friends").Delete(&friend); err != nil {return err}
-
-		if err := tx.Model(&friend).Association("Friends").Delete(&user); err != nil {return err}
+		if err := tx.Model(friend).Association("Friends").Delete(&user); err != nil {return err}
 
 		return nil
 	}); err != nil {
@@ -709,7 +755,9 @@ func ForgotPassword(ctx *gin.Context) {
 
 	var user model.User
 	if err := db.Where("email = ?", payload.Email).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "User record not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound){
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "User record not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to recieve user from db."})}
 		return
 	}
 
@@ -767,7 +815,6 @@ func ResetPassword(ctx *gin.Context) {
 	}
 
 	var payload schema.ResetPassword
-	
 	if err := ctx.BindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload"})
 		return
@@ -775,7 +822,9 @@ func ResetPassword(ctx *gin.Context) {
 
 	var user model.User
 	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound){
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
 
@@ -809,7 +858,9 @@ func UpdateUserInfo(ctx *gin.Context) {
 
 	var user, existingUser model.User
 	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
 
@@ -819,7 +870,8 @@ func UpdateUserInfo(ctx *gin.Context) {
 		return
 	}
 
-	if err := db.Where("username = ? OR email = ?", payload.UserName, payload.Email).First(&existingUser).Error; err == nil && existingUser.ID != uid {
+	var err error
+	if err = db.Where("username = ? OR email = ?", payload.UserName, payload.Email).First(&existingUser).Error; err == nil && existingUser.ID != uid {
 		if existingUser.Email == payload.Email {
 			ctx.JSON(http.StatusConflict, gin.H{"message": "Email already in use!"})
 		}else {
@@ -827,6 +879,11 @@ func UpdateUserInfo(ctx *gin.Context) {
 		}
 		return
 
+	}
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) { 
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
+		return
 	}
 
 	user.Email = payload.Email
@@ -838,8 +895,18 @@ func UpdateUserInfo(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user profile."})
 		return
 	}
-	
-	ctx.JSON(http.StatusAccepted, gin.H{"message": "User profile updated successfully."})
+
+	profile := schema.UserProfileResponse{
+		UserName: user.UserName,
+		FullName: user.FullName,
+		Email: user.Email,
+		Bio: user.Bio,
+		GitUserName: user.GitUserName,
+		Gituser: user.GitUser,
+		Availability: user.Availability,
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"message": "User profile updated successfully.", "user": profile})
 }
 
 
@@ -855,7 +922,9 @@ func UpdateUserPassword(ctx *gin.Context) {
 
 	var user model.User
 	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
 
@@ -898,7 +967,9 @@ func UpdateUserAvaibilityStatus(ctx *gin.Context) {
 
 	var user model.User
 	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
 
@@ -933,7 +1004,9 @@ func UpdateUserSkills(ctx *gin.Context) {
 
 	var user model.User
 	if err := db.Preload("Skills").Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
 
@@ -954,8 +1027,8 @@ func UpdateUserSkills(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user skills."})
 		return
 	}
-
-	ctx.JSON(http.StatusAccepted, gin.H{"message": "User skills updated successfully."})
+	
+	ctx.JSON(http.StatusAccepted, gin.H{"message": "User skills updated successfully.", "user": payload.Skills})
 }
 
 
@@ -971,7 +1044,9 @@ func DeleteUserSkills(ctx *gin.Context) {
 
 	var user model.User
 	if err := db.Preload("Skills").Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
 
@@ -1011,7 +1086,9 @@ func DeleteUserAccount(ctx *gin.Context) {
 
 	var user model.User
 	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db"})}
 		return
 	}
 

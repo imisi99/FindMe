@@ -50,8 +50,7 @@ func RetrieveCachedSkills(rdb *redis.Client, skills []string) (map[string]uint, 
 
 	for i, val := range skill {
 		if val == nil {continue}
-		idstr := val.(string)
-		id, _ := strconv.ParseUint(idstr, 10, 64)
+		id, _ := strconv.ParseUint(val.(string), 10, 64)
 		foundskills[skills[i]] = uint(id)
 	}
 	return foundskills, nil
@@ -74,7 +73,6 @@ func AddNewSkillToCache(rdb *redis.Client, newskills []*model.Skill) {
 
 
 func SetOTP(rdb *redis.Client, otp string, userID uint) error {
-
 	otpInfo := schema.OTPInfo{UserID: userID}
 	data, _ := json.Marshal(otpInfo)
 
@@ -82,7 +80,7 @@ func SetOTP(rdb *redis.Client, otp string, userID uint) error {
 	defer cancel()
 
 	if _, err := rdb.Get(ctx, otp).Result(); err != redis.Nil {
-		return &CustomMessage{Detail: "Token already exists."}
+		return &CustomMessage{Message: "Token already exists."}
 	}
 	if _, err := rdb.Set(ctx, otp, data, 10*time.Minute).Result(); err != nil {
 		log.Printf("An error occured while trying to set otp in redis -> %v", err)

@@ -71,7 +71,7 @@ type ResetPassword struct {
 }
 
 type SendFriendReq struct {
-	Message 		string		`json:"message" binding:"omitempty,max=50"`
+	Message 		string		`json:"msg" binding:"omitempty,max=50"`
 	UserName 		string 		`json:"username" binding:"required"`
 }
 
@@ -89,6 +89,7 @@ type UserProfileResponse struct {
 
 
 type FriendReqStatus struct {
+	ID 				uint
 	Username 		string
 	Message 		string
 	Status 			string

@@ -8,7 +8,7 @@ import (
 type User struct {
 	gorm.Model
 	FullName 	string 		`gorm:"column:fullname;not null"`
-	UserName 	string 		`gorm:"column:username;unique;not null"`
+	UserName 	string 		`gorm:"column:username;unique;not null;index"`
 	Email 		string	 	`gorm:"unique;not null"`
 	GitUserName *string		`gorm:"column:gitusername;uniqueIndex"`
 	GitID		*int64		`gorm:"column:gitid;uniqueIndex"`
@@ -27,6 +27,8 @@ type User struct {
 	RecFriendReq []*FriendReq	`gorm:"foreignKey:FriendID"`
 	Message 	[]*UserMessage	`gorm:"foreignKey:FromID"`
 	RecMessage  []*UserMessage	`gorm:"foreignKey:ToID"`
+	SentPostReq []*PostReq		`gorm:"foreignKey:FromID"`
+	RecPostReq  []*PostReq 		`gorm:"foreignKey:ToID"`
 }
 
 
@@ -56,7 +58,7 @@ type UserSavedPost struct {
 
 	// Relations:
 	User		User			`gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Post 		Post			`gorm:"constraint:OnUpdate:CASCADE,OnDelete;CASCADE"`
+	Post 		Post			`gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 

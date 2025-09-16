@@ -320,7 +320,7 @@ func TestViewFriendReq(t *testing.T) {
 
 
 func TestUpdateFriendReqReject(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-user-req?id="+defPayload["username"]+"&status=rejected", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-user-req?id=1&status=rejected", nil)
 	req.Header.Set("Authorization", "Bearer "+userToken)
 
 	w := httptest.NewRecorder()
@@ -332,7 +332,7 @@ func TestUpdateFriendReqReject(t *testing.T) {
 
 
 func TestUpdateFriendReqInvalidStatus(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-user-req?id="+defPayload["username"]+"&status=invalid", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-user-req?id=1&status=invalid", nil)
 	req.Header.Set("Authorization", "Bearer "+userToken)
 
 	w := httptest.NewRecorder()
@@ -344,7 +344,7 @@ func TestUpdateFriendReqInvalidStatus(t *testing.T) {
 
 
 func TestUpdateFriendReqAccept(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-user-req?id="+defPayload["username"]+"&status=accepted", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-user-req?id=1&status=accepted", nil)
 	req.Header.Set("Authorization", "Bearer "+userToken)
 
 	w := httptest.NewRecorder()
@@ -396,7 +396,7 @@ func TestAddReqToTestDelete(t *testing.T) {
 
 
 func TestDeleteReq(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-friend-req?id="+superUserName, nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-friend-req?id=2", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()

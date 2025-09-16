@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"findme/database"
 	"findme/model"
 	"findme/schema"
@@ -8,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // Add Message endpoint
@@ -22,7 +24,9 @@ func CreateMessage(ctx *gin.Context) {
 
 	var user model.User
 	if err := db.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
 
@@ -56,7 +60,7 @@ func CreateMessage(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"message": "message sent successfully"})
+	ctx.JSON(http.StatusAccepted, gin.H{"message": "message sent successfully."})
 }
 
 
@@ -72,12 +76,16 @@ func ViewMessages(ctx *gin.Context) {
 
 	var user, friend model.User
 	if err := db.Preload("RecMessage").Preload("Message").Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
 
 	if err := db.Where("username = ?", username).First(&friend).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Friend not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "Friend not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve friend from db."})}
 		return
 	}
 
@@ -124,20 +132,22 @@ func EditMessage(ctx *gin.Context) {
 
 	var msg model.UserMessage
 	if err := db.Where("id = ?", uint(id)).Where("from_id = ?", uid).First(&msg).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Message not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "Message not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve message from db."})}
 		return
 	}
 
 	var payload schema.EditMessage
 	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload"})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload."})
 		return
 	}
 
 	msg.Message = payload.Message
 
 	if err := db.Save(&msg).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to edit message"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to edit message."})
 		return
 	}
 
@@ -163,7 +173,9 @@ func DeleteMessage(ctx *gin.Context) {
 
 	var msg model.UserMessage
 	if err := db.Where("id = ?", uint(id)).Where("from_id = ?", uid).First(&msg).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Message not found."})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "Message not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve message from db."})}
 		return
 	}
 

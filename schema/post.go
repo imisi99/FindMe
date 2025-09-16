@@ -22,3 +22,16 @@ type DetailedPostResponse struct {
 	PostResponse
 	Username		string
 }
+
+
+type PostApplication struct {
+	Message 		string 			`json:"msg" binding:"omitempty,max=50"`
+}
+
+
+type ViewPostApplication struct {
+	ReqID 			uint
+	Status 			string
+	Message 		string
+	Username 		string
+}

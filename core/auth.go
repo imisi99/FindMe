@@ -23,7 +23,7 @@ var (
 	JWTSecret = os.Getenv("JWTSECRET")
  	JWTExpiry = time.Hour * 24
 	JWTRExpiry = time.Minute * 5
-	HttpClient = &http.Client{Timeout: 30 * time.Second,}
+	HttpClient = &http.Client{Timeout: 30 * time.Second}
 )
 
 const (
@@ -42,12 +42,11 @@ type JWTClaims struct {
 type CustomMessage struct {
 	Code int
 	Message string
-	Detail string
 }
 
 
 func (cm *CustomMessage) Error() string{
-	return fmt.Sprintf("An error occured -> %s", cm.Detail)
+	return fmt.Sprintf("An error occured -> %s", cm.Message)
 }
 
 
@@ -104,7 +103,7 @@ func GenerateJWT(userID uint, purpose string, expiry time.Duration) (string, err
 
 
 func ValidateJWT(tokenSting string) (*JWTClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenSting, &JWTClaims{}, func(t *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenSting, &JWTClaims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, &CustomMessage{Code: 400, Message: "Invalid Token!"}
 		}
@@ -112,7 +111,7 @@ func ValidateJWT(tokenSting string) (*JWTClaims, error) {
 	})
 
 	if err != nil {
-		return nil, &CustomMessage{Code: 400, Message: "Expired Token!", Detail: err.Error()}
+		return nil, &CustomMessage{Code: 400, Message: "Expired Token!"}
 	}
 
 	payload, ok := token.Claims.(*JWTClaims)
@@ -129,13 +128,13 @@ func Authorization(db *gorm.DB, username, password string) (string, error) {
 	var user model.User
 
 	err := db.Where("username = ? OR email = ?", username, username).First(&user).Error
-	if err != nil { return "", &CustomMessage{Code: 404, Message: "Invalid Credentials!", Detail: err.Error()}}
+	if err != nil { return "", &CustomMessage{Code: 404, Message: "Invalid Credentials!"}}
 
 	err = VerifyHashedPassword(password, user.Password)
-	if err != nil {return "", &CustomMessage{Code: 404, Message: "Invalid Credentials!", Detail: err.Error()}}
+	if err != nil { return "", &CustomMessage{Code: 404, Message: "Invalid Credentials!"}}
 
 	jwtToken, err := GenerateJWT(user.ID, "login", JWTExpiry) 
-	if err != nil { return "", &CustomMessage{Code: 500, Message: "Failed to generate jwt token", Detail: err.Error()}}
+	if err != nil { return "", &CustomMessage{Code: 500, Message: "Failed to generate jwt token"}}
 
 	return jwtToken, nil
 }
@@ -161,7 +160,7 @@ func Authentication() gin.HandlerFunc{
 		payload, err := ValidateJWT(tokenString)
 		if err != nil {
 			cm := err.(*CustomMessage)
-			ctx.AbortWithStatusJSON(cm.Code, gin.H{"message": cm.Message, "detail": cm.Detail})
+			ctx.AbortWithStatusJSON(cm.Code, gin.H{"message": cm.Message})
 			return 
 		}
 
