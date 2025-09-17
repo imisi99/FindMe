@@ -379,21 +379,16 @@ func GetUserInfo(ctx *gin.Context) {
 func ViewUser(ctx *gin.Context) {
 	db := database.GetDB()
 
-	uid, tp, username := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Param("name")
+	uid, tp, username := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
-		return
-	}
-
-	if username == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Username not in query."})
 		return
 	}
 
 	var user model.User
 	if err := db.Preload("Skills").Preload("Posts").Where("username = ?", username).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "No user found with this username."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
@@ -416,6 +411,7 @@ func ViewUser(ctx *gin.Context) {
 		var tags []string
 		for _, tag := range post.Tags {tags = append(tags, tag.Name)}
 		posts = append(posts, schema.PostResponse{
+			ID: post.ID,
 			Description: post.Description,
 			Tags: tags,
 			CreatedAt: post.CreatedAt,
@@ -424,6 +420,100 @@ func ViewUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"user": userprofile, "posts": posts})
+}
+
+
+// Search for user with github username endpoint
+func ViewGitUser(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid, tp, username := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
+	if uid == 0 || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	var user model.User
+	if err := db.Preload("Posts").Preload("Skills").Where("gitusername = ?", username).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "No user found with this git username."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
+		return
+	}
+
+	var skills []string
+	for _, skill := range user.Skills {skills = append(skills, skill.Name)}
+
+	profile := schema.UserProfileResponse{
+		UserName: user.UserName,
+		FullName: user.FullName,
+		GitUserName: user.GitUserName,
+		Gituser: user.GitUser,
+		Bio: user.Bio,
+		Email: user.Email,
+		Skills: skills,
+		Availability: user.Availability,
+	}
+
+	var posts []schema.PostResponse
+	for _, post := range user.Posts {
+		var tags []string
+		for _, tag := range post.Tags {tags = append(tags, tag.Name)}
+		posts = append(posts, schema.PostResponse{
+			ID: post.ID,
+			Description: post.Description,
+			Tags: tags,
+			CreatedAt: post.CreatedAt,
+			UpdatedAt: post.UpdatedAt,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"user": profile, "posts": posts})
+}
+
+
+// Search for user by skills endpoint 
+func ViewUserbySkills(ctx *gin.Context) {
+	db := database.GetDB()
+
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	var payload schema.SearchUserbySkills
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload"})
+		return
+	}
+
+	var users []model.User
+	subquery := db.Select("user_id").
+		Table("user_skills").
+		Joins("JOIN skills s ON user_skills.skill_id = s.id").
+		Where("s.name IN ?", payload.Skills)
+
+	if err := db.Preload("Skills").Where("id IN (?)", subquery).Find(&users).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve users from db."})
+		return
+	}
+
+	var profiles []schema.SearchUser
+	for _, user := range users {
+		var skills []string
+		for _, skill := range user.Skills {skills = append(skills, skill.Name)}
+		profiles = append(profiles, schema.SearchUser{
+			UserName: user.UserName,
+			Bio: user.Bio,
+			Availability: user.Availability,
+			GitUser: user.GitUser,
+			GitUserName: user.GitUserName,
+			Skills: skills,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"profiles": profiles})
 }
 
 

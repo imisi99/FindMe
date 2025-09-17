@@ -3,7 +3,6 @@ package unit
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -43,13 +42,7 @@ func TestCreatePost(t *testing.T) {
 
 	fields := payload["tags"]
 	field := fields.([]string)
-	mock.ExpectHMGet("skills", field...).SetVal([]any{nil, nil})
-
-	value := make(map[string]string, 0)
-	for i, tag := range field {
-		value[tag] = fmt.Sprintf("%d", i+2)
-	}
-	mock.ExpectHSet("skills", value).SetVal(int64(len(value)))
+	mock.ExpectHMGet("skills", field...).SetVal([]any{"1", "2"})
 
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/post/create", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -73,7 +66,7 @@ func TestEditPost(t *testing.T) {
 
 	fields := payload["tags"]
 	field := fields.([]string)
-	mock.ExpectHMGet("skills", field...).SetVal([]any{"2", "3"})
+	mock.ExpectHMGet("skills", field...).SetVal([]any{"1", "2"})
 	req, _ := http.NewRequest(http.MethodPut, "/api/v1/post/edit/2", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)

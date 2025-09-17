@@ -125,8 +125,38 @@ func TestGetUserProfile(t *testing.T) {
 }
 
 
+func TestViewGitUser(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/view-git?id=imisi99", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString1)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), superUserName)
+}
+
+
+func TestSearchUserbySkills(t *testing.T) {
+	skills := map[string][]string{
+		"skills": {"go", "backend"},
+	}
+	body, _ := json.Marshal(skills)
+
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/search", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), superUserName)
+	assert.Contains(t, w.Body.String(), superUserName1)
+}
+
+
 func TestViewUser(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/view/"+superUserName, nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/view?id="+superUserName, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -449,7 +479,7 @@ func TestUpdateSkills(t *testing.T) {
 
 	value := make(map[string]string, 0)
 	for i := range payload["skills"] {
-		value[payload["skills"][i]] = fmt.Sprintf("%d", i+4)
+		value[payload["skills"][i]] = fmt.Sprintf("%d", i+3)
 	}
 	mock.ExpectHMGet("skills", payload["skills"]...).SetVal([]any{nil, nil})
 	mock.ExpectHSet("skills", value).SetVal(int64(len(value)))

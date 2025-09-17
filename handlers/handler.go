@@ -28,7 +28,9 @@ func SetupHandler(router *gin.Engine) {
 	protectedPostRoutes.Use(core.Authentication())
 
 	protectedUserRoutes.GET("/profile", GetUserInfo)
-	protectedUserRoutes.GET("/view/:name", ViewUser)
+	protectedUserRoutes.GET("/search", ViewUserbySkills)
+	protectedUserRoutes.GET("/view", ViewUser)
+	protectedUserRoutes.GET("/view-git", ViewGitUser)
 	protectedUserRoutes.GET("/view-user-req", ViewFriendReq)
 	protectedUserRoutes.GET("/view-user-friend", ViewUserFriends)
 	protectedUserRoutes.POST("/send-user-req", SendFriendReq)

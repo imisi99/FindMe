@@ -69,6 +69,12 @@ func getTestRDB() redismock.ClientMock{
 func superUser(db *gorm.DB) {
 	gitusername := "imisi99"
 
+	be := model.Skill{Name: "backend"}
+	ml := model.Skill{Name: "ml"}
+
+	skill := []*model.Skill{&ml, &be}
+	db.Create(skill)
+
 	hashpass, _ := core.HashPassword("Password")
 	super := model.User{
 		FullName: "Isong Imisioluwa",
@@ -77,6 +83,7 @@ func superUser(db *gorm.DB) {
 		GitUser: true,
 		Bio: "I am the super user",
 		Email: "isongrichard234@gmail.com",
+		Skills: []*model.Skill{&be, &ml},
 		Password: hashpass,
 		Availability: true,
 	}
@@ -87,20 +94,17 @@ func superUser(db *gorm.DB) {
 		Email: "knightmares234@gmail.com",
 		Password: hashpass,
 		Availability: true,
+		Skills: []*model.Skill{&be},
 		Bio: "I'm the second super user",
 	}
 
 	users := []*model.User{&super, &super1}
 	db.Create(users)
-	skill := model.Skill{
-		Name: "frontend-dev",
-	}
-	db.Create(&skill)
 	post := model.Post{
 		Description: "Working on a platform for finding developers for contributive project",
 		UserID: super.ID,
 		Views: 4,
-		Tags: []*model.Skill{&skill},
+		Tags: []*model.Skill{&be},
 	}
 
 	db.Create(&post)

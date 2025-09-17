@@ -70,9 +70,25 @@ type ResetPassword struct {
 	Password 		string 	`json:"password" binding:"required,min=8"`
 }
 
+
 type SendFriendReq struct {
 	Message 		string		`json:"msg" binding:"omitempty,max=50"`
 	UserName 		string 		`json:"username" binding:"required"`
+}
+
+
+type SearchUserbySkills struct {
+	Skills 			[]string	`json:"skills" binding:"required"`
+}
+
+
+type SearchUser struct {
+	UserName 		string
+	Skills 			[]string
+	GitUser 		bool
+	GitUserName 	*string
+	Availability 	bool
+	Bio 			string
 }
 
 
