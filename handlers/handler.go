@@ -50,10 +50,14 @@ func SetupHandler(router *gin.Engine) {
 
 	protectedPostRoutes.GET("/posts/all", GetPosts)
 	protectedPostRoutes.GET("/:id", ViewPost)
+	protectedPostRoutes.GET("/view-applications", ViewPostApplications)
 	protectedPostRoutes.GET("/view/saved-post", ViewSavedPost)
 	protectedPostRoutes.POST("/create", CreatePost)
+	protectedPostRoutes.POST("/apply", ApplyForPost)
 	protectedPostRoutes.PUT("/save-post", SavePost)
 	protectedPostRoutes.PUT("/edit/:id", EditPost)
 	protectedPostRoutes.PATCH("/edit-view/:id", EditPostView)
+	protectedPostRoutes.PATCH("/update-application", UpdatePostApplication)
+	protectedPostRoutes.DELETE("/delete-application", DeletePostApplication)
 	protectedPostRoutes.DELETE("/delete/:id", DeletePost)
 }

@@ -412,6 +412,7 @@ func ApplyForPost(ctx *gin.Context) {
 
 	var payload schema.PostApplication
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		log.Println(err)
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload"})
 		return
 	}
@@ -429,6 +430,11 @@ func ApplyForPost(ctx *gin.Context) {
 		if errors.Is(err, gorm.ErrRecordNotFound){
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
+		return
+	}
+
+	if post.User.ID == user.ID {
+		ctx.JSON(http.StatusForbidden, gin.H{"message": "You can't apply for a post owned by you."})
 		return
 	}
 
@@ -460,7 +466,7 @@ func ViewPostApplications(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := db.Preload("RecPostReq").Preload("SendPostReq").Where("id = ?", uid).First(&user).Error; err != nil {
+	if err := db.Preload("RecPostReq.FromUser").Preload("SentPostReq.ToUser").Where("id = ?", uid).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
@@ -507,7 +513,7 @@ func UpdatePostApplication(ctx *gin.Context) {
 	}
 
 	var req model.PostReq
-	if db.Preload("Post").Where("id = ?", rid).First(&req).Error != nil {
+	if db.Preload("Post").Preload("FromUser").Where("id = ?", rid).First(&req).Error != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound){
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Application not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve application from db."})}
@@ -550,7 +556,7 @@ func UpdatePostApplication(ctx *gin.Context) {
 			}
 		case model.StatusAccepted:
 			if err := db.Transaction(func(tx *gorm.DB) error {
-				if err := tx.Model(&req).Update("Status", model.StatusAccepted).Error; err != nil {return err}
+				if err := tx.Unscoped().Delete(&req).Error; err != nil {return err}
 				
 				if !friends {
 					if err := tx.Model(&user).Association("Friends").Append(&friend); err != nil {return err}
@@ -558,11 +564,10 @@ func UpdatePostApplication(ctx *gin.Context) {
 					if err := tx.Model(&friend).Association("Friends").Append(&user); err != nil {return err}
 				}
 				return nil
-			}); err != nil {
+			}); err != nil && core.SendPostApplicationAccept(friend.Email, user.UserName, friend.UserName, req.Post.Description, "")  != nil {
 				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to accept application."})
 				return
 			}
-			core.SendPostApplicationAccept(friend.Email, user.UserName, friend.UserName, req.Post.Description, "")
 		default:
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid status."})
 			return
@@ -597,7 +602,7 @@ func DeletePostApplication(ctx *gin.Context) {
 	}
 
 	var req model.PostReq
-	if err := db.Where("id = ?", uint(rid)).First(&req).Error; err != nil {
+	if err := db.Preload("FromUser").Where("id = ?", uint(rid)).First(&req).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound){
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Request not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve application from db."})}
