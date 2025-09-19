@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"findme/core"
-	"findme/database"
 	"findme/model"
 	"findme/schema"
 	"log"
@@ -12,64 +10,13 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
-// Helper func for checking and updating skills
-func CheckAndUpdateSkills(db *gorm.DB, rdb *redis.Client, payload []string) ([]*model.Skill, error) {
-	skills, err := core.RetrieveCachedSkills(rdb, payload)
-	
-	if err != nil { 																		// Falling back to the db if the redis fails 
-		var existingSkills []*model.Skill
-
-		if err := db.Where("name IN ?", payload).Find(&existingSkills).Error; err != nil{
-			return nil, err
-		}
-
-		existingSkillSet := make(map[string]bool)
-		for _, name := range existingSkills {existingSkillSet[name.Name] = true}
-
-		var newSkill []*model.Skill
-		for _, skill := range payload {
-			if _, exists := existingSkillSet[skill]; !exists {
-				newSkill = append(newSkill, &model.Skill{Name: skill})
-			}
-		}
-
-		if len(newSkill) > 0 {
-			if err := db.Create(&newSkill).Error; err != nil {
-				return nil, err
-			}
-		}
-		newSkill = append(newSkill, existingSkills...)
-		return newSkill, nil
-	}
-
-	var newskills, allskills []*model.Skill
-	for _, skill := range payload {
-		if id, exists := skills[skill]; exists {
-			allskills = append(allskills, &model.Skill{Name: skill, Model: gorm.Model{ID: id}})
-			continue
-		}
-		newskills = append(newskills, &model.Skill{Name: skill})
-	}
-
-	if len(newskills) > 0 {
-		if err := db.Create(&newskills).Error; err != nil {
-			return nil, err
-		}
-		core.AddNewSkillToCache(rdb, newskills)
-	}
-	allskills = append(allskills, newskills...)
-	return allskills, nil 
-} 
 
 
 // Endpoint for getting all user posts
-func GetPosts(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (p *Service) GetPosts(ctx *gin.Context) {
 	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -78,7 +25,7 @@ func GetPosts(ctx *gin.Context) {
 
 	var user model.User
 
-	if err := db.Preload("Posts.Tags").Where("id = ?", uid).First(&user).Error; err != nil {
+	if err := p.DB.Preload("Posts.Tags").Where("id = ?", uid).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user posts."})}
@@ -104,9 +51,7 @@ func GetPosts(ctx *gin.Context) {
 
 
 // Endpoint for viewing a single post
-func ViewPost(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (p *Service) ViewPost(ctx *gin.Context) {
 	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -121,7 +66,7 @@ func ViewPost(ctx *gin.Context) {
 	}
 
 	var post model.Post
-	if err := db.Preload("Tags").Preload("User").Where("id = ?", uint(pid)).First(&post).Error; err != nil {
+	if err := p.DB.Preload("Tags").Preload("User").Where("id = ?", uint(pid)).First(&post).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})}
@@ -147,10 +92,7 @@ func ViewPost(ctx *gin.Context) {
 
 
 // Endpoint for creating post
-func CreatePost(ctx *gin.Context) {
-	db := database.GetDB()
-	rdb := database.GetRDB()
-
+func (p *Service) CreatePost(ctx *gin.Context) {
 	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -164,7 +106,7 @@ func CreatePost(ctx *gin.Context) {
 	}
 
 	for i := range payload.Tags {payload.Tags[i] = strings.ToLower(payload.Tags[i])}
-	allskills, err := CheckAndUpdateSkills(db, rdb, payload.Tags)
+	allskills, err := p.CheckAndUpdateSkills(payload.Tags)
 	if err != nil {
 		log.Printf("An error occured while trying to add a new skill to db -> %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create new post."})
@@ -177,7 +119,7 @@ func CreatePost(ctx *gin.Context) {
 		UserID: uid,
 		Views: 0,
 	}
-	if err := db.Create(&post).Error; err != nil {
+	if err := p.DB.Create(&post).Error; err != nil {
 		log.Printf("Failed to create new post -> %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create new post."})
 		return
@@ -197,10 +139,7 @@ func CreatePost(ctx *gin.Context) {
 
 
 // Endpoint for editing post
-func EditPost(ctx *gin.Context) {
-	db := database.GetDB()
-	rdb := database.GetRDB()
-
+func (p *Service) EditPost(ctx *gin.Context) {
 	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	idStr := ctx.Param("id")
 	if uid == 0 || tp != "login" {
@@ -221,7 +160,7 @@ func EditPost(ctx *gin.Context) {
 	}
 
 	var post model.Post
-	if err := db.Preload("Tags").Where("id = ?", uint(id)).First(&post).Error; err != nil {
+	if err := p.DB.Preload("Tags").Where("id = ?", uint(id)).First(&post).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})}
@@ -234,7 +173,7 @@ func EditPost(ctx *gin.Context) {
 	}
 
 	for i := range payload.Tags {payload.Tags[i] = strings.ToLower(payload.Tags[i])}
-	allskills, err := CheckAndUpdateSkills(db, rdb, payload.Tags)
+	allskills, err := p.CheckAndUpdateSkills(payload.Tags)
 	if err != nil {
 		log.Printf("An error occured while trying to add a new skill to db %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update post."})
@@ -243,7 +182,7 @@ func EditPost(ctx *gin.Context) {
 
 	post.Description = payload.Description
 
-	if err := db.Transaction(func(tx *gorm.DB) error {
+	if err := p.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(&post).Association("Tags").Replace(allskills); err != nil {return err}
 
 		if err := tx.Save(&post).Error; err != nil {return err}
@@ -268,9 +207,7 @@ func EditPost(ctx *gin.Context) {
 
 
 // Ednpoint for updating a post view
-func EditPostView(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (p *Service) EditPostView(ctx *gin.Context) {
 	uid, tp, idStr := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Param("id")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -284,7 +221,7 @@ func EditPostView(ctx *gin.Context) {
 	}
 
 	var post model.Post
-	if err := db.Where("id = ?", uint(id)).First(&post).Error; err != nil {
+	if err := p.DB.Where("id = ?", uint(id)).First(&post).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})}
@@ -293,7 +230,7 @@ func EditPostView(ctx *gin.Context) {
 
 	if post.UserID != uid {
 		post.Views++
-		if err := db.Save(&post).Error; err != nil {
+		if err := p.DB.Save(&post).Error; err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update views."})
 			return
 		}
@@ -315,9 +252,7 @@ func EditPostView(ctx *gin.Context) {
 
 
 // Endpoint for saving a post
-func SavePost(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (p *Service) SavePost(ctx *gin.Context) {
 	uid, tp, idStr := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -331,7 +266,7 @@ func SavePost(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
+	if err := p.DB.Where("id = ?", uid).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
@@ -339,7 +274,7 @@ func SavePost(ctx *gin.Context) {
 	}
 
 	var post model.Post
-	if err := db.Where("id = ?", uint(id)).First(&post).Error; err != nil {
+	if err := p.DB.Where("id = ?", uint(id)).First(&post).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})}
@@ -351,7 +286,7 @@ func SavePost(ctx *gin.Context) {
 		return
 	}
 
-	if err := db.Model(&user).Association("SavedPosts").Append(&post); err != nil {
+	if err := p.DB.Model(&user).Association("SavedPosts").Append(&post); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to save post."})
 		return
 	}
@@ -361,9 +296,7 @@ func SavePost(ctx *gin.Context) {
 
 
 // Endpoint for viewing saved post
-func ViewSavedPost(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (p *Service) ViewSavedPost(ctx *gin.Context) {
 	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -371,7 +304,7 @@ func ViewSavedPost(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := db.Preload("SavedPosts").Where("id = ?", uid).First(&user).Error; err != nil {
+	if err := p.DB.Preload("SavedPosts").Where("id = ?", uid).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound){
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
@@ -395,9 +328,7 @@ func ViewSavedPost(ctx *gin.Context) {
 
 
 // Endpoint for applying for a post 
-func ApplyForPost(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (p *Service) ApplyForPost(ctx *gin.Context) {
 	uid, tp, idStr := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -418,7 +349,7 @@ func ApplyForPost(ctx *gin.Context) {
 	}
 
 	var post model.Post
-	if err := db.Preload("User").Where("id = ?", uint(id)).First(&post).Error; err != nil {
+	if err := p.DB.Preload("User").Where("id = ?", uint(id)).First(&post).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})}
@@ -426,7 +357,7 @@ func ApplyForPost(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
+	if err := p.DB.Where("id = ?", uid).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound){
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
@@ -445,20 +376,18 @@ func ApplyForPost(ctx *gin.Context) {
 	}
 	if len(payload.Message) > 0 {req.Message = payload.Message}
 
-	if err := db.Create(&req).Error; err != nil {
+	if err := p.DB.Create(&req).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to send application."})
 		return
 	}
-	core.SendPostApplicationEmail(post.User.Email, user.UserName, post.User.UserName, req.Message, "")
+	p.Email.SendPostApplicationEmail(post.User.Email, user.UserName, post.User.UserName, req.Message, "")
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Application sent successfully."})
 }
 
 
 // Endpoint for Viewing post applications
-func ViewPostApplications(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (p *Service) ViewPostApplications(ctx *gin.Context) {
 	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -466,7 +395,7 @@ func ViewPostApplications(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := db.Preload("RecPostReq.FromUser").Preload("SentPostReq.ToUser").Where("id = ?", uid).First(&user).Error; err != nil {
+	if err := p.DB.Preload("RecPostReq.FromUser").Preload("SentPostReq.ToUser").Where("id = ?", uid).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
@@ -497,9 +426,7 @@ func ViewPostApplications(ctx *gin.Context) {
 
 
 // Endpoint for Updating post applications 
-func UpdatePostApplication(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (p *Service) UpdatePostApplication(ctx *gin.Context) {
 	uid, tp, reqID, status := ctx.GetUint("userID"),  ctx.GetString("purpose"), ctx.Query("id"), ctx.Query("status")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -513,7 +440,7 @@ func UpdatePostApplication(ctx *gin.Context) {
 	}
 
 	var req model.PostReq
-	if db.Preload("Post").Preload("FromUser").Where("id = ?", rid).First(&req).Error != nil {
+	if err := p.DB.Preload("Post").Preload("FromUser").Where("id = ?", rid).First(&req).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound){
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Application not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve application from db."})}
@@ -521,14 +448,14 @@ func UpdatePostApplication(ctx *gin.Context) {
 	}
 	
 	var user, friend model.User
-	if db.Preload("Friends").Where("id = ?", uid).First(&user).Error != nil {
+	if err := p.DB.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db"})}
 		return
 	}
 
-	if db.Where("username = ?", req.FromUser.UserName).First(&friend).Error != nil {
+	if err := p.DB.Where("id = ?", req.FromUser.ID).First(&friend).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Applicant not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve applicant from db."})}
@@ -550,12 +477,12 @@ func UpdatePostApplication(ctx *gin.Context) {
 
 	switch status {
 		case model.StatusRejected:
-			if err := db.Model(&req).Update("Status", model.StatusRejected).Error; err != nil {
+			if err := p.DB.Model(&req).Update("Status", model.StatusRejected).Error; err != nil {
 				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to reject application."})
 				return
 			}
 		case model.StatusAccepted:
-			if err := db.Transaction(func(tx *gorm.DB) error {
+			if err := p.DB.Transaction(func(tx *gorm.DB) error {
 				if err := tx.Unscoped().Delete(&req).Error; err != nil {return err}
 				
 				if !friends {
@@ -564,7 +491,7 @@ func UpdatePostApplication(ctx *gin.Context) {
 					if err := tx.Model(&friend).Association("Friends").Append(&user); err != nil {return err}
 				}
 				return nil
-			}); err != nil && core.SendPostApplicationAccept(friend.Email, user.UserName, friend.UserName, req.Post.Description, "")  != nil {
+			}); err != nil && p.Email.SendPostApplicationAccept(friend.Email, user.UserName, friend.UserName, req.Post.Description, "")  != nil {
 				ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to accept application."})
 				return
 			}
@@ -578,9 +505,7 @@ func UpdatePostApplication(ctx *gin.Context) {
 
 
 // Endpoint for deleting sent post application
-func DeletePostApplication(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (p *Service) DeletePostApplication(ctx *gin.Context) {
 	uid, tp, reqID := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -594,7 +519,7 @@ func DeletePostApplication(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := db.Where("id = ?", uid).First(&user).Error; err != nil {
+	if err := p.DB.Where("id = ?", uid).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
@@ -602,7 +527,7 @@ func DeletePostApplication(ctx *gin.Context) {
 	}
 
 	var req model.PostReq
-	if err := db.Preload("FromUser").Where("id = ?", uint(rid)).First(&req).Error; err != nil {
+	if err := p.DB.Preload("FromUser").Where("id = ?", uint(rid)).First(&req).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound){
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Request not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve application from db."})}
@@ -614,7 +539,7 @@ func DeletePostApplication(ctx *gin.Context) {
 		return
 	}
 
-	if err := db.Unscoped().Delete(&req).Error; err != nil {
+	if err := p.DB.Unscoped().Delete(&req).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete application."})
 		return
 	}
@@ -624,9 +549,7 @@ func DeletePostApplication(ctx *gin.Context) {
 
 
 // Endpoint for deleting a post
-func DeletePost(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (p *Service) DeletePost(ctx *gin.Context) {
 	uid, tp, idStr := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Param("id")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -640,7 +563,7 @@ func DeletePost(ctx *gin.Context) {
 	}
 
 	var post model.Post
-	if err := db.Where("id = ?", uint(id)).First(&post).Error; err != nil {
+	if err := p.DB.Where("id = ?", uint(id)).First(&post).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
 		} else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})}
@@ -652,7 +575,7 @@ func DeletePost(ctx *gin.Context) {
 		return
 	}
 
-	if err := db.Delete(&post).Error; err != nil {
+	if err := p.DB.Delete(&post).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete post."})
 		return
 	}

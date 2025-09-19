@@ -2,19 +2,33 @@ package core
 
 import (
 	"fmt"
-	"log"
-	"os"
 
 	"gopkg.in/gomail.v2"
 )
 
 
-var (
-	mailPort = 587
-	server = "smtp.gmail.com"
-)
+type Email interface {
+	SendForgotPassEmail(email, username, token string) error
+	SendFriendReqEmail(email, fromUsername, toUsername, message, viewURL string) error
+	SendPostApplicationEmail(email, fromUsername, toUsername, message, viewURL string) error
+	SendPostApplicationAccept(email, fromUsername, toUsername, message, chatURL string) error
+}
 
-func SendForgotPassEmail(email, username, token string) error {
+
+type MyEmail struct {
+	Server 		string
+	MailPort 	int
+	Addr 		string
+	Password 	string
+}
+
+
+func NewEmail(server, addr, pass string, port int) *MyEmail {
+	return &MyEmail{Server: server, MailPort: port, Addr: addr, Password: pass}
+}
+
+
+func (e *MyEmail) SendForgotPassEmail(email, username, token string) error {
 htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -65,25 +79,23 @@ htmlBody := fmt.Sprintf(`
 	</body>
 	</html>`, username, token)
 
-	if os.Getenv("Testing") == "True" {return nil} // For testing the forgot password endpoint
 
 	msg := gomail.NewMessage()
-	msg.SetHeader("From", os.Getenv("EMAIL"))
+	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
 	msg.SetHeader("Subject", "Password reset OTP")
 	msg.SetBody("text/html", htmlBody)
 
-	mail := gomail.NewDialer(server, mailPort, os.Getenv("EMAIL"), os.Getenv("EMAIL_APP_PASSWORD"))
+	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
 
 	if err := mail.DialAndSend(msg); err != nil {
-		log.Printf("Unable to send email -> %v", err)
 		return err
 	}
 	return nil
 }
 
 
-func SendFriendReqEmail(email, fromUsername, toUsername, message, viewURL string) error {
+func (e *MyEmail) SendFriendReqEmail(email, fromUsername, toUsername, message, viewURL string) error {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -142,25 +154,22 @@ func SendFriendReqEmail(email, fromUsername, toUsername, message, viewURL string
 		viewURL,
 	)
 
-	if os.Getenv("Testing") == "True" {return nil}  // For tests not ideal
-
 	msg := gomail.NewMessage()
-	msg.SetHeader("From", os.Getenv("EMAIL"))
+	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
 	msg.SetHeader("Subject", "New Friend Request")
 	msg.SetBody("text/html", htmlBody)
 
-	mail := gomail.NewDialer(server, mailPort, os.Getenv("EMAIL"), os.Getenv("EMAIL_APP_PASSWORD"))
+	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
 
 	if err := mail.DialAndSend(msg); err != nil {
-		log.Printf("Unable to send email -> %v", err)
 		return err
 	}
 	return nil
 }
 
 
-func SendPostApplicationEmail(email, fromUsername, toUsername, message, viewURL string) error {
+func (e *MyEmail) SendPostApplicationEmail(email, fromUsername, toUsername, message, viewURL string) error {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -219,18 +228,15 @@ func SendPostApplicationEmail(email, fromUsername, toUsername, message, viewURL 
 		viewURL,
 	)
 
-	if os.Getenv("Testing") == "True" {return nil}
-
 	msg := gomail.NewMessage()
-	msg.SetHeader("From", os.Getenv("EMAIL"))
+	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "")
+	msg.SetHeader("Subject", "New Post Application")
 	msg.SetHeader("text/html", htmlBody)
 
-	mail := gomail.NewDialer(server, mailPort, os.Getenv("EMAIL"), os.Getenv("EMAIL_APP_PASSWORD"))
+	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
 
 	if err := mail.DialAndSend(msg); err != nil {
-		log.Printf("Unable to send email -> %v", err)
 		return err
 	}
 
@@ -238,7 +244,7 @@ func SendPostApplicationEmail(email, fromUsername, toUsername, message, viewURL 
 }
 
 
-func SendPostApplicationAccept(email, fromUsername, toUsername, message, chatURL string) error {
+func (e *MyEmail) SendPostApplicationAccept(email, fromUsername, toUsername, message, chatURL string) error {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -297,18 +303,16 @@ func SendPostApplicationAccept(email, fromUsername, toUsername, message, chatURL
 		chatURL,
 	)
 
-	if os.Getenv("Testing") == "True" {return nil}
 
 	msg := gomail.NewMessage()
-	msg.SetHeader("From", os.Getenv("EMAIL"))
+	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
 	msg.SetHeader("Subject", "")
 	msg.SetHeader("text/html", htmlBody)
 
-	mail := gomail.NewDialer(server, mailPort, os.Getenv("EMAIL"), os.Getenv("EMAIL_APP_PASSWORD"))
+	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
 
 	if err := mail.DialAndSend(msg); err != nil {
-		log.Printf("Unable to sned email -> %v", err)
 		return  err
 	}
 

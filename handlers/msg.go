@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"findme/database"
 	"findme/model"
 	"findme/schema"
 	"net/http"
@@ -13,9 +12,7 @@ import (
 )
 
 // Add Message endpoint
-func CreateMessage(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (m *Service) CreateMessage(ctx *gin.Context) {
 	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -23,7 +20,7 @@ func CreateMessage(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := db.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
+	if err := m.DB.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
@@ -55,7 +52,7 @@ func CreateMessage(ctx *gin.Context) {
 		Message: payload.Message,
 	}
 
-	if err := db.Create(&msg).Error; err != nil {
+	if err := m.DB.Create(&msg).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to send message."})
 		return
 	}
@@ -65,9 +62,7 @@ func CreateMessage(ctx *gin.Context) {
 
 
 // View messages history from a friend endpoint
-func ViewMessages(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (m *Service) ViewMessages(ctx *gin.Context) {
 	uid, tp, username := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -75,14 +70,14 @@ func ViewMessages(ctx *gin.Context) {
 	}
 
 	var user, friend model.User
-	if err := db.Preload("RecMessage").Preload("Message").Where("id = ?", uid).First(&user).Error; err != nil {
+	if err := m.DB.Preload("RecMessage").Preload("Message").Where("id = ?", uid).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
 		return
 	}
 
-	if err := db.Where("username = ?", username).First(&friend).Error; err != nil {
+	if err := m.DB.Where("username = ?", username).First(&friend).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Friend not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve friend from db."})}
@@ -115,9 +110,7 @@ func ViewMessages(ctx *gin.Context) {
 
 
 // Edit a message endpoint
-func EditMessage(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (m *Service) EditMessage(ctx *gin.Context) {
 	uid, tp, idStr := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -131,7 +124,7 @@ func EditMessage(ctx *gin.Context) {
 	}
 
 	var msg model.UserMessage
-	if err := db.Where("id = ?", uint(id)).Where("from_id = ?", uid).First(&msg).Error; err != nil {
+	if err := m.DB.Where("id = ?", uint(id)).Where("from_id = ?", uid).First(&msg).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Message not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve message from db."})}
@@ -146,7 +139,7 @@ func EditMessage(ctx *gin.Context) {
 
 	msg.Message = payload.Message
 
-	if err := db.Save(&msg).Error; err != nil {
+	if err := m.DB.Save(&msg).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to edit message."})
 		return
 	}
@@ -156,9 +149,7 @@ func EditMessage(ctx *gin.Context) {
 
 
 // Delete a message endpoint
-func DeleteMessage(ctx *gin.Context) {
-	db := database.GetDB()
-
+func (m *Service) DeleteMessage(ctx *gin.Context) {
 	uid, tp, idStr := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
 	if uid == 0 || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
@@ -172,14 +163,14 @@ func DeleteMessage(ctx *gin.Context) {
 	}
 
 	var msg model.UserMessage
-	if err := db.Where("id = ?", uint(id)).Where("from_id = ?", uid).First(&msg).Error; err != nil {
+	if err := m.DB.Where("id = ?", uint(id)).Where("from_id = ?", uid).First(&msg).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Message not found."})
 		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve message from db."})}
 		return
 	}
 
-	if err := db.Delete(&msg).Error; err != nil {
+	if err := m.DB.Delete(&msg).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete message."})
 		return
 	}

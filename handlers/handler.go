@@ -2,64 +2,80 @@ package handlers
 
 import (
 	"findme/core"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 
-func SetupHandler(router *gin.Engine) {
+type Service struct {
+	DB 		*gorm.DB
+	RDB 	core.Cache
+	Email 	core.Email
+	Git 	Git
+	Client 	*http.Client
+}
+
+
+func NewService(db *gorm.DB, rdb core.Cache, email core.Email, git Git, client *http.Client) *Service {
+	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Client: client}
+}
+
+func SetupHandler(router *gin.Engine, service *Service) {
 
 	router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{"message": "APP is up and running"})
 	})
 
 	// User Endpoints
-	router.POST("/signup", AddUser)
-	router.POST("/login", VerifyUser)
+	router.POST("/signup", service.AddUser)
+	router.POST("/login", service.VerifyUser)
 
-	router.GET("/github-signup", GitHubAddUser)
-	router.GET("/api/v1/auth/github/callback", GitHubAddUserCallback)
-	router.GET("/forgot-password", ForgotPassword)
-	router.GET("/verify-otp", VerifyOTP)
+	router.GET("/github-signup", service.Git.GitHubAddUser)
+	router.GET("/api/v1/auth/github/callback", service.Git.GitHubAddUserCallback)
 
-	protectedUserRoutes := router.Group("/api/v1/user")
-	protectedPostRoutes := router.Group("/api/v1/post")
-	protectedUserRoutes.Use(core.Authentication())
-	protectedPostRoutes.Use(core.Authentication())
+	router.GET("/forgot-password", service.ForgotPassword)
+	router.GET("/verify-otp", service.VerifyOTP)
 
-	protectedUserRoutes.GET("/profile", GetUserInfo)
-	protectedUserRoutes.GET("/search", ViewUserbySkills)
-	protectedUserRoutes.GET("/view", ViewUser)
-	protectedUserRoutes.GET("/view-git", ViewGitUser)
-	protectedUserRoutes.GET("/view-user-req", ViewFriendReq)
-	protectedUserRoutes.GET("/view-user-friend", ViewUserFriends)
-	protectedUserRoutes.POST("/send-user-req", SendFriendReq)
-	protectedUserRoutes.PUT("/update-profile", UpdateUserInfo)
-	protectedUserRoutes.PATCH("/update-user-req", UpdateFriendReqStatus)
-	protectedUserRoutes.PATCH("/update-password", UpdateUserPassword)
-	protectedUserRoutes.PATCH("/update-availability/:status", UpdateUserAvaibilityStatus)
-	protectedUserRoutes.PATCH("/update-skills", UpdateUserSkills)
-	protectedUserRoutes.PATCH("/reset-password", ResetPassword)
-	protectedUserRoutes.DELETE("/delete-skills", DeleteUserSkills)
-	protectedUserRoutes.DELETE("/delete-user", DeleteUserAccount)
-	protectedUserRoutes.DELETE("/delete-friend-req", DeleteSentReq)
-	protectedUserRoutes.DELETE("/delete-user-friend", DeleteUserFriend)
+	protectedUserRoutes := router.Group("/api/user")
+	protectedPostRoutes := router.Group("/api/post")
+	protectedUserRoutes.Use(service.Authentication())
+	protectedPostRoutes.Use(service.Authentication())
 
-	protectedUserRoutes.GET("/view-message", ViewMessages)
-	protectedUserRoutes.POST("/send-message", CreateMessage)
-	protectedUserRoutes.PATCH("/edit-message", EditMessage)
-	protectedUserRoutes.DELETE("/delete-message", DeleteMessage)
+	protectedUserRoutes.GET("/profile", service.GetUserInfo)
+	protectedUserRoutes.GET("/search", service.ViewUserbySkills)
+	protectedUserRoutes.GET("/view", service.ViewUser)
+	protectedUserRoutes.GET("/view-git", service.ViewGitUser)
+	protectedUserRoutes.GET("/view-user-req", service.ViewFriendReq)
+	protectedUserRoutes.GET("/view-user-friend", service.ViewUserFriends)
+	protectedUserRoutes.POST("/send-user-req", service.SendFriendReq)
+	protectedUserRoutes.PUT("/update-profile", service.UpdateUserInfo)
+	protectedUserRoutes.PATCH("/update-user-req", service.UpdateFriendReqStatus)
+	protectedUserRoutes.PATCH("/update-password", service.UpdateUserPassword)
+	protectedUserRoutes.PATCH("/update-availability/:status", service.UpdateUserAvaibilityStatus)
+	protectedUserRoutes.PATCH("/update-skills", service.UpdateUserSkills)
+	protectedUserRoutes.PATCH("/reset-password", service.ResetPassword)
+	protectedUserRoutes.DELETE("/delete-skills", service.DeleteUserSkills)
+	protectedUserRoutes.DELETE("/delete-user", service.DeleteUserAccount)
+	protectedUserRoutes.DELETE("/delete-friend-req", service.DeleteSentReq)
+	protectedUserRoutes.DELETE("/delete-user-friend", service.DeleteUserFriend)
 
-	protectedPostRoutes.GET("/posts/all", GetPosts)
-	protectedPostRoutes.GET("/:id", ViewPost)
-	protectedPostRoutes.GET("/view-applications", ViewPostApplications)
-	protectedPostRoutes.GET("/view/saved-post", ViewSavedPost)
-	protectedPostRoutes.POST("/create", CreatePost)
-	protectedPostRoutes.POST("/apply", ApplyForPost)
-	protectedPostRoutes.PUT("/save-post", SavePost)
-	protectedPostRoutes.PUT("/edit/:id", EditPost)
-	protectedPostRoutes.PATCH("/edit-view/:id", EditPostView)
-	protectedPostRoutes.PATCH("/update-application", UpdatePostApplication)
-	protectedPostRoutes.DELETE("/delete-application", DeletePostApplication)
-	protectedPostRoutes.DELETE("/delete/:id", DeletePost)
+	protectedUserRoutes.GET("/view-message", service.ViewMessages)
+	protectedUserRoutes.POST("/send-message", service.CreateMessage)
+	protectedUserRoutes.PATCH("/edit-message", service.EditMessage)
+	protectedUserRoutes.DELETE("/delete-message", service.DeleteMessage)
+
+	protectedPostRoutes.GET("/posts/all", service.GetPosts)
+	protectedPostRoutes.GET("/:id", service.ViewPost)
+	protectedPostRoutes.GET("/view-applications", service.ViewPostApplications)
+	protectedPostRoutes.GET("/view/saved-post", service.ViewSavedPost)
+	protectedPostRoutes.POST("/create", service.CreatePost)
+	protectedPostRoutes.POST("/apply", service.ApplyForPost)
+	protectedPostRoutes.PUT("/save-post", service.SavePost)
+	protectedPostRoutes.PUT("/edit/:id", service.EditPost)
+	protectedPostRoutes.PATCH("/edit-view/:id", service.EditPostView)
+	protectedPostRoutes.PATCH("/update-application", service.UpdatePostApplication)
+	protectedPostRoutes.DELETE("/delete-application", service.DeletePostApplication)
+	protectedPostRoutes.DELETE("/delete/:id", service.DeletePost)
 }

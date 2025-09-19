@@ -10,10 +10,8 @@ import (
 )
 
 
-var redDB *redis.Client
-
 // Connection to redis
-func ConnectRedis() {
+func ConnectRedis() *redis.Client{
 	redisClient := redis.NewClient(
 		&redis.Options{
 			Addr: os.Getenv("REDIS_ADDR"),
@@ -30,17 +28,5 @@ func ConnectRedis() {
 	}
 
 	log.Println("Connected to the redis client successfully.")
-	redDB = redisClient
-}
-
-
-// Returns a redis client
-func GetRDB() *redis.Client {
-	return redDB
-}
-
-
-// Set redis client for tests
-func SetRDB(client *redis.Client) {
-	redDB = client
+	return redisClient
 }

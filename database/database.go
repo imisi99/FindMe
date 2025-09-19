@@ -11,10 +11,8 @@ import (
 )
 
 
-var dbClient *gorm.DB
-
 // Connection to database
-func Connect() {
+func Connect() *gorm.DB{
 
 	// Get database connection details from environment variables
 	dsn := fmt.Sprintf(
@@ -61,20 +59,7 @@ func Connect() {
 	if err != nil {
 		log.Fatalf("[ERROR] Failed to create join table on user and friends -> %s", err.Error())
 	}
-	
-	dbClient = db
 
 	log.Println("[INFO] Connected to the database successfully.")
-
-}
-
-// Returns database connection session
-func GetDB() *gorm.DB {
-	return dbClient
-}
-
-
-// Set database connection for test
-func SetDB(client *gorm.DB) {
-	dbClient = client
+	return db
 }
