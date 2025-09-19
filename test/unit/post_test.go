@@ -24,7 +24,7 @@ var (
 
 
 func TestGetPost(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/post/1", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/post/1", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -40,11 +40,7 @@ func TestCreatePost(t *testing.T) {
 
 	body, _ := json.Marshal(payload)
 
-	fields := payload["tags"]
-	field := fields.([]string)
-	mock.ExpectHMGet("skills", field...).SetVal([]any{"1", "2"})
-
-	req, _ := http.NewRequest(http.MethodPost, "/api/v1/post/create", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/post/create", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -64,10 +60,7 @@ func TestEditPost(t *testing.T) {
 
 	body, _ := json.Marshal(payload)
 
-	fields := payload["tags"]
-	field := fields.([]string)
-	mock.ExpectHMGet("skills", field...).SetVal([]any{"1", "2"})
-	req, _ := http.NewRequest(http.MethodPut, "/api/v1/post/edit/2", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPut, "/api/post/edit/2", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -80,7 +73,7 @@ func TestEditPost(t *testing.T) {
 
 
 func TestGetPosts(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/post/posts/all", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/post/posts/all", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -93,7 +86,7 @@ func TestGetPosts(t *testing.T) {
 
 
 func TestEditPostView(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/post/edit-view/1", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-view/1", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -105,7 +98,7 @@ func TestEditPostView(t *testing.T) {
 
 
 func TestSavePostFailed(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPut, "/api/v1/post/save-post?id=1", nil)
+	req, _ := http.NewRequest(http.MethodPut, "/api/post/save-post?id=1", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -117,7 +110,7 @@ func TestSavePostFailed(t *testing.T) {
 
 
 func TestSavePost(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPut, "/api/v1/post/save-post?id=1", nil)
+	req, _ := http.NewRequest(http.MethodPut, "/api/post/save-post?id=1", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
@@ -129,7 +122,7 @@ func TestSavePost(t *testing.T) {
 
 
 func TestViewSavedPost(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/post/view/saved-post", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/post/view/saved-post", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
@@ -143,7 +136,7 @@ func TestViewSavedPost(t *testing.T) {
 func TestApplyForPostFailed(t *testing.T) {
 	body, _ := json.Marshal(reqPayload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/v1/post/apply?id=1", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id=1", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -157,7 +150,7 @@ func TestApplyForPostFailed(t *testing.T) {
 func TestApplyForPost(t *testing.T) {
 	body, _ := json.Marshal(reqPayload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/v1/post/apply?id=1", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id=1", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
@@ -169,7 +162,7 @@ func TestApplyForPost(t *testing.T) {
 
 
 func TestViewPostApplicationsApplicant(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/post/view-applications", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/post/view-applications", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
@@ -182,7 +175,7 @@ func TestViewPostApplicationsApplicant(t *testing.T) {
 
 
 func TestViewPostApplicationsPostOwner(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/post/view-applications", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/post/view-applications", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -195,7 +188,7 @@ func TestViewPostApplicationsPostOwner(t *testing.T) {
 
 
 func TestUpdatePostApplicationReject(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/post/update-application?id=1&status=rejected", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id=1&status=rejected", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -207,7 +200,7 @@ func TestUpdatePostApplicationReject(t *testing.T) {
 
 
 func TestUpdatePostApplicationInvalidStatus(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/post/update-application?id=1&status=invalidstatus", nil) 
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id=1&status=invalidstatus", nil) 
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -219,7 +212,7 @@ func TestUpdatePostApplicationInvalidStatus(t *testing.T) {
 
 
 func TestUpdatePostApplicationAccept(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/post/update-application?id=1&status=accepted", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id=1&status=accepted", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -233,7 +226,7 @@ func TestUpdatePostApplicationAccept(t *testing.T) {
 func TestCreatePostApplicationToDelete(t *testing.T) {
 	body, _ := json.Marshal(defPayload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/v1/post/apply?id=1", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id=1", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
@@ -245,7 +238,7 @@ func TestCreatePostApplicationToDelete(t *testing.T) {
 
 
 func TestDeletePostApplication(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/post/delete-application?id=2", nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/post/delete-application?id=2", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
@@ -256,7 +249,7 @@ func TestDeletePostApplication(t *testing.T) {
 
 
 func TestDeletePost(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/post/delete/2", nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/post/delete/2", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()

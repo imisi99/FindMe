@@ -32,8 +32,8 @@ func main() {
 	email := core.NewEmail("smtp.gmail.com", os.Getenv("EMAIL"), os.Getenv("EMAIL_PASSWORD"), 587)
 	git := handlers.NewGitService(os.Getenv("GIT_CLIENT_ID"), os.Getenv("GIT_CLIENT_SECRET"), os.Getenv("GIT_CALLBACK_URL"), db, client)
 	service := handlers.NewService(db, rdb, email, git, client)
+	service.RDB.CacheSkills()
 	router := gin.Default()
 	handlers.SetupHandler(router, service)
 	router.Run("localhost:8080")
-
 }

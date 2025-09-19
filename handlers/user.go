@@ -92,7 +92,7 @@ func (u *Service) VerifyUser(ctx *gin.Context) {
 		return
 	}
 
-	jwtToken, err := u.Authorization(payload.UserName, payload.Password)
+	jwtToken, err := Authorization(u.DB, payload.UserName, payload.Password)
 	if err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"message": cm.Message})

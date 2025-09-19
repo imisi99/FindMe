@@ -3,16 +3,13 @@ package unit
 import (
 	"bytes"
 	"encoding/json"
-	"findme/core"
-	"findme/schema"
-	"fmt"
+	"findme/handlers"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -88,7 +85,7 @@ func TestLogin(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "Logged in successfully")
 	token := w.Body.String()
-	tokenparts := strings.Split(token, "token")
+	tokenparts := strings.Split(token, "token")						// Setting the token to be the newly created user.
 	tokenString = tokenparts[1]
 	tokenString = tokenString[3:len(tokenString)-2]
 }
@@ -114,7 +111,7 @@ func TestLoginInvalid(t *testing.T) {
 
 
 func TestGetUserProfile(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/profile", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/profile", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -126,8 +123,8 @@ func TestGetUserProfile(t *testing.T) {
 
 
 func TestViewGitUser(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/view-git?id=imisi99", nil)
-	req.Header.Set("Authorization", "Bearer "+tokenString1)
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-git?id=imisi99", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -143,7 +140,7 @@ func TestSearchUserbySkills(t *testing.T) {
 	}
 	body, _ := json.Marshal(skills)
 
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/search", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/search", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -156,7 +153,7 @@ func TestSearchUserbySkills(t *testing.T) {
 
 
 func TestViewUser(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/view?id="+superUserName, nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/view?id="+superUserName, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -173,7 +170,7 @@ func TestSendFriendReq(t *testing.T) {
 	}
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/v1/user/send-user-req", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/user/send-user-req", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -189,8 +186,8 @@ func TestSendDuplicateFriendReq(t *testing.T) {
 		"username": defPayload["username"],
 	}
 	body, _ := json.Marshal(payload)
-	userToken, _ = core.GenerateJWT(1, "login", 5 * time.Minute)             							// Super created user from the test above to test the accepting of friend request sent 
-	req, _ := http.NewRequest(http.MethodPost, "/api/v1/user/send-user-req", bytes.NewBuffer(body))
+	userToken, _ = handlers.GenerateJWT(1, "login", 5 * time.Minute)             							// Super created user from the test above to test the accepting of friend request sent 
+	req, _ := http.NewRequest(http.MethodPost, "/api/user/send-user-req", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+userToken)
 
 	w := httptest.NewRecorder()
@@ -202,7 +199,7 @@ func TestSendDuplicateFriendReq(t *testing.T) {
 
 
 func TestViewFriendReq(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/view-user-req", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-user-req", nil)
 	req.Header.Set("Authorization", "Bearer "+userToken)
 
 	w := httptest.NewRecorder()
@@ -215,7 +212,7 @@ func TestViewFriendReq(t *testing.T) {
 
 
 func TestUpdateFriendReqReject(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-user-req?id=1&status=rejected", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-user-req?id=1&status=rejected", nil)
 	req.Header.Set("Authorization", "Bearer "+userToken)
 
 	w := httptest.NewRecorder()
@@ -227,7 +224,7 @@ func TestUpdateFriendReqReject(t *testing.T) {
 
 
 func TestUpdateFriendReqInvalidStatus(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-user-req?id=1&status=invalid", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-user-req?id=1&status=invalid", nil)
 	req.Header.Set("Authorization", "Bearer "+userToken)
 
 	w := httptest.NewRecorder()
@@ -239,7 +236,7 @@ func TestUpdateFriendReqInvalidStatus(t *testing.T) {
 
 
 func TestUpdateFriendReqAccept(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-user-req?id=1&status=accepted", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-user-req?id=1&status=accepted", nil)
 	req.Header.Set("Authorization", "Bearer "+userToken)
 
 	w := httptest.NewRecorder()
@@ -251,7 +248,7 @@ func TestUpdateFriendReqAccept(t *testing.T) {
 
 
 func TestViewUserFriends(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/view-user-friend", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-user-friend", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -263,7 +260,7 @@ func TestViewUserFriends(t *testing.T) {
 
 
 func TestDeleteFriend(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-user-friend?id="+superUserName, nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-user-friend?id="+superUserName, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -279,7 +276,7 @@ func TestAddReqToTestDelete(t *testing.T) {
 	}
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/v1/user/send-user-req", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/user/send-user-req", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -291,7 +288,7 @@ func TestAddReqToTestDelete(t *testing.T) {
 
 
 func TestDeleteReq(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-friend-req?id=2", nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-friend-req?id=2", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -302,12 +299,6 @@ func TestDeleteReq(t *testing.T) {
 
 
 func TestForgotPassword(t *testing.T) {
-	otp := schema.OTPInfo{UserID: 3}
-	data, _ := json.Marshal(otp)
-
-	mock.Regexp().ExpectGet("[0-9]{6}").SetErr(redis.Nil)
-	mock.Regexp().ExpectSet("[0-9]{6}", data, 10*time.Minute).SetVal(`OK`)
-
 	payload := map[string]string{
 		"email": "johndoe@gmail.com",
 	}
@@ -326,9 +317,8 @@ func TestForgotPassword(t *testing.T) {
 
 
 func TestVerifyOPT(t *testing.T) {
-	mock.ExpectGet("123456").SetVal(`{"UserID": 3}`)
 	payload := map[string]string{
-		"otp": "123456",
+		"otp": "123456",						// Using the default otp 123456 that is set in the mock
 	}
 
 	body, _ := json.Marshal(payload)
@@ -355,7 +345,7 @@ func TestResetPassword(t *testing.T) {
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/reset-password", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/reset-password", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+resetToken)
 
@@ -374,7 +364,7 @@ func TestUpdateuserProfile(t *testing.T) {
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPut, "/api/v1/user/update-profile", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPut, "/api/user/update-profile", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -396,7 +386,7 @@ func TestUpdateuserProfileDuplicate(t *testing.T){
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPut, "/api/v1/user/update-profile", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPut, "/api/user/update-profile", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -416,7 +406,7 @@ func TestUpdateuserPassword(t *testing.T) {
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-password", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-password", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -436,7 +426,7 @@ func TestUpdateuserPasswordFail(t *testing.T) {
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-password", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-password", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -449,7 +439,7 @@ func TestUpdateuserPasswordFail(t *testing.T) {
 
 
 func TestUpdateAvailabilityStatus(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-availability/false", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-availability/false", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -461,7 +451,7 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 
 
 func TestFailedUpdateAvailibilityStatus(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-availability/nothing", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-availability/nothing", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -477,16 +467,9 @@ func TestUpdateSkills(t *testing.T) {
 		"skills": {"rust", "java"},
 	}
 
-	value := make(map[string]string, 0)
-	for i := range payload["skills"] {
-		value[payload["skills"][i]] = fmt.Sprintf("%d", i+3)
-	}
-	mock.ExpectHMGet("skills", payload["skills"]...).SetVal([]any{nil, nil})
-	mock.ExpectHSet("skills", value).SetVal(int64(len(value)))
-
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/update-skills", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-skills", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -505,7 +488,7 @@ func TestDeleteSkills(t *testing.T) {
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-skills", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-skills", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -517,7 +500,7 @@ func TestDeleteSkills(t *testing.T) {
 
 
 func TestDeleteUser(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-user", nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-user", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()

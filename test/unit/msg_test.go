@@ -22,7 +22,7 @@ func TestCreateMessage(t *testing.T) {
 	payload := msgDefPayload
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/v1/user/send-message", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/user/send-message", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -38,7 +38,7 @@ func TestCreateMessageNotFriends(t *testing.T) {
 	payload["user"] = defPayload["username"]
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/v1/user/send-message", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/user/send-message", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -50,7 +50,7 @@ func TestCreateMessageNotFriends(t *testing.T) {
 
 
 func TestViewMessages(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/user/view-message?id="+superUserName1, nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-message?id="+superUserName1, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -67,7 +67,7 @@ func TestEditMessage(t *testing.T) {
 	}
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/user/edit-message?id=1", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/edit-message?id=1", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -79,7 +79,7 @@ func TestEditMessage(t *testing.T) {
 
 
 func TestDeleteMessage(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/user/delete-message?id=1", nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-message?id=1", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()

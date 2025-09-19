@@ -64,10 +64,10 @@ func ValidateJWT(tokenSting string) (*JWTClaims, error) {
 }
 
 
-func (c *Service) Authorization(username, password string) (string, error) {
+func Authorization(db *gorm.DB, username, password string) (string, error) {
 	var user model.User
 
-	err := c.DB.Where("username = ? OR email = ?", username, username).First(&user).Error
+	err := db.Where("username = ? OR email = ?", username, username).First(&user).Error
 	if err != nil { return "", &core.CustomMessage{Code: 404, Message: "Invalid Credentials!"}}
 
 	err = core.VerifyHashedPassword(password, user.Password)
