@@ -85,6 +85,22 @@ func TestGetPosts(t *testing.T) {
 }
 
 
+func TestSearchPostTags(t *testing.T) {
+	payload := map[string][]string{"tags": {"backend"}}
+	body, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodGet, "/api/post/tags", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), defPostDescription)
+	assert.Contains(t, w.Body.String(), "Testing the edit post endpoint")
+}
+
+
 func TestEditPostView(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-view/1", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
@@ -94,6 +110,18 @@ func TestEditPostView(t *testing.T) {
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
 	assert.Contains(t, w.Body.String(), "5")
+}
+
+
+func TestEditPostAvailability(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-status?id=1&status=false", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Contains(t, w.Body.String(), "false")
 }
 
 
@@ -137,13 +165,25 @@ func TestApplyForPostFailed(t *testing.T) {
 	body, _ := json.Marshal(reqPayload)
 
 	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id=1", bytes.NewBuffer(body))
-	req.Header.Set("Authorization", "Bearer "+tokenString)
+	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
-	assert.Contains(t, w.Body.String(), "You can't apply for a post owned by you.")
+	assert.Contains(t, w.Body.String(), "The owner of the post is no longer accepting applications.")
+}
+
+
+func TestEditPostAvailabilityTrue(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-status?id=1&status=true", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Contains(t, w.Body.String(), "true")
 }
 
 

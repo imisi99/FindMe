@@ -43,6 +43,7 @@ func (p *Service) GetPosts(ctx *gin.Context) {
 			CreatedAt: post.CreatedAt,
 			UpdatedAt: post.UpdatedAt,
 			Views: post.Views,
+			Available: post.Availability,
 		})
 	}
 	
@@ -83,11 +84,56 @@ func (p *Service) ViewPost(ctx *gin.Context) {
 			CreatedAt: post.CreatedAt,
 			UpdatedAt: post.UpdatedAt,
 			Views: post.Views,
+			Available: post.Availability,
 		},
 		Username: post.User.UserName,
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"post": result})
+}
+
+
+// Endpoint for searching post with tags 
+func (p *Service) SearchPost(ctx *gin.Context) {
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	var payload schema.SearchPostWithTags
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload."})
+		return
+	}
+
+	var posts []model.Post
+	subquery := p.DB.Select("post_id").
+	Table("post_skills").
+	Joins("JOIN skills s ON post_skills.skill_id = s.id").
+	Where("s.name IN ?", payload.Tags)
+
+	if err := p.DB.Preload("Tags").Where("id IN (?)", subquery).Find(&posts).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to search for post."})
+		return
+	}
+
+	var postResponse []schema.PostResponse
+	for _, post := range posts {
+		var tags []string
+		for _, tag := range post.Tags {tags = append(tags, tag.Name)}
+		postResponse = append(postResponse, schema.PostResponse{
+			ID: post.ID,
+			Description: post.Description,
+			CreatedAt: post.CreatedAt,
+			UpdatedAt: post.UpdatedAt,
+			Available: post.Availability,
+			Views: post.Views,
+			Tags: tags,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"post": postResponse})
 }
 
 
@@ -118,6 +164,7 @@ func (p *Service) CreatePost(ctx *gin.Context) {
 		Tags: allskills,
 		UserID: uid,
 		Views: 0,
+		Availability: true,
 	}
 	if err := p.DB.Create(&post).Error; err != nil {
 		log.Printf("Failed to create new post -> %v", err)
@@ -251,6 +298,55 @@ func (p *Service) EditPostView(ctx *gin.Context) {
 }
 
 
+// Endpoint for updating the post availability status 
+func (p *Service) EditPostAvailability(ctx *gin.Context) {
+	uid, tp, pidStr, status := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id"), ctx.Query("status")
+	if uid == 0 || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	pid, err := strconv.ParseUint(pidStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Invalid post id."})
+		return
+	}
+
+	stat, err := strconv.ParseBool(status)
+	if err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Invalid status"})
+		return
+	}
+
+	var post model.Post
+	if err := p.DB.Where("id = ?", uint(pid)).First(&post).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
+		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})}
+		return
+	}
+
+	post.Availability = stat
+	if err := p.DB.Save(post).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update post status."})
+		return
+	}
+	var tags []string
+	for _, tag := range post.Tags {tags = append(tags, tag.Name)}
+	result := schema.PostResponse{
+		ID: post.ID,
+		Description: post.Description,
+		Tags: tags,
+		Views: post.Views,
+		CreatedAt: post.CreatedAt,
+		UpdatedAt: post.UpdatedAt,
+		Available: post.Availability,
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"post": result})
+}
+
+
 // Endpoint for saving a post
 func (p *Service) SavePost(ctx *gin.Context) {
 	uid, tp, idStr := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
@@ -366,6 +462,11 @@ func (p *Service) ApplyForPost(ctx *gin.Context) {
 
 	if post.User.ID == user.ID {
 		ctx.JSON(http.StatusForbidden, gin.H{"message": "You can't apply for a post owned by you."})
+		return
+	}
+
+	if !post.Availability {
+		ctx.JSON(http.StatusForbidden, gin.H{"message": "The owner of the post is no longer accepting applications."})
 		return
 	}
 

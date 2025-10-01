@@ -95,6 +95,7 @@ func superUser(db *gorm.DB) {
 		UserID: super.ID,
 		Views: 4,
 		Tags: []*model.Skill{&be},
+		Availability: true,
 	}
 
 	db.Create(&post)

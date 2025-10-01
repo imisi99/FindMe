@@ -285,7 +285,7 @@ func (u *Service) SendFriendReq(ctx *gin.Context) {
 	}
 
 	var payload schema.SendFriendReq
-	if err := ctx.BindJSON(&payload); err != nil {
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload."})
 		return
 	}

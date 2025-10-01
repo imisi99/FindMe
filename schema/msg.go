@@ -18,4 +18,5 @@ type ViewMessage struct {
 	ID			uint
 	Message     string
 	Sent 		time.Time
+	Edited 		time.Time
 }

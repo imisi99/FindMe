@@ -11,6 +11,7 @@ type NewPostRequest struct {
 type PostResponse struct {
 	ID			uint
 	Description string
+	Available 	bool
 	Tags 		[]string
 	CreatedAt 	time.Time
 	UpdatedAt   time.Time
@@ -26,6 +27,11 @@ type DetailedPostResponse struct {
 
 type PostApplication struct {
 	Message 		string 			`json:"msg" binding:"omitempty,max=50"`
+}
+
+
+type SearchPostWithTags struct {
+	Tags 			[]string 		`json:"tags" binding:"required"`
 }
 
 

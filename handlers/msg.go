@@ -91,6 +91,7 @@ func (m *Service) ViewMessages(ctx *gin.Context) {
 				ID: msg.ID,
 				Message: msg.Message,
 				Sent: msg.CreatedAt,
+				Edited: msg.UpdatedAt,
 			})
 		}
 	}
@@ -101,6 +102,7 @@ func (m *Service) ViewMessages(ctx *gin.Context) {
 				ID: msg.ID,
 				Message: msg.Message,
 				Sent: msg.CreatedAt,
+				Edited: msg.UpdatedAt,
 			})
 		}
 	}

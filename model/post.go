@@ -7,6 +7,7 @@ type Post struct {
 	gorm.Model
 	Description		string		`gorm:"not null"`
 	Views 			uint 		`gorm:"not null"`
+	Availability	bool
 
 	// Relations:
 	UserID 			uint		`gorm:"not null"`
