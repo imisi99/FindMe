@@ -1,20 +1,19 @@
+// Package database -> Connection to database and redis
 package database
 
 import (
-	"findme/model"
 	"fmt"
 	"log"
 	"os"
+
+	"findme/model"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-
-// Connection to database
-func Connect() *gorm.DB{
-
-	// Get database connection details from environment variables
+// Connect -> Connection to database
+func Connect() *gorm.DB {
 	dsn := fmt.Sprintf(
 		"host=localhost user=%s password=%s dbname=%s port=5432 sslmode=disable",
 		os.Getenv("POSTGRES_USER"),
@@ -22,13 +21,10 @@ func Connect() *gorm.DB{
 		os.Getenv("POSTGRES_DB"),
 	)
 
-
-	// Connect to the database
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil{
-		log.Fatalf("[ERROR] Failed to establish database connection -> %s", err.Error())
+	if err != nil {
+		log.Fatalf("[ERROR] [DB] Failed to establish database connection -> %s", err.Error())
 	}
-
 
 	err = db.AutoMigrate(
 		&model.User{},
@@ -40,26 +36,25 @@ func Connect() *gorm.DB{
 		&model.FriendReq{},
 		&model.UserMessage{},
 	)
-	
 	if err != nil {
-		log.Fatalf("[ERROR] Failed to create tables -> %s", err.Error())
+		log.Fatalf("[ERROR] [DB] Failed to create tables -> %s", err.Error())
 	}
 
 	err = db.SetupJoinTable(&model.Post{}, "Tags", &model.PostSkill{})
 	if err != nil {
-		log.Fatalf("[ERROR] Failed to create join table on post and skills -> %s", err.Error())
+		log.Fatalf("[ERROR] [DB] Failed to create join table on post and skills -> %s", err.Error())
 	}
 
 	err = db.SetupJoinTable(&model.User{}, "Skills", &model.UserSkill{})
 	if err != nil {
-		log.Fatalf("[ERROR] Failed to create join table on user and skills -> %s", err.Error())
+		log.Fatalf("[ERROR] [DB] Failed to create join table on user and skills -> %s", err.Error())
 	}
 
 	err = db.SetupJoinTable(&model.User{}, "Friends", &model.UserFriend{})
 	if err != nil {
-		log.Fatalf("[ERROR] Failed to create join table on user and friends -> %s", err.Error())
+		log.Fatalf("[ERROR] [DB] Failed to create join table on user and friends -> %s", err.Error())
 	}
 
-	log.Println("[INFO] Connected to the database successfully.")
+	log.Println("[INFO] [DB] Connected to the database successfully.")
 	return db
 }

@@ -2,16 +2,17 @@ package handlers
 
 import (
 	"errors"
-	"findme/model"
-	"findme/schema"
 	"net/http"
 	"strconv"
+
+	"findme/model"
+	"findme/schema"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-// Add Message endpoint
+// CreateMessage -> Add Message endpoint
 func (m *Service) CreateMessage(ctx *gin.Context) {
 	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
 	if uid == 0 || tp != "login" {
@@ -23,7 +24,9 @@ func (m *Service) CreateMessage(ctx *gin.Context) {
 	if err := m.DB.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
+		}
 		return
 	}
 
@@ -34,7 +37,7 @@ func (m *Service) CreateMessage(ctx *gin.Context) {
 	}
 
 	var friend *model.User
-	for _, fr := range user.Friends {		// This is not efficient i guess looping through all the user friends ? 
+	for _, fr := range user.Friends { // This is not efficient i guess looping through all the user friends ?
 		if fr.UserName == payload.To {
 			friend = fr
 			break
@@ -47,8 +50,8 @@ func (m *Service) CreateMessage(ctx *gin.Context) {
 	}
 
 	msg := model.UserMessage{
-		FromID: user.ID,
-		ToID: friend.ID,
+		FromID:  user.ID,
+		ToID:    friend.ID,
 		Message: payload.Message,
 	}
 
@@ -60,8 +63,7 @@ func (m *Service) CreateMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"message": "message sent successfully."})
 }
 
-
-// View messages history from a friend endpoint
+// ViewMessages -> View messages history from a friend endpoint
 func (m *Service) ViewMessages(ctx *gin.Context) {
 	uid, tp, username := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
 	if uid == 0 || tp != "login" {
@@ -73,14 +75,18 @@ func (m *Service) ViewMessages(ctx *gin.Context) {
 	if err := m.DB.Preload("RecMessage").Preload("Message").Where("id = ?", uid).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})}
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
+		}
 		return
 	}
 
 	if err := m.DB.Where("username = ?", username).First(&friend).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Friend not found."})
-		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve friend from db."})}
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve friend from db."})
+		}
 		return
 	}
 
@@ -88,10 +94,10 @@ func (m *Service) ViewMessages(ctx *gin.Context) {
 	for _, msg := range user.Message {
 		if msg.ToID == friend.ID {
 			hist = append(hist, schema.ViewMessage{
-				ID: msg.ID,
+				ID:      msg.ID,
 				Message: msg.Message,
-				Sent: msg.CreatedAt,
-				Edited: msg.UpdatedAt,
+				Sent:    msg.CreatedAt,
+				Edited:  msg.UpdatedAt,
 			})
 		}
 	}
@@ -99,10 +105,10 @@ func (m *Service) ViewMessages(ctx *gin.Context) {
 	for _, msg := range user.RecMessage {
 		if msg.FromID == friend.ID {
 			hist = append(hist, schema.ViewMessage{
-				ID: msg.ID,
+				ID:      msg.ID,
 				Message: msg.Message,
-				Sent: msg.CreatedAt,
-				Edited: msg.UpdatedAt,
+				Sent:    msg.CreatedAt,
+				Edited:  msg.UpdatedAt,
 			})
 		}
 	}
@@ -110,8 +116,7 @@ func (m *Service) ViewMessages(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, hist)
 }
 
-
-// Edit a message endpoint
+// EditMessage -> Edit a message endpoint
 func (m *Service) EditMessage(ctx *gin.Context) {
 	uid, tp, idStr := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
 	if uid == 0 || tp != "login" {
@@ -129,7 +134,9 @@ func (m *Service) EditMessage(ctx *gin.Context) {
 	if err := m.DB.Where("id = ?", uint(id)).Where("from_id = ?", uid).First(&msg).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Message not found."})
-		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve message from db."})}
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve message from db."})
+		}
 		return
 	}
 
@@ -149,8 +156,7 @@ func (m *Service) EditMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"message": "Message Edited successfully."})
 }
 
-
-// Delete a message endpoint
+// DeleteMessage -> Delete a message endpoint
 func (m *Service) DeleteMessage(ctx *gin.Context) {
 	uid, tp, idStr := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
 	if uid == 0 || tp != "login" {
@@ -168,7 +174,9 @@ func (m *Service) DeleteMessage(ctx *gin.Context) {
 	if err := m.DB.Where("id = ?", uint(id)).Where("from_id = ?", uid).First(&msg).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			ctx.JSON(http.StatusNotFound, gin.H{"message": "Message not found."})
-		}else {ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve message from db."})}
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve message from db."})
+		}
 		return
 	}
 

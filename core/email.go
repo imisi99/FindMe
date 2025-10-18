@@ -6,30 +6,28 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-
 type Email interface {
 	SendForgotPassEmail(email, username, token string) error
 	SendFriendReqEmail(email, fromUsername, toUsername, message, viewURL string) error
 	SendPostApplicationEmail(email, fromUsername, toUsername, message, viewURL string) error
 	SendPostApplicationAccept(email, fromUsername, toUsername, message, chatURL string) error
+	SendPostApplicationReject(email, fromusername, toUsername, message, reason string) error
 }
-
 
 type MyEmail struct {
-	Server 		string
-	MailPort 	int
-	Addr 		string
-	Password 	string
+	Server   string
+	MailPort int
+	Addr     string
+	Password string
 }
-
 
 func NewEmail(server, addr, pass string, port int) *MyEmail {
 	return &MyEmail{Server: server, MailPort: port, Addr: addr, Password: pass}
 }
 
-
+// SendForgotPassEmail -> Sends an OTP for reseting Password
 func (e *MyEmail) SendForgotPassEmail(email, username, token string) error {
-htmlBody := fmt.Sprintf(`
+	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
 	<head>
@@ -79,7 +77,6 @@ htmlBody := fmt.Sprintf(`
 	</body>
 	</html>`, username, token)
 
-
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
@@ -94,7 +91,7 @@ htmlBody := fmt.Sprintf(`
 	return nil
 }
 
-
+// SendFriendReqEmail -> Sends a notification about a new friend request
 func (e *MyEmail) SendFriendReqEmail(email, fromUsername, toUsername, message, viewURL string) error {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
@@ -147,8 +144,8 @@ func (e *MyEmail) SendFriendReqEmail(email, fromUsername, toUsername, message, v
 	</table>
 
 	</body>
-	</html>`, 
-		toUsername, 
+	</html>`,
+		toUsername,
 		fromUsername,
 		message,
 		viewURL,
@@ -168,7 +165,7 @@ func (e *MyEmail) SendFriendReqEmail(email, fromUsername, toUsername, message, v
 	return nil
 }
 
-
+// SendPostApplicationEmail -> Sends a notification about a new application to post
 func (e *MyEmail) SendPostApplicationEmail(email, fromUsername, toUsername, message, viewURL string) error {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
@@ -192,7 +189,7 @@ func (e *MyEmail) SendPostApplicationEmail(email, fromUsername, toUsername, mess
 				<td style="padding:30px;">
 					<p style="font-size:16px; color:#111827; margin-bottom:20px;">Hello %s,</p>
 					<p style="font-size:15px; color:#374151; margin-bottom:20px;">
-						You've applied for a post created by <b>%s</b>
+						<b>%s</b> has applied for a post created by you.
 					</p>
 					<p style="font-size:14px; color:#374151; margin:20px 0;">
 						<span style="font-weight:bold;">Post Description:</span>
@@ -231,7 +228,7 @@ func (e *MyEmail) SendPostApplicationEmail(email, fromUsername, toUsername, mess
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "New Post Application")
+	msg.SetHeader("Subject", "New Application")
 	msg.SetHeader("text/html", htmlBody)
 
 	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
@@ -243,7 +240,7 @@ func (e *MyEmail) SendPostApplicationEmail(email, fromUsername, toUsername, mess
 	return nil
 }
 
-
+// SendPostApplicationAccept -> Sends notification about accepted post application
 func (e *MyEmail) SendPostApplicationAccept(email, fromUsername, toUsername, message, chatURL string) error {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
@@ -303,17 +300,91 @@ func (e *MyEmail) SendPostApplicationAccept(email, fromUsername, toUsername, mes
 		chatURL,
 	)
 
-
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "")
+	msg.SetHeader("Subject", "Application Update")
 	msg.SetHeader("text/html", htmlBody)
 
 	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
 
 	if err := mail.DialAndSend(msg); err != nil {
-		return  err
+		return err
+	}
+
+	return nil
+}
+
+// SendPostApplicationReject -> Sends notification about rejected post application
+func (e *MyEmail) SendPostApplicationReject(email, fromUsername, toUsername, message, reason string) error {
+	htmlBody := fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+	<meta charset="UTF-8">
+	<title>Application Update</title>
+	</head>
+	<body style="margin:0; padding:0; background:#f9fafb; font-family:Arial, sans-serif;">
+
+	<table width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f9fafb; padding:40px 0;">
+		<tr>
+		<td align="center">
+			<table width="600" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+			<tr>
+				<td style="background:#4f46e5; padding:20px; text-align:center; border-top-left-radius:8px; border-top-right-radius:8px;">
+					<h1 style="margin:0; font-size:22px; color:#ffffff;">Application Update</h1>
+				</td>
+			</tr>
+			<tr>
+				<td style="padding:30px;">
+					<p style="font-size:16px; color:#111827; margin-bottom:20px;">Hello %s,</p>
+					<p style="font-size:15px; color:#374151; margin-bottom:20px;">
+						<b>%s</b> has rejected your application!
+					</p>
+					<p style="font-size:14px; color:#374151; margin:20px 0;">
+						<span style="font-weight:bold;">you've been rejected from project with description</span>
+					</p>
+					<blockquote style="margin:0; padding:15px; background:#f3f4f6; border-left:4px solid #26868aff; font-style:italic; font-size:14px; color:#1f2937;">
+						%s
+					</blockquote>
+					<p style="font-size:14px; color:#6b7280; margin-bottom:30px;">
+						You weren't accepted due to:
+					</p>
+					<blockquote style="margin:0; padding:15px; background:#f3f4f6; border-left:4px solid #26868aff; font-style:italic; font-size:14px; color:#1f2937;">
+						%s
+					</blockquote>
+				</td>
+			</tr>
+			<tr>
+				<td style="padding:20px; text-align:center; font-size:12px; color:#9ca3af;">
+					You are receiving this email because you have an account on <b>FindMe</b>.<br/>
+					If you did not expect this, you can safely ignore this email.<br/><br/>
+					This is an automated email, please do not reply.
+				</td>
+			</tr>
+			</table>
+		</td>
+		</tr>
+	</table>
+
+	</body>
+	</html>`,
+		toUsername,
+		fromUsername,
+		message,
+		reason,
+	)
+
+	msg := gomail.NewMessage()
+	msg.SetHeader("From", e.Addr)
+	msg.SetHeader("To", email)
+	msg.SetHeader("Subject", "Application Update")
+	msg.SetHeader("text/html", htmlBody)
+
+	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
+
+	if err := mail.DialAndSend(msg); err != nil {
+		return err
 	}
 
 	return nil

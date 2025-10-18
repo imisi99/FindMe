@@ -3,38 +3,37 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"findme/core"
-	"findme/model"
-	"findme/schema"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
+	"findme/core"
+	"findme/model"
+	"findme/schema"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
-
 
 type Git interface {
 	GitHubAddUser(ctx *gin.Context)
 	GitHubAddUserCallback(ctx *gin.Context)
 }
 
-
 type GitService struct {
-	ClientID 		string
-	ClientSecret    string
-	CallbackURL 	string
-	DB 				*gorm.DB
-	Client 			*http.Client
+	ClientID     string
+	ClientSecret string
+	CallbackURL  string
+	DB           *gorm.DB
+	Client       *http.Client
 }
 
 func NewGitService(id, secret, callback string, db *gorm.DB, client *http.Client) *GitService {
 	return &GitService{ClientID: id, ClientSecret: secret, CallbackURL: callback, DB: db, Client: client}
 }
 
-// Signing up user using github
+// GitHubAddUser -> Signing up user using github
 func (g *GitService) GitHubAddUser(ctx *gin.Context) {
 	if _, err := ctx.Cookie("git-access-token"); err == nil {
 		ctx.Redirect(http.StatusTemporaryRedirect, g.CallbackURL)
@@ -51,8 +50,7 @@ func (g *GitService) GitHubAddUser(ctx *gin.Context) {
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
-
-// Callback for the github signup endpoint
+// GitHubAddUserCallback -> for the github signup endpoint
 func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 	var token string
 	token, err := ctx.Cookie("git-access-token")
@@ -75,7 +73,7 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 		req.Header.Set("Content-type", "application/x-www-form-urlencoded")
 
 		resp, err := g.Client.Do(req)
-		if err != nil || resp.StatusCode != http.StatusOK{
+		if err != nil || resp.StatusCode != http.StatusOK {
 			ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to signup with github."})
 			return
 		}
@@ -84,8 +82,10 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 
 		body, _ := io.ReadAll(resp.Body)
 
-		var gitToken struct {AccessToken string	`json:"access_token"`}
-		
+		var gitToken struct {
+			AccessToken string `json:"access_token"`
+		}
+
 		if err := json.Unmarshal(body, &gitToken); err != nil {
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse access token."})
 			return
@@ -103,7 +103,7 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to signup with github."})
 		return
 	}
-	
+
 	defer userResp.Body.Close()
 
 	userBody, _ := io.ReadAll(userResp.Body)
@@ -119,7 +119,7 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 		emailReq.Header.Set("Accept", "application/vnd.github+json")
 
 		emailResp, err := g.Client.Do(emailReq)
-		if err != nil ||emailResp.StatusCode != http.StatusOK {
+		if err != nil || emailResp.StatusCode != http.StatusOK {
 			ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to fetch user email."})
 			return
 		}
@@ -128,8 +128,8 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 
 		emailBody, _ := io.ReadAll(emailResp.Body)
 		var email []struct {
-			Email		string  `json:"email"`
-			Primary		bool 	`json:"primary"`
+			Email   string `json:"email"`
+			Primary bool   `json:"primary"`
 		}
 
 		if err := json.Unmarshal(emailBody, &email); err != nil {
@@ -137,7 +137,7 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 			return
 		}
 		for _, e := range email {
-			if e.Primary{
+			if e.Primary {
 				user.Email = e.Email
 				break
 			}
@@ -151,7 +151,7 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 
 	var existingUser model.User
 	if err := g.DB.Where("gitid = ?", user.ID).First(&existingUser).Error; err == nil {
-		userToken, err := GenerateJWT(existingUser.ID,"login", JWTExpiry)
+		userToken, err := GenerateJWT(existingUser.ID, "login", JWTExpiry)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
 			return
@@ -179,33 +179,33 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 
 			ctx.JSON(http.StatusOK, gin.H{"token": userToken, "message": "Logged in successfully."})
 			return
-		}else {
+		} else {
 			ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": "A github accouont associated with your email already in use."})
 			return
 		}
 	}
 
-	var newUsername = user.UserName
+	newUsername := user.UserName
 	if err := g.DB.Where("username = ?", user.UserName).First(&existingUser).Error; err == nil {
 		newUsername = core.GenerateUsername(existingUser.UserName)
 	}
 
 	newUser := model.User{
-		FullName : user.FullName,
-		Email : user.Email,
-		GitUserName : &user.UserName,
-		GitID: &user.ID,
-		GitUser: true,
-		UserName :newUsername,
-		Availability : true,
-		Bio : user.Bio,
+		FullName:     user.FullName,
+		Email:        user.Email,
+		GitUserName:  &user.UserName,
+		GitID:        &user.ID,
+		GitUser:      true,
+		UserName:     newUsername,
+		Availability: true,
+		Bio:          user.Bio,
 	}
 
 	if err := g.DB.Create(&newUser).Error; err != nil {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to signup with github."})
-			return
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to signup with github."})
+		return
 	}
-	
+
 	userToken, err := GenerateJWT(newUser.ID, "login", JWTExpiry)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})

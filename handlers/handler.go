@@ -1,29 +1,27 @@
 package handlers
 
 import (
-	"findme/core"
 	"net/http"
+
+	"findme/core"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-
 type Service struct {
-	DB 		*gorm.DB
-	RDB 	core.Cache
-	Email 	core.Email
-	Git 	Git
-	Client 	*http.Client
+	DB     *gorm.DB
+	RDB    core.Cache
+	Email  core.Email
+	Git    Git
+	Client *http.Client
 }
-
 
 func NewService(db *gorm.DB, rdb core.Cache, email core.Email, git Git, client *http.Client) *Service {
 	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Client: client}
 }
 
 func SetupHandler(router *gin.Engine, service *Service) {
-
 	router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{"message": "APP is up and running"})
 	})

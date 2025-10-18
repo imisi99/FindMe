@@ -10,13 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
-var (
-	msgDefPayload = map[string]string{
-		"msg": "Yo i need your help with the frontend or mobile dev.",
-		"user": superUserName1,
-	}
-)
+var msgDefPayload = map[string]string{
+	"msg":  "Yo i need your help with the frontend or mobile dev.",
+	"user": superUserName1,
+}
 
 func TestCreateMessage(t *testing.T) {
 	payload := msgDefPayload
@@ -31,7 +28,6 @@ func TestCreateMessage(t *testing.T) {
 	assert.Equal(t, http.StatusAccepted, w.Code)
 	assert.Contains(t, w.Body.String(), "message sent successfully")
 }
-
 
 func TestCreateMessageNotFriends(t *testing.T) {
 	payload := msgDefPayload
@@ -48,7 +44,6 @@ func TestCreateMessageNotFriends(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "user is not your friend.")
 }
 
-
 func TestViewMessages(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-message?id="+superUserName1, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
@@ -59,7 +54,6 @@ func TestViewMessages(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), msgDefPayload["msg"])
 }
-
 
 func TestEditMessage(t *testing.T) {
 	payload := map[string]string{
@@ -76,7 +70,6 @@ func TestEditMessage(t *testing.T) {
 	assert.Equal(t, http.StatusAccepted, w.Code)
 	assert.Contains(t, w.Body.String(), "Message Edited successfully.")
 }
-
 
 func TestDeleteMessage(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-message?id=1", nil)

@@ -3,41 +3,36 @@ package schema
 import "time"
 
 type NewPostRequest struct {
-	Description string				`json:"description" binding:"required"`
-	Tags 		[]string			`json:"tags" binding:"required"`
+	Description string   `json:"description" binding:"required"`
+	Tags        []string `json:"tags" binding:"required"`
 }
-
 
 type PostResponse struct {
-	ID			uint
+	ID          uint
 	Description string
-	Available 	bool
-	Tags 		[]string
-	CreatedAt 	time.Time
+	Available   bool
+	Tags        []string
+	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	Views 		uint
+	Views       uint
 }
-
 
 type DetailedPostResponse struct {
 	PostResponse
-	Username		string
+	Username string
 }
-
 
 type PostApplication struct {
-	Message 		string 			`json:"msg" binding:"omitempty,max=50"`
+	Message string `json:"msg" binding:"omitempty,max=50"`
 }
-
 
 type SearchPostWithTags struct {
-	Tags 			[]string 		`json:"tags" binding:"required"`
+	Tags []string `json:"tags" binding:"required"`
 }
 
-
 type ViewPostApplication struct {
-	ReqID 			uint
-	Status 			string
-	Message 		string
-	Username 		string
+	ReqID    uint
+	Status   string
+	Message  string
+	Username string
 }

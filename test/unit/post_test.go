@@ -10,18 +10,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
 var (
 	postPayload = map[string]any{
 		"description": "Testing the post creation endpoint.",
-		"tags": []string{"ml", "backend"},
+		"tags":        []string{"ml", "backend"},
 	}
 	defPostDescription = "Working on a platform for finding developers for contributive project"
-	reqPayload = map[string]string {
+	reqPayload         = map[string]string{
 		"msg": "hey I'm interested in this projec",
 	}
 )
-
 
 func TestGetPost(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/post/1", nil)
@@ -33,7 +31,6 @@ func TestGetPost(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), defPostDescription)
 }
-
 
 func TestCreatePost(t *testing.T) {
 	payload := postPayload
@@ -49,12 +46,9 @@ func TestCreatePost(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Contains(t, w.Body.String(), "Post created successfully.")
-
 }
 
-
 func TestEditPost(t *testing.T) {
-
 	payload := postPayload
 	payload["description"] = "Testing the edit post endpoint"
 
@@ -71,7 +65,6 @@ func TestEditPost(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Post updated successfully.")
 }
 
-
 func TestGetPosts(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/post/posts/all", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
@@ -83,7 +76,6 @@ func TestGetPosts(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Testing the edit post endpoint")
 	assert.Contains(t, w.Body.String(), defPostDescription)
 }
-
 
 func TestSearchPostTags(t *testing.T) {
 	payload := map[string][]string{"tags": {"backend"}}
@@ -100,7 +92,6 @@ func TestSearchPostTags(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Testing the edit post endpoint")
 }
 
-
 func TestEditPostView(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-view/1", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
@@ -111,7 +102,6 @@ func TestEditPostView(t *testing.T) {
 	assert.Equal(t, http.StatusAccepted, w.Code)
 	assert.Contains(t, w.Body.String(), "5")
 }
-
 
 func TestEditPostAvailability(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-status?id=1&status=false", nil)
@@ -124,7 +114,6 @@ func TestEditPostAvailability(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "false")
 }
 
-
 func TestSavePostFailed(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPut, "/api/post/save-post?id=1", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
@@ -135,7 +124,6 @@ func TestSavePostFailed(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Contains(t, w.Body.String(), "You can't save a post created by you.")
 }
-
 
 func TestSavePost(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPut, "/api/post/save-post?id=1", nil)
@@ -148,7 +136,6 @@ func TestSavePost(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Post saved successfully")
 }
 
-
 func TestViewSavedPost(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/post/view/saved-post", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
@@ -159,7 +146,6 @@ func TestViewSavedPost(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), defPostDescription)
 }
-
 
 func TestApplyForPostFailed(t *testing.T) {
 	body, _ := json.Marshal(reqPayload)
@@ -174,7 +160,6 @@ func TestApplyForPostFailed(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "The owner of the post is no longer accepting applications.")
 }
 
-
 func TestEditPostAvailabilityTrue(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-status?id=1&status=true", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
@@ -185,7 +170,6 @@ func TestEditPostAvailabilityTrue(t *testing.T) {
 	assert.Equal(t, http.StatusAccepted, w.Code)
 	assert.Contains(t, w.Body.String(), "true")
 }
-
 
 func TestApplyForPost(t *testing.T) {
 	body, _ := json.Marshal(reqPayload)
@@ -200,7 +184,6 @@ func TestApplyForPost(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Application sent successfully.")
 }
 
-
 func TestViewPostApplicationsApplicant(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/post/view-applications", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
@@ -212,7 +195,6 @@ func TestViewPostApplicationsApplicant(t *testing.T) {
 	assert.Contains(t, w.Body.String(), reqPayload["msg"])
 	assert.Contains(t, w.Body.String(), superUserName)
 }
-
 
 func TestViewPostApplicationsPostOwner(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/post/view-applications", nil)
@@ -226,7 +208,6 @@ func TestViewPostApplicationsPostOwner(t *testing.T) {
 	assert.Contains(t, w.Body.String(), superUserName1)
 }
 
-
 func TestUpdatePostApplicationReject(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id=1&status=rejected", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
@@ -238,9 +219,8 @@ func TestUpdatePostApplicationReject(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Application status updated successfully.")
 }
 
-
 func TestUpdatePostApplicationInvalidStatus(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id=1&status=invalidstatus", nil) 
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id=1&status=invalidstatus", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -249,7 +229,6 @@ func TestUpdatePostApplicationInvalidStatus(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Invalid status.")
 }
-
 
 func TestUpdatePostApplicationAccept(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id=1&status=accepted", nil)
@@ -261,7 +240,6 @@ func TestUpdatePostApplicationAccept(t *testing.T) {
 	assert.Equal(t, http.StatusAccepted, w.Code)
 	assert.Contains(t, w.Body.String(), "Application status updated successfully.")
 }
-
 
 func TestCreatePostApplicationToDelete(t *testing.T) {
 	body, _ := json.Marshal(defPayload)
@@ -276,7 +254,6 @@ func TestCreatePostApplicationToDelete(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Application sent successfully.")
 }
 
-
 func TestDeletePostApplication(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodDelete, "/api/post/delete-application?id=2", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
@@ -286,7 +263,6 @@ func TestDeletePostApplication(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }
-
 
 func TestDeletePost(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodDelete, "/api/post/delete/2", nil)
