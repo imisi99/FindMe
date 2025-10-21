@@ -6,18 +6,17 @@ import (
 	"findme/core"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type Service struct {
-	DB     *gorm.DB
+	DB     core.GDB
 	RDB    core.Cache
 	Email  core.Email
 	Git    Git
 	Client *http.Client
 }
 
-func NewService(db *gorm.DB, rdb core.Cache, email core.Email, git Git, client *http.Client) *Service {
+func NewService(db core.GDB, rdb core.Cache, email core.Email, git Git, client *http.Client) *Service {
 	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Client: client}
 }
 

@@ -25,22 +25,13 @@ func (u *Service) AddUser(ctx *gin.Context) {
 
 	// Checking for existing username | email
 	var existingUser model.User
-	var err error
-	if err = u.DB.Where("username = ? OR email = ?", payload.UserName, payload.Email).First(&existingUser).Error; err == nil {
-		if existingUser.Email == payload.Email {
-			ctx.JSON(http.StatusConflict, gin.H{"message": "Email already in use!"})
-			return
-		} else {
-			ctx.JSON(http.StatusConflict, gin.H{"message": "Username already in use!"})
-			return
-		}
-	}
-
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
+	if err := u.DB.CheckExistingUser(&existingUser, payload.Email, payload.UserName); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
+	var err error
 	var allskills []*model.Skill
 	if len(payload.Skills) > 0 {
 		for i := range payload.Skills {
@@ -70,8 +61,9 @@ func (u *Service) AddUser(ctx *gin.Context) {
 		Availability: true,
 	}
 
-	if err = u.DB.Create(&user).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create user."})
+	if err := u.DB.AddUser(&user); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -112,12 +104,9 @@ func (u *Service) GetUserInfo(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := u.DB.Preload("Skills").Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := u.DB.FetchUserPreloadS(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -126,13 +115,11 @@ func (u *Service) GetUserInfo(ctx *gin.Context) {
 		skills = append(skills, skill.Name)
 	}
 
-	var gitusername *string
-
 	profile := schema.UserProfileResponse{
 		UserName:     user.UserName,
 		FullName:     user.FullName,
 		Email:        user.Email,
-		GitUserName:  gitusername,
+		GitUserName:  user.GitUserName,
 		Gituser:      user.GitUser,
 		Bio:          user.Bio,
 		Availability: user.Availability,
@@ -151,12 +138,9 @@ func (u *Service) ViewUser(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := u.DB.Preload("Skills").Preload("Posts").Where("username = ?", username).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "No user found with this username."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := u.DB.SearchUserPreloadSP(&user, username); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -202,12 +186,9 @@ func (u *Service) ViewGitUser(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := u.DB.Preload("Posts").Preload("Skills").Where("gitusername = ?", username).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "No user found with this git username."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := u.DB.SearchUserGitPreloadSP(&user, username); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -304,21 +285,15 @@ func (u *Service) SendFriendReq(ctx *gin.Context) {
 	}
 
 	var friend, user model.User
-	if err := u.DB.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := u.DB.FetchUserPreloadFReq(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
-	if err := u.DB.Where("username = ?", payload.UserName).First(&friend).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Friend not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retreive user from db."})
-		}
+	if err := u.DB.SearchUser(&friend, payload.UserName); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -329,28 +304,20 @@ func (u *Service) SendFriendReq(ctx *gin.Context) {
 		}
 	}
 
-	if friend.ID == user.ID {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "You can't friend yourself."})
-		return
-	}
-
-	var existingreq model.FriendReq
-	var err error
-	if err = u.DB.Where("user_id = ?", user.ID).Where("friend_id = ?", friend.ID).First(&existingreq).Error; err == nil {
-		ctx.JSON(http.StatusConflict, gin.H{"message": "You have to delete the previous request to this user to send another."})
-		return
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve request from db."})
-		return
-	}
-	if err = u.DB.Where("user_id = ?", friend.ID).Where("friend_id = ?", user.ID).First(&existingreq).Error; err == nil {
-		ctx.JSON(http.StatusConflict, gin.H{"message": "This user has already sent you a request."})
-		return
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve request from db."})
-		return
+	i, j := 0, 0
+	for i < len(user.RecFriendReq) || j < len(user.FriendReq) {
+		if i < len(user.RecFriendReq) {
+			if user.RecFriendReq[i].UserID == friend.ID {
+				ctx.JSON(http.StatusConflict, gin.H{"message": "User has already sent you a friend reqest."})
+				return
+			}
+		}
+		if j < len(user.FriendReq) {
+			if user.FriendReq[j].FriendID == friend.ID {
+				ctx.JSON(http.StatusConflict, gin.H{"message": "You have already send this user a friend request."})
+				return
+			}
+		}
 	}
 
 	req := model.FriendReq{
@@ -364,8 +331,9 @@ func (u *Service) SendFriendReq(ctx *gin.Context) {
 		req.Message = payload.Message
 	}
 
-	if err := u.DB.Create(&req).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to send request."})
+	if err := u.DB.AddFriendReq(&req); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -383,12 +351,9 @@ func (u *Service) ViewFriendReq(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := u.DB.Preload("FriendReq.Friend").Preload("RecFriendReq.User").Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := u.DB.ViewFriendReq(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -429,21 +394,16 @@ func (u *Service) UpdateFriendReqStatus(ctx *gin.Context) {
 	}
 
 	var req model.FriendReq
-	if err := u.DB.Where("id = ?", uint(rid)).First(&req).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Request not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve request from db."})
-		}
+	if err := u.DB.FetchFriendReq(&req, uint(rid)); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		return
 	}
 
 	var user model.User
-	if err := u.DB.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := u.DB.FetchUserPreloadF(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -453,38 +413,23 @@ func (u *Service) UpdateFriendReqStatus(ctx *gin.Context) {
 	}
 
 	var friend model.User
-	if err := u.DB.Preload("Friends").Where("id = ?", req.UserID).First(&friend).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Friend not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve friend from db."})
-		}
+	if err := u.DB.FetchUserPreloadF(&friend, req.UserID); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
 	switch status {
 	case model.StatusRejected:
-		if err := u.DB.Model(&req).Update("Status", model.StatusRejected).Error; err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to reject request."})
+		if err := u.DB.UpdateFriendReqReject(&req); err != nil {
+			cm := err.(*core.CustomMessage)
+			ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 			return
 		}
 	case model.StatusAccepted:
-		if err := u.DB.Transaction(func(tx *gorm.DB) error {
-			if err := tx.Unscoped().Delete(&req).Error; err != nil {
-				return err
-			}
-
-			if err := tx.Model(&user).Association("Friends").Append(&friend); err != nil {
-				return err
-			}
-
-			if err := tx.Model(&friend).Association("Friends").Append(&user); err != nil {
-				return err
-			}
-
-			return nil
-		}); err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update request status."})
+		if err := u.DB.UpdateFriendReqAccept(&req, &user, &friend); err != nil {
+			cm := err.(*core.CustomMessage)
+			ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 			return
 		}
 	default:
