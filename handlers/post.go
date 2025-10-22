@@ -1,17 +1,16 @@
 package handlers
 
 import (
-	"errors"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"findme/core"
 	"findme/model"
 	"findme/schema"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // GetPosts -> Endpoint for getting all user posts
@@ -23,13 +22,9 @@ func (p *Service) GetPosts(ctx *gin.Context) {
 	}
 
 	var user model.User
-
-	if err := p.DB.Preload("Posts.Tags").Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user posts."})
-		}
+	if err := p.DB.FetchUserPosts(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -69,12 +64,9 @@ func (p *Service) ViewPost(ctx *gin.Context) {
 	}
 
 	var post model.Post
-	if err := p.DB.Preload("Tags").Preload("User").Where("id = ?", uint(pid)).First(&post).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})
-		}
+	if err := p.DB.FetchPostPreloadTU(&post, uint(pid)); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -112,14 +104,14 @@ func (p *Service) SearchPost(ctx *gin.Context) {
 		return
 	}
 
-	var posts []model.Post
-	subquery := p.DB.Select("post_id").
-		Table("post_skills").
-		Joins("JOIN skills s ON post_skills.skill_id = s.id").
-		Where("s.name IN ?", payload.Tags)
+	for i := range payload.Tags {
+		payload.Tags[i] = strings.ToLower(payload.Tags[i])
+	}
 
-	if err := p.DB.Preload("Tags").Where("id IN (?)", subquery).Find(&posts).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to search for post."})
+	var posts []model.Post
+	if err := p.DB.SearchPostsBySKills(&posts, payload.Tags); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -174,9 +166,9 @@ func (p *Service) CreatePost(ctx *gin.Context) {
 		Views:        0,
 		Availability: true,
 	}
-	if err := p.DB.Create(&post).Error; err != nil {
-		log.Printf("Failed to create new post -> %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create new post."})
+	if err := p.DB.AddPost(&post); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -214,12 +206,9 @@ func (p *Service) EditPost(ctx *gin.Context) {
 	}
 
 	var post model.Post
-	if err := p.DB.Preload("Tags").Where("id = ?", uint(id)).First(&post).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})
-		}
+	if err := p.DB.FetchPostPreloadT(&post, uint(id)); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -240,18 +229,9 @@ func (p *Service) EditPost(ctx *gin.Context) {
 
 	post.Description = payload.Description
 
-	if err := p.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&post).Association("Tags").Replace(allskills); err != nil {
-			return err
-		}
-
-		if err := tx.Save(&post).Error; err != nil {
-			return err
-		}
-
-		return nil
-	}); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"messasge": "Failed to update post."})
+	if err := p.DB.EditPost(&post, allskills); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -282,19 +262,17 @@ func (p *Service) EditPostView(ctx *gin.Context) {
 	}
 
 	var post model.Post
-	if err := p.DB.Where("id = ?", uint(id)).First(&post).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})
-		}
+	if err := p.DB.FetchPostPreloadT(&post, uint(id)); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
 	if post.UserID != uid {
 		post.Views++
-		if err := p.DB.Save(&post).Error; err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update views."})
+		if err := p.DB.SavePost(&post); err != nil {
+			cm := err.(*core.CustomMessage)
+			ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 			return
 		}
 	}
@@ -336,20 +314,19 @@ func (p *Service) EditPostAvailability(ctx *gin.Context) {
 	}
 
 	var post model.Post
-	if err := p.DB.Where("id = ?", uint(pid)).First(&post).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})
-		}
+	if err := p.DB.FetchPost(&post, uint(pid)); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
 	post.Availability = stat
-	if err := p.DB.Save(post).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update post status."})
+	if err := p.DB.SavePost(&post); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
+
 	var tags []string
 	for _, tag := range post.Tags {
 		tags = append(tags, tag.Name)
@@ -382,22 +359,16 @@ func (p *Service) SavePost(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := p.DB.Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := p.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
 	var post model.Post
-	if err := p.DB.Where("id = ?", uint(id)).First(&post).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})
-		}
+	if err := p.DB.FetchPost(&post, uint(id)); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -406,8 +377,9 @@ func (p *Service) SavePost(ctx *gin.Context) {
 		return
 	}
 
-	if err := p.DB.Model(&user).Association("SavedPosts").Append(&post); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to save post."})
+	if err := p.DB.BookmarkPost(&user, &post); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -423,12 +395,9 @@ func (p *Service) ViewSavedPost(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := p.DB.Preload("SavedPosts").Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := p.DB.FetchUserPreloadB(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -465,28 +434,21 @@ func (p *Service) ApplyForPost(ctx *gin.Context) {
 
 	var payload schema.PostApplication
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		log.Println(err)
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload"})
 		return
 	}
 
 	var post model.Post
-	if err := p.DB.Preload("User").Where("id = ?", uint(id)).First(&post).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})
-		}
+	if err := p.DB.FetchPostPreloadU(&post, uint(id)); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
 	var user model.User
-	if err := p.DB.Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := p.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -509,10 +471,12 @@ func (p *Service) ApplyForPost(ctx *gin.Context) {
 		req.Message = payload.Message
 	}
 
-	if err := p.DB.Create(&req).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to send application."})
+	if err := p.DB.AddPostApplicationReq(&req); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
+
 	p.Email.SendPostApplicationEmail(post.User.Email, user.UserName, post.User.UserName, post.Description, "nil")
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Application sent successfully."})
@@ -527,12 +491,9 @@ func (p *Service) ViewPostApplications(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := p.DB.Preload("RecPostReq.FromUser").Preload("SentPostReq.ToUser").Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := p.DB.ViewPostApplications(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -573,31 +534,22 @@ func (p *Service) UpdatePostApplication(ctx *gin.Context) {
 	}
 
 	var req model.PostReq
-	if err := p.DB.Preload("Post").Preload("FromUser").Where("id = ?", rid).First(&req).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Application not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve application from db."})
-		}
+	if err := p.DB.FetchPostApplication(&req, uint(rid)); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
 	var user, friend model.User
-	if err := p.DB.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db"})
-		}
+	if err := p.DB.FetchUserPreloadF(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
-	if err := p.DB.Where("id = ?", req.FromUser.ID).First(&friend).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Applicant not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve applicant from db."})
-		}
+	if err := p.DB.FetchUser(&user, req.FromID); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -616,29 +568,16 @@ func (p *Service) UpdatePostApplication(ctx *gin.Context) {
 
 	switch status {
 	case model.StatusRejected:
-		if err := p.DB.Model(&req).Update("Status", model.StatusRejected).Error; err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to reject application."})
+		if err := p.DB.UpdatePostAppliationReject(&req); err != nil {
+			cm := err.(*core.CustomMessage)
+			ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 			return
 		}
 		p.Email.SendPostApplicationReject(friend.Email, user.UserName, friend.UserName, req.Post.Description, "reason")
 	case model.StatusAccepted:
-		if err := p.DB.Transaction(func(tx *gorm.DB) error {
-			if err := tx.Unscoped().Delete(&req).Error; err != nil {
-				return err
-			}
-
-			if !friends {
-				if err := tx.Model(&user).Association("Friends").Append(&friend); err != nil {
-					return err
-				}
-
-				if err := tx.Model(&friend).Association("Friends").Append(&user); err != nil {
-					return err
-				}
-			}
-			return nil
-		}); err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to accept application."})
+		if err := p.DB.UpdatePostApplicationAccept(&req, &user, &friend, friends); err != nil {
+			cm := err.(*core.CustomMessage)
+			ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 			return
 		}
 		p.Email.SendPostApplicationAccept(friend.Email, user.UserName, friend.UserName, req.Post.Description, "")
@@ -665,22 +604,16 @@ func (p *Service) DeletePostApplication(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := p.DB.Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := p.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
 	var req model.PostReq
-	if err := p.DB.Preload("FromUser").Where("id = ?", uint(rid)).First(&req).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Request not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve application from db."})
-		}
+	if err := p.DB.FetchPostAppPreloadFU(&req, uint(rid)); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -689,8 +622,9 @@ func (p *Service) DeletePostApplication(ctx *gin.Context) {
 		return
 	}
 
-	if err := p.DB.Unscoped().Delete(&req).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete application."})
+	if err := p.DB.DeletePostApplicationReq(&req); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -712,12 +646,9 @@ func (p *Service) DeletePost(ctx *gin.Context) {
 	}
 
 	var post model.Post
-	if err := p.DB.Where("id = ?", uint(id)).First(&post).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Post not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve post from db."})
-		}
+	if err := p.DB.FetchPost(&post, uint(id)); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -726,8 +657,9 @@ func (p *Service) DeletePost(ctx *gin.Context) {
 		return
 	}
 
-	if err := p.DB.Delete(&post).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete post."})
+	if err := p.DB.DeletePost(&post); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 

@@ -9,14 +9,14 @@ import (
 )
 
 type Service struct {
-	DB     core.GDB
+	DB     core.DB
 	RDB    core.Cache
 	Email  core.Email
 	Git    Git
 	Client *http.Client
 }
 
-func NewService(db core.GDB, rdb core.Cache, email core.Email, git Git, client *http.Client) *Service {
+func NewService(db core.DB, rdb core.Cache, email core.Email, git Git, client *http.Client) *Service {
 	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Client: client}
 }
 

@@ -64,15 +64,8 @@ func ValidateJWT(tokenSting string) (*JWTClaims, error) {
 }
 
 // Authorization -> Authorize user
-func Authorization(db *gorm.DB, username, password string) (string, error) {
-	var user model.User
-
-	err := db.Where("username = ? OR email = ?", username, username).First(&user).Error
-	if err != nil {
-		return "", &core.CustomMessage{Code: 404, Message: "Invalid Credentials!"}
-	}
-
-	err = core.VerifyHashedPassword(password, user.Password)
+func Authorization(user *model.User, password string) (string, error) {
+	err := core.VerifyHashedPassword(password, user.Password)
 	if err != nil {
 		return "", &core.CustomMessage{Code: 404, Message: "Invalid Credentials!"}
 	}
@@ -123,7 +116,7 @@ func (c *Service) CheckAndUpdateSkills(payload []string) ([]*model.Skill, error)
 	if err != nil { // Falling back to the db if the cache fails
 		var existingSkills []*model.Skill
 
-		if err := c.DB.Where("name IN ?", payload).Find(&existingSkills).Error; err != nil {
+		if err := c.DB.FindExistingSkills(&existingSkills, payload); err != nil {
 			return nil, err
 		}
 
@@ -140,7 +133,7 @@ func (c *Service) CheckAndUpdateSkills(payload []string) ([]*model.Skill, error)
 		}
 
 		if len(newSkill) > 0 {
-			if err := c.DB.Create(&newSkill).Error; err != nil {
+			if err := c.DB.AddSkills(&newSkill); err != nil {
 				return nil, err
 			}
 		}
@@ -158,7 +151,7 @@ func (c *Service) CheckAndUpdateSkills(payload []string) ([]*model.Skill, error)
 	}
 
 	if len(newskills) > 0 {
-		if err := c.DB.Create(&newskills).Error; err != nil {
+		if err := c.DB.AddSkills(&newskills); err != nil {
 			return nil, err
 		}
 		c.RDB.AddNewSkillToCache(newskills)

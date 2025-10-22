@@ -12,6 +12,11 @@ import (
 	"gorm.io/gorm"
 )
 
+// TODO:
+// I Could use like a chat ID to reference a user and his chat ?
+// This would require a Model ?
+// It would make getting the chat history very fast though :)
+
 // CreateMessage -> Add Message endpoint
 func (m *Service) CreateMessage(ctx *gin.Context) {
 	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
@@ -36,8 +41,10 @@ func (m *Service) CreateMessage(ctx *gin.Context) {
 		return
 	}
 
+	// This is not efficient i guess looping through all the user friends ?
+
 	var friend *model.User
-	for _, fr := range user.Friends { // This is not efficient i guess looping through all the user friends ?
+	for _, fr := range user.Friends {
 		if fr.UserName == payload.To {
 			friend = fr
 			break

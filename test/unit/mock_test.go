@@ -8,19 +8,14 @@ import (
 	"findme/schema"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type CacheMock struct {
 	Store map[string]map[string]uint
 	Otp   map[string]uint
-	DB    *gorm.DB
 }
 
-func (mock *CacheMock) CacheSkills() {
-	var skills []model.Skill
-	mock.DB.Find(&skills)
-
+func (mock *CacheMock) CacheSkills(skills []model.Skill) {
 	cache := make(map[string]uint, 0)
 
 	for _, skill := range skills {
@@ -60,11 +55,10 @@ func (mock *CacheMock) GetOTP(otp string, otpInfo *schema.OTPInfo) error {
 	return errors.New("missing")
 }
 
-func NewCacheMock(db *gorm.DB) *CacheMock {
+func NewCacheMock() *CacheMock {
 	return &CacheMock{
 		Store: make(map[string]map[string]uint, 0),
 		Otp:   make(map[string]uint, 0),
-		DB:    db,
 	}
 }
 

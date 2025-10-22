@@ -13,7 +13,6 @@ import (
 	"findme/schema"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type Git interface {
@@ -25,11 +24,11 @@ type GitService struct {
 	ClientID     string
 	ClientSecret string
 	CallbackURL  string
-	DB           *gorm.DB
+	DB           core.DB
 	Client       *http.Client
 }
 
-func NewGitService(id, secret, callback string, db *gorm.DB, client *http.Client) *GitService {
+func NewGitService(id, secret, callback string, db core.DB, client *http.Client) *GitService {
 	return &GitService{ClientID: id, ClientSecret: secret, CallbackURL: callback, DB: db, Client: client}
 }
 
@@ -150,7 +149,7 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 	}
 
 	var existingUser model.User
-	if err := g.DB.Where("gitid = ?", user.ID).First(&existingUser).Error; err == nil {
+	if err := g.DB.FindExistingGitID(&existingUser, user.ID); err == nil {
 		userToken, err := GenerateJWT(existingUser.ID, "login", JWTExpiry)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
@@ -160,13 +159,13 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 		return
 	}
 
-	if err := g.DB.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
+	if err := g.DB.CheckExistingEmail(&existingUser, user.Email); err == nil {
 		if !existingUser.GitUser {
 			existingUser.GitID = &user.ID
 			existingUser.GitUserName = &user.UserName
 			existingUser.GitUser = true
 
-			if err := g.DB.Save(&existingUser).Error; err != nil {
+			if err := g.DB.SaveUser(&existingUser).Error; err != nil {
 				ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to log in user."})
 				return
 			}
@@ -186,7 +185,7 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 	}
 
 	newUsername := user.UserName
-	if err := g.DB.Where("username = ?", user.UserName).First(&existingUser).Error; err == nil {
+	if err := g.DB.CheckExistingUsername(&existingUser, newUsername); err == nil {
 		newUsername = core.GenerateUsername(existingUser.UserName)
 	}
 
@@ -201,7 +200,7 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 		Bio:          user.Bio,
 	}
 
-	if err := g.DB.Create(&newUser).Error; err != nil {
+	if err := g.DB.AddUser(&newUser).Error; err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to signup with github."})
 		return
 	}

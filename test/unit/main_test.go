@@ -19,7 +19,7 @@ import (
 
 var router *gin.Engine
 
-func getTestDB() *gorm.DB {
+func getTestDB() *core.GormDB {
 	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
@@ -41,7 +41,8 @@ func getTestDB() *gorm.DB {
 	db.SetupJoinTable(&model.User{}, "Friends", &model.UserFriend{})
 	superUser(db)
 
-	return db
+	gdb := core.NewGormDB(db)
+	return gdb
 }
 
 func getTestRouter(service *handlers.Service) *gin.Engine {
@@ -101,11 +102,13 @@ func superUser(db *gorm.DB) {
 
 func TestMain(m *testing.M) {
 	db := getTestDB()
-	rdb := NewCacheMock(db)
+	rdb := NewCacheMock()
 	email := NewEmailMock()
 	git := NewGitMock()
-	service := handlers.NewService(getTestDB(), rdb, email, git, &http.Client{})
-	service.RDB.CacheSkills()
+	service := handlers.NewService(db, rdb, email, git, &http.Client{})
+	var skills []model.Skill
+	service.DB.FetchAllSkills(&skills)
+	service.RDB.CacheSkills(skills)
 	router = getTestRouter(service)
 	tokenString, _ = handlers.GenerateJWT(1, "login", handlers.JWTExpiry)  // Initially the logged in user is the super user me for the post test
 	tokenString1, _ = handlers.GenerateJWT(2, "login", handlers.JWTExpiry) // User for saving post
@@ -114,4 +117,3 @@ func TestMain(m *testing.M) {
 
 	os.Exit(code)
 }
-

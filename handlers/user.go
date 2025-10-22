@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -12,7 +11,6 @@ import (
 	"findme/schema"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // AddUser -> Sign up endpoint for user
@@ -84,7 +82,14 @@ func (u *Service) VerifyUser(ctx *gin.Context) {
 		return
 	}
 
-	jwtToken, err := Authorization(u.DB, payload.UserName, payload.Password)
+	var user model.User
+	if err := u.DB.VerifyUser(&user, payload.UserName); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		return
+	}
+
+	jwtToken, err := Authorization(&user, payload.Password)
 	if err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
@@ -241,13 +246,9 @@ func (u *Service) ViewUserbySkills(ctx *gin.Context) {
 	}
 
 	var users []model.User
-	subquery := u.DB.Select("user_id").
-		Table("user_skills").
-		Joins("JOIN skills s ON user_skills.skill_id = s.id").
-		Where("s.name IN ?", payload.Skills)
-
-	if err := u.DB.Preload("Skills").Where("id IN (?)", subquery).Find(&users).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve users from db."})
+	if err := u.DB.SearchUsersBySKills(&users, payload.Skills); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -311,12 +312,14 @@ func (u *Service) SendFriendReq(ctx *gin.Context) {
 				ctx.JSON(http.StatusConflict, gin.H{"message": "User has already sent you a friend reqest."})
 				return
 			}
+			i++
 		}
 		if j < len(user.FriendReq) {
 			if user.FriendReq[j].FriendID == friend.ID {
 				ctx.JSON(http.StatusConflict, gin.H{"message": "You have already send this user a friend request."})
 				return
 			}
+			j++
 		}
 	}
 
@@ -455,22 +458,16 @@ func (u *Service) DeleteSentReq(ctx *gin.Context) {
 	}
 
 	var req model.FriendReq
-	if err := u.DB.Where("id = ?", uint(rid)).First(&req).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Request not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve request from db."})
-		}
+	if err := u.DB.FetchFriendReq(&req, uint(rid)); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := u.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -479,8 +476,9 @@ func (u *Service) DeleteSentReq(ctx *gin.Context) {
 		return
 	}
 
-	if err := u.DB.Unscoped().Delete(req).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete req."})
+	if err := u.DB.DeleteFriendReq(&req); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -496,12 +494,9 @@ func (u *Service) DeleteUserFriend(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := u.DB.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := u.DB.FetchUserPreloadF(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -517,18 +512,9 @@ func (u *Service) DeleteUserFriend(ctx *gin.Context) {
 		return
 	}
 
-	if err := u.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&user).Association("Friends").Delete(friend); err != nil {
-			return err
-		}
-
-		if err := tx.Model(friend).Association("Friends").Delete(&user); err != nil {
-			return err
-		}
-
-		return nil
-	}); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to remove friend"})
+	if err := u.DB.DeleteFriend(&user, friend); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -544,8 +530,9 @@ func (u *Service) ViewUserFriends(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := u.DB.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch user info"})
+	if err := u.DB.FetchUserPreloadF(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -569,12 +556,9 @@ func (u *Service) ForgotPassword(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := u.DB.Where("email = ?", payload.Email).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User record not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to recieve user from db."})
-		}
+	if err := u.DB.SearchUserEmail(&user, payload.Email); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -633,12 +617,9 @@ func (u *Service) ResetPassword(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := u.DB.Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	if err := u.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -650,8 +631,9 @@ func (u *Service) ResetPassword(ctx *gin.Context) {
 
 	user.Password = hashed
 
-	if err := u.DB.Save(&user).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store new password."})
+	if err := u.DB.SaveUser(&user); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -667,34 +649,21 @@ func (u *Service) UpdateUserInfo(ctx *gin.Context) {
 	}
 
 	var user, existingUser model.User
-	if err := u.DB.Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
-		return
-	}
-
 	var payload schema.UserProfileRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload."})
 		return
 	}
 
-	var err error
-	if err = u.DB.Where("username = ? OR email = ?", payload.UserName, payload.Email).First(&existingUser).Error; err == nil && existingUser.ID != uid {
-		if existingUser.Email == payload.Email {
-			ctx.JSON(http.StatusConflict, gin.H{"message": "Email already in use!"})
-		} else {
-			ctx.JSON(http.StatusConflict, gin.H{"message": "Username already in use!"})
-		}
+	if err := u.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
-
 	}
 
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
+	if err := u.DB.CheckExistingUserUpdate(&existingUser, payload.Email, payload.UserName, user.ID); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -703,8 +672,9 @@ func (u *Service) UpdateUserInfo(ctx *gin.Context) {
 	user.FullName = payload.FullName
 	user.UserName = payload.UserName
 
-	if err := u.DB.Save(&user).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user profile."})
+	if err := u.DB.SaveUser(&user); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -729,19 +699,16 @@ func (u *Service) UpdateUserPassword(ctx *gin.Context) {
 		return
 	}
 
-	var user model.User
-	if err := u.DB.Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "user not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
-		return
-	}
-
 	var payload schema.UpdatePassword
 	if err := ctx.BindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload."})
+		return
+	}
+
+	var user model.User
+	if err := u.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -757,8 +724,9 @@ func (u *Service) UpdateUserPassword(ctx *gin.Context) {
 	}
 	user.Password = hashed
 
-	if err := u.DB.Save(&user).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user password."})
+	if err := u.DB.SaveUser(&user); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -773,16 +741,6 @@ func (u *Service) UpdateUserAvaibilityStatus(ctx *gin.Context) {
 		return
 	}
 
-	var user model.User
-	if err := u.DB.Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
-		return
-	}
-
 	status := ctx.Param("status")
 	statusbool, err := strconv.ParseBool(status)
 	if err != nil {
@@ -790,10 +748,17 @@ func (u *Service) UpdateUserAvaibilityStatus(ctx *gin.Context) {
 		return
 	}
 
+	var user model.User
+	if err := u.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		return
+	}
 	user.Availability = statusbool
 
-	if err := u.DB.Save(&user).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user availability."})
+	if err := u.DB.SaveUser(&user); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -808,33 +773,32 @@ func (u *Service) UpdateUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	var user model.User
-	if err := u.DB.Preload("Skills").Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
-		return
-	}
-
 	var payload schema.UpdateUserSkillsRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload."})
 		return
 	}
 
+	var user model.User
+	if err := u.DB.FetchUserPreloadS(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		return
+	}
+
 	for i := range payload.Skills {
 		payload.Skills[i] = strings.ToLower(payload.Skills[i])
 	}
+
 	allskills, err := u.CheckAndUpdateSkills(payload.Skills)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user skills."})
 		return
 	}
 
-	if err := u.DB.Model(&user).Association("Skills").Replace(allskills); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user skills."})
+	if err := u.DB.UpdateSkills(&user, allskills); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -849,19 +813,16 @@ func (u *Service) DeleteUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	var user model.User
-	if err := u.DB.Preload("Skills").Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
-		return
-	}
-
 	var payload schema.DeleteUserSkillsRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload."})
+		return
+	}
+
+	var user model.User
+	if err := u.DB.FetchUserPreloadS(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -869,6 +830,7 @@ func (u *Service) DeleteUserSkills(ctx *gin.Context) {
 	for _, skill := range user.Skills {
 		userSkillSet[skill.Name] = skill
 	}
+
 	var skillsToDelete []*model.Skill
 	for _, skill := range payload.Skills {
 		if delete, exists := userSkillSet[strings.ToLower(skill)]; exists {
@@ -876,8 +838,9 @@ func (u *Service) DeleteUserSkills(ctx *gin.Context) {
 		}
 	}
 
-	if err := u.DB.Model(&user).Association("Skills").Delete(skillsToDelete); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete user skills."})
+	if err := u.DB.DeleteSkills(&user, skillsToDelete); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
@@ -893,17 +856,15 @@ func (u *Service) DeleteUserAccount(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := u.DB.Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db"})
-		}
+	if err := u.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 
-	if err := u.DB.Delete(&user).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete user account"})
+	if err := u.DB.DeleteUser(&user); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
 		return
 	}
 

@@ -14,11 +14,10 @@ import (
 	"findme/schema"
 
 	"github.com/redis/go-redis/v9"
-	"gorm.io/gorm"
 )
 
 type Cache interface {
-	CacheSkills()
+	CacheSkills(skills []model.Skill)
 	RetrieveCachedSkills(skills []string) (map[string]uint, error)
 	AddNewSkillToCache(skill []*model.Skill)
 	SetOTP(otp string, uid uint) error
@@ -27,20 +26,14 @@ type Cache interface {
 
 type RDB struct {
 	Cache *redis.Client
-	DB    *gorm.DB
 }
 
-func NewRDB(rdb *redis.Client, db *gorm.DB) *RDB {
-	return &RDB{Cache: rdb, DB: db}
+func NewRDB(rdb *redis.Client) *RDB {
+	return &RDB{Cache: rdb}
 }
 
 // CacheSkills -> Cache skills in rdb at app startup
-func (c *RDB) CacheSkills() {
-	var skills []model.Skill
-	if err := c.DB.Find(&skills).Error; err != nil {
-		log.Fatalf("[ERROR] [DB] An error occured while fetching skills from db for caching -> %v", err)
-	}
-
+func (c *RDB) CacheSkills(skills []model.Skill) {
 	skillName := make(map[string]string, 0)
 
 	for _, skill := range skills {
@@ -120,7 +113,7 @@ func (c *RDB) GetOTP(otp string, otpInfo *schema.OTPInfo) error {
 		return err
 	}
 
-	json.Unmarshal([]byte(val), otpInfo)
+	_ = json.Unmarshal([]byte(val), otpInfo)
 
 	return nil
 }
