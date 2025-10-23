@@ -418,6 +418,47 @@ func (p *Service) ViewSavedPost(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"post": savedPosts})
 }
 
+// RemoveSavedPost -> Endpoint for removing saved post
+func (p *Service) RemoveSavedPost(ctx *gin.Context) {
+	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+	if uid == 0 || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		return
+	}
+
+	pidStr, found := ctx.GetQuery("id")
+	if !found {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Post id not in Query."})
+		return
+	}
+
+	pid, err := strconv.ParseUint(pidStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid post id."})
+	}
+	var user model.User
+	if err := p.DB.FetchUserPreloadB(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		return
+	}
+
+	var post model.Post
+	if err := p.DB.FetchPost(&post, uint(pid)); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		return
+	}
+
+	if err := p.DB.RemoveBookmarkedPost(&user, &post); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, nil)
+}
+
 // ApplyForPost -> Endpoint for applying for a post
 func (p *Service) ApplyForPost(ctx *gin.Context) {
 	uid, tp, idStr := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")

@@ -147,6 +147,16 @@ func TestViewSavedPost(t *testing.T) {
 	assert.Contains(t, w.Body.String(), defPostDescription)
 }
 
+func TestRemoveSavedPost(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodDelete, "/api/post/remove-post?id=1", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString1)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
 func TestApplyForPostFailed(t *testing.T) {
 	body, _ := json.Marshal(reqPayload)
 
