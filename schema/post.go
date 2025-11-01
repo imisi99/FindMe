@@ -8,7 +8,7 @@ type NewPostRequest struct {
 }
 
 type PostResponse struct {
-	ID          uint
+	ID          string
 	Description string
 	Available   bool
 	Tags        []string
@@ -31,7 +31,7 @@ type SearchPostWithTags struct {
 }
 
 type ViewPostApplication struct {
-	ReqID    uint
+	ReqID    string
 	Status   string
 	Message  string
 	Username string

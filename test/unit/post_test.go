@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"findme/schema"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,10 +21,11 @@ var (
 	reqPayload         = map[string]string{
 		"msg": "hey I'm interested in this projec",
 	}
+	post *schema.PostResponse
 )
 
 func TestGetPost(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/post/1", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/post?id="+pid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -46,6 +49,7 @@ func TestCreatePost(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Contains(t, w.Body.String(), "Post created successfully.")
+	_ = json.Unmarshal(w.Body.Bytes(), post)
 }
 
 func TestEditPost(t *testing.T) {
@@ -54,7 +58,7 @@ func TestEditPost(t *testing.T) {
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPut, "/api/post/edit/2", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPut, "/api/post/edit?id="+post.ID, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -93,7 +97,7 @@ func TestSearchPostTags(t *testing.T) {
 }
 
 func TestEditPostView(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-view/1", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-view?id="+pid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -104,7 +108,7 @@ func TestEditPostView(t *testing.T) {
 }
 
 func TestEditPostAvailability(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-status?id=1&status=false", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-status?id="+pid+"&status=false", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -115,7 +119,7 @@ func TestEditPostAvailability(t *testing.T) {
 }
 
 func TestSavePostFailed(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPut, "/api/post/save-post?id=1", nil)
+	req, _ := http.NewRequest(http.MethodPut, "/api/post/save-post?id="+pid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -126,7 +130,7 @@ func TestSavePostFailed(t *testing.T) {
 }
 
 func TestSavePost(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPut, "/api/post/save-post?id=1", nil)
+	req, _ := http.NewRequest(http.MethodPut, "/api/post/save-post?id="+pid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
@@ -148,7 +152,7 @@ func TestViewSavedPost(t *testing.T) {
 }
 
 func TestRemoveSavedPost(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/post/remove-post?id=1", nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/post/remove-post?id="+pid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
@@ -160,7 +164,7 @@ func TestRemoveSavedPost(t *testing.T) {
 func TestApplyForPostFailed(t *testing.T) {
 	body, _ := json.Marshal(reqPayload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id=1", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id="+pid, bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
@@ -171,7 +175,7 @@ func TestApplyForPostFailed(t *testing.T) {
 }
 
 func TestEditPostAvailabilityTrue(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-status?id=1&status=true", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-status?id="+pid+"&status=true", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -184,7 +188,7 @@ func TestEditPostAvailabilityTrue(t *testing.T) {
 func TestApplyForPost(t *testing.T) {
 	body, _ := json.Marshal(reqPayload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id=1", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id="+pid, bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()

@@ -3,25 +3,22 @@ package core
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
-	"strconv"
-	"strings"
+	"net/http"
 	"time"
 
 	"findme/model"
-	"findme/schema"
 
 	"github.com/redis/go-redis/v9"
 )
 
 type Cache interface {
 	CacheSkills(skills []model.Skill)
-	RetrieveCachedSkills(skills []string) (map[string]uint, error)
+	RetrieveCachedSkills(skills []string) (map[string]string, error)
 	AddNewSkillToCache(skill []*model.Skill)
-	SetOTP(otp string, uid uint) error
-	GetOTP(otp string, otpInfo *schema.OTPInfo) error
+	SetOTP(otp string, uid string) error
+	GetOTP(otp string) (string, error)
 }
 
 type RDB struct {
@@ -36,10 +33,6 @@ func NewRDB(rdb *redis.Client) *RDB {
 func (c *RDB) CacheSkills(skills []model.Skill) {
 	skillName := make(map[string]string, 0)
 
-	for _, skill := range skills {
-		skillName[skill.Name] = fmt.Sprintf("%d", skill.ID)
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if _, err := c.Cache.HSet(ctx, "skills", skillName).Result(); err != nil {
@@ -48,7 +41,7 @@ func (c *RDB) CacheSkills(skills []model.Skill) {
 }
 
 // RetrieveCachedSkills -> Retrieve cached skills from rdb if possible
-func (c *RDB) RetrieveCachedSkills(skills []string) (map[string]uint, error) {
+func (c *RDB) RetrieveCachedSkills(skills []string) (map[string]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -58,14 +51,14 @@ func (c *RDB) RetrieveCachedSkills(skills []string) (map[string]uint, error) {
 		return nil, err
 	}
 
-	foundskills := make(map[string]uint, 0)
+	foundskills := make(map[string]string, 0)
 
 	for i, val := range skill {
 		if val == nil {
 			continue
 		}
-		id, _ := strconv.ParseUint(val.(string), 10, 64)
-		foundskills[skills[i]] = uint(id)
+		id := val.(string)
+		foundskills[skills[i]] = id
 	}
 	return foundskills, nil
 }
@@ -73,9 +66,6 @@ func (c *RDB) RetrieveCachedSkills(skills []string) (map[string]uint, error) {
 // AddNewSkillToCache -> Add new skills to rdb
 func (c *RDB) AddNewSkillToCache(newskills []*model.Skill) {
 	skills := make(map[string]string, 0)
-	for _, skill := range newskills {
-		skills[strings.ToLower(skill.Name)] = fmt.Sprintf("%d", skill.ID)
-	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -86,34 +76,33 @@ func (c *RDB) AddNewSkillToCache(newskills []*model.Skill) {
 }
 
 // SetOTP -> Set OTP for password reset temporary in rdb
-func (c *RDB) SetOTP(otp string, userID uint) error {
-	otpInfo := schema.OTPInfo{UserID: userID}
-	data, _ := json.Marshal(otpInfo)
-
+func (c *RDB) SetOTP(otp string, userID string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if _, err := c.Cache.Get(ctx, otp).Result(); err != redis.Nil {
-		return &CustomMessage{Message: "Token already exists."}
+	if _, err := c.Cache.HGet(ctx, "otps", otp).Result(); err != redis.Nil {
+		return &CustomMessage{http.StatusConflict, "Token already exists."}
 	}
-	if _, err := c.Cache.Set(ctx, otp, data, 10*time.Minute).Result(); err != nil {
+
+	if _, err := c.Cache.HSet(ctx, "otps", otp, userID).Result(); err != nil {
 		log.Printf("An error occured while trying to set otp in redis -> %v", err)
-		return err
+		return &CustomMessage{http.StatusInternalServerError, "Failed to set otp."}
 	}
 	return nil
 }
 
 // GetOTP -> Verify if OTP provided exists in rdb and returns the userID
-func (c *RDB) GetOTP(otp string, otpInfo *schema.OTPInfo) error {
+func (c *RDB) GetOTP(otp string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	val, err := c.Cache.Get(ctx, otp).Result()
+	userID, err := c.Cache.HGet(ctx, "otps", otp).Result()
 	if err != nil {
-		return err
+		if errors.Is(err, redis.Nil) {
+			return "", &CustomMessage{http.StatusNotFound, "Invalid otp."}
+		} else {
+			return "", &CustomMessage{http.StatusInternalServerError, "Failed to verify otp."}
+		}
 	}
-
-	_ = json.Unmarshal([]byte(val), otpInfo)
-
-	return nil
+	return userID, nil
 }

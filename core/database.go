@@ -13,53 +13,59 @@ type DB interface {
 	FetchAllSkills(skills *[]model.Skill) error
 	AddUser(user *model.User) error
 	CheckExistingUser(user *model.User, email, username string) error
-	CheckExistingUserUpdate(user *model.User, email, username string, uid uint) error
+	CheckExistingUserUpdate(user *model.User, email, username, uid string) error
 	CheckExistingEmail(user *model.User, email string) error
 	CheckExistingUsername(user *model.User, username string) error
 	VerifyUser(user *model.User, username string) error
 	SaveUser(user *model.User) error
-	FetchUser(user *model.User, uid uint) error
-	FetchUserPreloadS(user *model.User, id uint) error
-	FetchUserPreloadF(user *model.User, uid uint) error
-	FetchUserPreloadFReq(user *model.User, uid uint) error
+	FetchUser(user *model.User, uid string) error
+	FetchUserPreloadS(user *model.User, uid string) error
+	FetchUserPreloadF(user *model.User, uid string) error
+	FetchUserPreloadFReq(user *model.User, uid string) error
 	SearchUser(user *model.User, username string) error
 	SearchUserEmail(user *model.User, email string) error
 	SearchUserPreloadSP(user *model.User, username string) error
 	SearchUserGitPreloadSP(user *model.User, gitusername string) error
 	SearchUsersBySKills(users *[]model.User, skills []string) error
 	AddFriendReq(req *model.FriendReq) error
-	ViewFriendReq(user *model.User, uid uint) error
-	FetchFriendReq(req *model.FriendReq, rid uint) error
+	ViewFriendReq(user *model.User, uid string) error
+	FetchFriendReq(req *model.FriendReq, rid string) error
 	UpdateFriendReqReject(req *model.FriendReq) error
-	UpdateFriendReqAccept(req *model.FriendReq, user, friend *model.User) error
+	UpdateFriendReqAccept(req *model.FriendReq, user, friend *model.User, chat *model.Chat) error
 	DeleteFriendReq(req *model.FriendReq) error
 	DeleteFriend(user, friend *model.User) error
 	UpdateSkills(user *model.User, skills []*model.Skill) error
 	DeleteSkills(user *model.User, skills []*model.Skill) error
 	DeleteUser(user *model.User) error
 	AddPost(post *model.Post) error
-	FetchUserPosts(user *model.User, uid uint) error
-	FetchPost(post *model.Post, pid uint) error
-	FetchPostPreloadT(post *model.Post, pid uint) error
-	FetchPostPreloadTU(post *model.Post, pid uint) error
+	FetchUserPosts(user *model.User, uid string) error
+	FetchPost(post *model.Post, pid string) error
+	FetchPostPreloadT(post *model.Post, pid string) error
+	FetchPostPreloadTU(post *model.Post, pid string) error
 	EditPost(post *model.Post, skills []*model.Skill) error
 	SavePost(post *model.Post) error
 	BookmarkPost(user *model.User, post *model.Post) error
-	FetchUserPreloadB(user *model.User, uid uint) error
-	FetchPostPreloadU(post *model.Post, pid uint) error
+	FetchUserPreloadB(user *model.User, uid string) error
+	FetchPostPreloadU(post *model.Post, pid string) error
 	SearchPostsBySKills(posts *[]model.Post, skills []string) error
 	RemoveBookmarkedPost(user *model.User, post *model.Post) error
 	AddPostApplicationReq(req *model.PostReq) error
-	ViewPostApplications(user *model.User, uid uint) error
-	FetchPostApplication(req *model.PostReq, rid uint) error
+	ViewPostApplications(user *model.User, uid string) error
+	FetchPostApplication(req *model.PostReq, rid string) error
 	UpdatePostAppliationReject(req *model.PostReq) error
 	UpdatePostApplicationAccept(req *model.PostReq, user1, user2 *model.User, friends bool) error
-	FetchPostAppPreloadFU(req *model.PostReq, rid uint) error
+	FetchPostAppPreloadFU(req *model.PostReq, rid string) error
 	DeletePostApplicationReq(req *model.PostReq) error
 	DeletePost(post *model.Post) error
 	AddSkills(skills *[]*model.Skill) error
 	FindExistingSkills(skills *[]*model.Skill, skill []string) error
 	FindExistingGitID(user *model.User, gitid int64) error
+	AddMessage(msg *model.UserMessage) error
+	GetChatHistory(chatID string, chat *model.Chat) error
+	FetchUserPreloadC(user *model.User, uid string) error
+	FetchMsg(msg *model.UserMessage, mid string) error
+	SaveMsg(msg *model.UserMessage) error
+	DeleteMsg(msg *model.UserMessage) error
 }
 
 type GormDB struct {
@@ -99,7 +105,7 @@ func (db *GormDB) CheckExistingUser(user *model.User, email, username string) er
 	return nil
 }
 
-func (db *GormDB) CheckExistingUserUpdate(user *model.User, email, username string, uid uint) error {
+func (db *GormDB) CheckExistingUserUpdate(user *model.User, email, username, uid string) error {
 	err := db.DB.Where("username = ? OR email = ?", username, email).First(user).Error
 	if err == nil && user.ID != uid {
 		if user.Email == email {
@@ -132,7 +138,7 @@ func (db *GormDB) SaveUser(user *model.User) error {
 	return nil
 }
 
-func (db *GormDB) FetchUser(user *model.User, uid uint) error {
+func (db *GormDB) FetchUser(user *model.User, uid string) error {
 	if err := db.DB.Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
@@ -143,8 +149,8 @@ func (db *GormDB) FetchUser(user *model.User, uid uint) error {
 	return nil
 }
 
-func (db *GormDB) FetchUserPreloadS(user *model.User, id uint) error {
-	if err := db.DB.Preload("Skills").Where("id = ?", id).First(user).Error; err != nil {
+func (db *GormDB) FetchUserPreloadS(user *model.User, uid string) error {
+	if err := db.DB.Preload("Skills").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
 		} else {
@@ -154,7 +160,7 @@ func (db *GormDB) FetchUserPreloadS(user *model.User, id uint) error {
 	return nil
 }
 
-func (db *GormDB) FetchUserPreloadF(user *model.User, uid uint) error {
+func (db *GormDB) FetchUserPreloadF(user *model.User, uid string) error {
 	if err := db.DB.Preload("Friends").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
@@ -165,7 +171,7 @@ func (db *GormDB) FetchUserPreloadF(user *model.User, uid uint) error {
 	return nil
 }
 
-func (db *GormDB) FetchUserPreloadFReq(user *model.User, uid uint) error {
+func (db *GormDB) FetchUserPreloadFReq(user *model.User, uid string) error {
 	if err := db.DB.Preload("Friends").Preload("FriendReq.Friend").Preload("RecFriendReq.User").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
@@ -234,7 +240,7 @@ func (db *GormDB) SearchUsersBySKills(users *[]model.User, skills []string) erro
 
 // TODO: I can use the users friend req list instead of the DB this makes it more efficient
 
-func (db *GormDB) CheckExistingFriendReq(req *model.FriendReq, uid, fid uint) error {
+func (db *GormDB) CheckExistingFriendReq(req *model.FriendReq, uid, fid string) error {
 	if err := db.DB.Where("user_id = ?", uid).Where("friend_id = ?", fid).First(req).Error; err == nil {
 		return &CustomMessage{Code: http.StatusConflict, Message: "Request to this user already exists !"}
 	}
@@ -248,7 +254,7 @@ func (db *GormDB) AddFriendReq(req *model.FriendReq) error {
 	return nil
 }
 
-func (db *GormDB) ViewFriendReq(user *model.User, uid uint) error {
+func (db *GormDB) ViewFriendReq(user *model.User, uid string) error {
 	if err := db.DB.Preload("FriendReq.Friend").Preload("RecFriendReq.User").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
@@ -259,7 +265,7 @@ func (db *GormDB) ViewFriendReq(user *model.User, uid uint) error {
 	return nil
 }
 
-func (db *GormDB) FetchFriendReq(req *model.FriendReq, rid uint) error {
+func (db *GormDB) FetchFriendReq(req *model.FriendReq, rid string) error {
 	if err := db.DB.Where("id = ?", rid).First(req).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "Request not found."}
@@ -277,7 +283,7 @@ func (db *GormDB) UpdateFriendReqReject(req *model.FriendReq) error {
 	return nil
 }
 
-func (db *GormDB) UpdateFriendReqAccept(req *model.FriendReq, user, friend *model.User) error {
+func (db *GormDB) UpdateFriendReqAccept(req *model.FriendReq, user, friend *model.User, chat *model.Chat) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Unscoped().Delete(req).Error; err != nil {
 			return err
@@ -286,6 +292,9 @@ func (db *GormDB) UpdateFriendReqAccept(req *model.FriendReq, user, friend *mode
 			return err
 		}
 		if err := tx.Model(friend).Association("Friends").Append(user); err != nil {
+			return err
+		}
+		if err := tx.Create(chat).Error; err != nil {
 			return err
 		}
 		return nil
@@ -343,7 +352,7 @@ func (db *GormDB) AddPost(post *model.Post) error {
 	return err
 }
 
-func (db *GormDB) FetchUserPosts(user *model.User, uid uint) error {
+func (db *GormDB) FetchUserPosts(user *model.User, uid string) error {
 	if err := db.DB.Preload("Posts.Tags").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
@@ -354,7 +363,7 @@ func (db *GormDB) FetchUserPosts(user *model.User, uid uint) error {
 	return nil
 }
 
-func (db *GormDB) FetchPost(post *model.Post, pid uint) error {
+func (db *GormDB) FetchPost(post *model.Post, pid string) error {
 	if err := db.DB.Where("id = ?", pid).First(post).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "Post not found."}
@@ -365,7 +374,7 @@ func (db *GormDB) FetchPost(post *model.Post, pid uint) error {
 	return nil
 }
 
-func (db *GormDB) FetchPostPreloadT(post *model.Post, pid uint) error {
+func (db *GormDB) FetchPostPreloadT(post *model.Post, pid string) error {
 	if err := db.DB.Preload("Tags").Where("id = ?", pid).First(post).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "Post not found."}
@@ -376,7 +385,7 @@ func (db *GormDB) FetchPostPreloadT(post *model.Post, pid uint) error {
 	return nil
 }
 
-func (db *GormDB) FetchPostPreloadTU(post *model.Post, pid uint) error {
+func (db *GormDB) FetchPostPreloadTU(post *model.Post, pid string) error {
 	if err := db.DB.Preload("Tags").Preload("User").Where("id = ?", pid).First(post).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "Post not found."}
@@ -416,7 +425,7 @@ func (db *GormDB) BookmarkPost(user *model.User, post *model.Post) error {
 	return nil
 }
 
-func (db *GormDB) FetchUserPreloadB(user *model.User, uid uint) error {
+func (db *GormDB) FetchUserPreloadB(user *model.User, uid string) error {
 	if err := db.DB.Preload("SavedPosts").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
@@ -427,7 +436,7 @@ func (db *GormDB) FetchUserPreloadB(user *model.User, uid uint) error {
 	return nil
 }
 
-func (db *GormDB) FetchPostPreloadU(post *model.Post, pid uint) error {
+func (db *GormDB) FetchPostPreloadU(post *model.Post, pid string) error {
 	if err := db.DB.Preload("User").Where("id = ?", pid).First(post).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "Post not found."}
@@ -464,7 +473,7 @@ func (db *GormDB) AddPostApplicationReq(req *model.PostReq) error {
 	return nil
 }
 
-func (db *GormDB) ViewPostApplications(user *model.User, uid uint) error {
+func (db *GormDB) ViewPostApplications(user *model.User, uid string) error {
 	if err := db.DB.Preload("RecPostReq.FromUser").Preload("SentPostReq.ToUser").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
@@ -475,7 +484,7 @@ func (db *GormDB) ViewPostApplications(user *model.User, uid uint) error {
 	return nil
 }
 
-func (db *GormDB) FetchPostApplication(req *model.PostReq, rid uint) error {
+func (db *GormDB) FetchPostApplication(req *model.PostReq, rid string) error {
 	if err := db.DB.Preload("FromUser").Preload("Post").Where("id = ?", rid).First(req).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "Post request not found."}
@@ -513,7 +522,7 @@ func (db *GormDB) UpdatePostApplicationAccept(req *model.PostReq, user1, user2 *
 	return nil
 }
 
-func (db *GormDB) FetchPostAppPreloadFU(req *model.PostReq, rid uint) error {
+func (db *GormDB) FetchPostAppPreloadFU(req *model.PostReq, rid string) error {
 	if err := db.DB.Preload("FromUser").Where("id = ?", rid).First(req).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "Post application request not found."}
@@ -547,7 +556,7 @@ func (db *GormDB) AddSkills(skills *[]*model.Skill) error {
 
 func (db *GormDB) FindExistingSkills(skills *[]*model.Skill, skill []string) error {
 	if err := db.DB.Where("name IN ?", skill).Find(skills).Error; err != nil {
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to find skills"}
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to find skills."}
 	}
 	return nil
 }
@@ -565,4 +574,58 @@ func (db *GormDB) CheckExistingEmail(user *model.User, email string) error {
 func (db *GormDB) CheckExistingUsername(user *model.User, username string) error {
 	err := db.DB.Where("username = ?", username).First(user).Error
 	return err
+}
+
+func (db *GormDB) AddMessage(msg *model.UserMessage) error {
+	if err := db.DB.Create(msg).Error; err != nil {
+		return &CustomMessage{http.StatusInternalServerError, "Failed to send message."}
+	}
+	return nil
+}
+
+func (db *GormDB) GetChatHistory(chatID string, chat *model.Chat) error {
+	if err := db.DB.Preload("Messages").Where("id = ?", chatID).First(&chat).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &CustomMessage{http.StatusNotFound, "Chat not found."}
+		} else {
+			return &CustomMessage{http.StatusInternalServerError, "Failed to get chat history."}
+		}
+	}
+	return nil
+}
+
+func (db *GormDB) FetchUserPreloadC(user *model.User, uid string) error {
+	if err := db.DB.Preload("Chats").Where("id = ?", uid).First(user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &CustomMessage{http.StatusNotFound, "User not found."}
+		} else {
+			return &CustomMessage{http.StatusInternalServerError, "Failed to fetch user chats."}
+		}
+	}
+	return nil
+}
+
+func (db *GormDB) FetchMsg(msg *model.UserMessage, mid string) error {
+	if err := db.DB.Where("id = ?", mid).First(msg).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &CustomMessage{http.StatusNotFound, "Msg not found."}
+		} else {
+			return &CustomMessage{http.StatusInternalServerError, "Failed to fetch msg."}
+		}
+	}
+	return nil
+}
+
+func (db *GormDB) SaveMsg(msg *model.UserMessage) error {
+	if err := db.DB.Save(msg).Error; err != nil {
+		return &CustomMessage{http.StatusInternalServerError, "Failed to edit msg."}
+	}
+	return nil
+}
+
+func (db *GormDB) DeleteMsg(msg *model.UserMessage) error {
+	if err := db.DB.Delete(msg); err != nil {
+		return &CustomMessage{http.StatusInternalServerError, "Failed to delete msg."}
+	}
+	return nil
 }

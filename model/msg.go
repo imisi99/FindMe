@@ -1,15 +1,41 @@
 // Package model -> The ERM of the app
 package model
 
-import "gorm.io/gorm"
+import (
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type UserMessage struct {
-	gorm.Model
-	FromID  uint
-	ToID    uint
+	GormModel
+	ChatID  string
+	FromID  string
 	Message string
 
 	// Relations:
-	FromUser User `gorm:"foreignKey:FromID;constraint:OnUpdated:CASCADE,OnDelete:CASCADE"`
-	ToUser   User `gorm:"foreignKey:ToID;constraint:OnUpdated:CASCADE,OnDelete:CASCADE"`
+	FromUser User `gorm:"foreignKey:FromID"`
+}
+
+type Chat struct {
+	GormModel
+	Messages []*UserMessage `gorm:"foreignKey:ChatID"`
+	Users    []*User
+}
+
+type ChatUser struct {
+	UserID string `gorm:"primaryKey"`
+	ChatID string `gorm:"primaryKey"`
+
+	User User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Chat Chat `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+}
+
+func (c *Chat) BeforeCreate(tx *gorm.DB) (err error) {
+	c.ID = uuid.NewString()
+	return err
+}
+
+func (u *UserMessage) BeforeCreate(tx *gorm.DB) (err error) {
+	u.ID = uuid.NewString()
+	return err
 }

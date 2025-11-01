@@ -5,18 +5,17 @@ import (
 	"net/http"
 
 	"findme/model"
-	"findme/schema"
 
 	"github.com/gin-gonic/gin"
 )
 
 type CacheMock struct {
-	Store map[string]map[string]uint
-	Otp   map[string]uint
+	Store map[string]map[string]string
+	Otp   map[string]string
 }
 
 func (mock *CacheMock) CacheSkills(skills []model.Skill) {
-	cache := make(map[string]uint, 0)
+	cache := make(map[string]string, 0)
 
 	for _, skill := range skills {
 		cache[skill.Name] = skill.ID
@@ -25,8 +24,8 @@ func (mock *CacheMock) CacheSkills(skills []model.Skill) {
 	mock.Store["skills"] = cache
 }
 
-func (mock *CacheMock) RetrieveCachedSkills(skills []string) (map[string]uint, error) {
-	foundskills := make(map[string]uint, 0)
+func (mock *CacheMock) RetrieveCachedSkills(skills []string) (map[string]string, error) {
+	foundskills := make(map[string]string, 0)
 	for _, val := range skills {
 		if id, exists := mock.Store["skills"][val]; exists {
 			foundskills[val] = id
@@ -42,23 +41,22 @@ func (mock *CacheMock) AddNewSkillToCache(skills []*model.Skill) {
 	}
 }
 
-func (mock *CacheMock) SetOTP(otp string, uid uint) error {
+func (mock *CacheMock) SetOTP(otp string, uid string) error {
 	mock.Otp["123456"] = uid
 	return nil
 }
 
-func (mock *CacheMock) GetOTP(otp string, otpInfo *schema.OTPInfo) error {
+func (mock *CacheMock) GetOTP(otp string) (string, error) {
 	if val, exists := mock.Otp[otp]; exists {
-		otpInfo.UserID = val
-		return nil
+		return val, nil
 	}
-	return errors.New("missing")
+	return "", errors.New("missing")
 }
 
 func NewCacheMock() *CacheMock {
 	return &CacheMock{
-		Store: make(map[string]map[string]uint, 0),
-		Otp:   make(map[string]uint, 0),
+		Store: make(map[string]map[string]string, 0),
+		Otp:   make(map[string]string, 0),
 	}
 }
 

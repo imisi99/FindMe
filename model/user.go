@@ -1,11 +1,14 @@
 package model
 
 import (
+	"time"
+
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type User struct {
-	gorm.Model
+	GormModel
 	FullName     string  `gorm:"column:fullname;not null"`
 	UserName     string  `gorm:"column:username;unique;not null;index"`
 	Email        string  `gorm:"unique;not null"`
@@ -17,21 +20,20 @@ type User struct {
 	Availability bool
 
 	// Relations:
-	Skills       []*Skill       `gorm:"many2many:user_skills"`
-	Posts        []*Post        `gorm:"foreignKey:UserID"`
-	SavedPosts   []*Post        `gorm:"many2many:user_saved_posts"`
-	Friends      []*User        `gorm:"many2many:user_friends"`
-	FriendReq    []*FriendReq   `gorm:"foreignKey:UserID"`
-	RecFriendReq []*FriendReq   `gorm:"foreignKey:FriendID"`
-	Message      []*UserMessage `gorm:"foreignKey:FromID"`
-	RecMessage   []*UserMessage `gorm:"foreignKey:ToID"`
-	SentPostReq  []*PostReq     `gorm:"foreignKey:FromID"`
-	RecPostReq   []*PostReq     `gorm:"foreignKey:ToID"`
+	Skills       []*Skill     `gorm:"many2many:user_skills"`
+	Posts        []*Post      `gorm:"foreignKey:UserID"`
+	SavedPosts   []*Post      `gorm:"many2many:user_saved_posts"`
+	Friends      []*User      `gorm:"many2many:user_friends"`
+	FriendReq    []*FriendReq `gorm:"foreignKey:UserID"`
+	RecFriendReq []*FriendReq `gorm:"foreignKey:FriendID"`
+	Chats        []*ChatUser  `gorm:"many2many:chat_users"`
+	SentPostReq  []*PostReq   `gorm:"foreignKey:FromID"`
+	RecPostReq   []*PostReq   `gorm:"foreignKey:ToID"`
 }
 
 type UserFriend struct {
-	UserID   uint `gorm:"primaryKey"`
-	FriendID uint `gorm:"primaryKey"`
+	UserID   string `gorm:"primaryKey"`
+	FriendID string `gorm:"primaryKey"`
 
 	// Relations:
 	User   User `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
@@ -39,16 +41,16 @@ type UserFriend struct {
 }
 
 type UserSkill struct {
-	UserID  uint `gorm:"primaryKey"`
-	SkillID uint `gorm:"primaryKey"`
+	UserID  string `gorm:"primaryKey"`
+	SkillID string `gorm:"primaryKey"`
 
 	// Relations:
 	User User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 type UserSavedPost struct {
-	UserID uint `gorm:"primaryKey"`
-	PostID uint `gorm:"primaryKey"`
+	UserID string `gorm:"primaryKey"`
+	PostID string `gorm:"primaryKey"`
 
 	// Relations:
 	User User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
@@ -56,7 +58,7 @@ type UserSavedPost struct {
 }
 
 type FriendReq struct {
-	gorm.Model
+	GormModel
 	UserFriend
 	Status  string `gorm:"not null;default:'pending'"`
 	Message string `gorm:"default:'Hey let's be friends'"`
@@ -67,9 +69,26 @@ const (
 	StatusRejected = "rejected"
 )
 
+func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
+	u.ID = uuid.NewString()
+	return err
+}
+
+func (f *FriendReq) BeforeCreate(tx *gorm.DB) (err error) {
+	f.ID = uuid.NewString()
+	return err
+}
+
 func (u *User) BeforeDelete(tx *gorm.DB) (err error) {
 	if err := tx.Model(&Post{}).Where("user_id = ?", u.ID).Delete(&Post{}).Error; err != nil {
 		return err
 	}
 	return nil
+}
+
+type GormModel struct {
+	ID        string `gorm:"type:char(36);primaryKey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 }

@@ -14,18 +14,18 @@ import (
 )
 
 // AddUser -> Sign up endpoint for user
-func (u *Service) AddUser(ctx *gin.Context) {
+func (s *Service) AddUser(ctx *gin.Context) {
 	var payload schema.SignupRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload."})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
 		return
 	}
 
 	// Checking for existing username | email
 	var existingUser model.User
-	if err := u.DB.CheckExistingUser(&existingUser, payload.Email, payload.UserName); err != nil {
+	if err := s.DB.CheckExistingUser(&existingUser, payload.Email, payload.UserName); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -35,7 +35,7 @@ func (u *Service) AddUser(ctx *gin.Context) {
 		for i := range payload.Skills {
 			payload.Skills[i] = strings.ToLower(payload.Skills[i])
 		}
-		allskills, err = u.CheckAndUpdateSkills(payload.Skills)
+		allskills, err = s.CheckAndUpdateSkills(payload.Skills)
 		if err != nil {
 			log.Printf("Failed to create skills for new user -> %s", err)
 		}
@@ -43,7 +43,7 @@ func (u *Service) AddUser(ctx *gin.Context) {
 
 	hashedPassword, err := core.HashPassword(payload.Password)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to encrypt the user password."})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to encrypt the user password."})
 		return
 	}
 
@@ -59,59 +59,59 @@ func (u *Service) AddUser(ctx *gin.Context) {
 		Availability: true,
 	}
 
-	if err := u.DB.AddUser(&user); err != nil {
+	if err := s.DB.AddUser(&user); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	jwtToken, err := GenerateJWT(user.ID, "login", JWTExpiry)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token.", "detail": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to generate jwt token.", "detail": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"message": "Signed up successfully.", "token": jwtToken})
+	ctx.JSON(http.StatusCreated, gin.H{"msg": "Signed up successfully.", "token": jwtToken})
 }
 
 // VerifyUser -> Log in endpoint for user
-func (u *Service) VerifyUser(ctx *gin.Context) {
+func (s *Service) VerifyUser(ctx *gin.Context) {
 	var payload schema.LoginRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload."})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.VerifyUser(&user, payload.UserName); err != nil {
+	if err := s.DB.VerifyUser(&user, payload.UserName); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	jwtToken, err := Authorization(&user, payload.Password)
 	if err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Logged in successfully.", "token": jwtToken})
+	ctx.JSON(http.StatusOK, gin.H{"msg": "Logged in successfully.", "token": jwtToken})
 }
 
 // GetUserInfo ->  user info enpoint
-func (u *Service) GetUserInfo(ctx *gin.Context) {
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
+func (s *Service) GetUserInfo(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.FetchUserPreloadS(&user, uid); err != nil {
+	if err := s.DB.FetchUserPreloadS(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -135,17 +135,17 @@ func (u *Service) GetUserInfo(ctx *gin.Context) {
 }
 
 // ViewUser -> search for user with username endpoint
-func (u *Service) ViewUser(ctx *gin.Context) {
-	uid, tp, username := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) ViewUser(ctx *gin.Context) {
+	uid, tp, username := ctx.GetString("userID"), ctx.GetString("purpose"), ctx.Query("id")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.SearchUserPreloadSP(&user, username); err != nil {
+	if err := s.DB.SearchUserPreloadSP(&user, username); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -183,17 +183,17 @@ func (u *Service) ViewUser(ctx *gin.Context) {
 }
 
 // ViewGitUser -> Search for user with github username endpoint
-func (u *Service) ViewGitUser(ctx *gin.Context) {
-	uid, tp, username := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) ViewGitUser(ctx *gin.Context) {
+	uid, tp, username := ctx.GetString("userID"), ctx.GetString("purpose"), ctx.Query("id")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.SearchUserGitPreloadSP(&user, username); err != nil {
+	if err := s.DB.SearchUserGitPreloadSP(&user, username); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -232,23 +232,23 @@ func (u *Service) ViewGitUser(ctx *gin.Context) {
 }
 
 // ViewUserbySkills -> Search for user by skills endpoint
-func (u *Service) ViewUserbySkills(ctx *gin.Context) {
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) ViewUserbySkills(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var payload schema.SearchUserbySkills
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload"})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload"})
 		return
 	}
 
 	var users []model.User
-	if err := u.DB.SearchUsersBySKills(&users, payload.Skills); err != nil {
+	if err := s.DB.SearchUsersBySKills(&users, payload.Skills); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -272,35 +272,35 @@ func (u *Service) ViewUserbySkills(ctx *gin.Context) {
 }
 
 // SendFriendReq -> friend request endpoint
-func (u *Service) SendFriendReq(ctx *gin.Context) {
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) SendFriendReq(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var payload schema.SendFriendReq
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload."})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
 		return
 	}
 
 	var friend, user model.User
-	if err := u.DB.FetchUserPreloadFReq(&user, uid); err != nil {
+	if err := s.DB.FetchUserPreloadFReq(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if err := u.DB.SearchUser(&friend, payload.UserName); err != nil {
+	if err := s.DB.SearchUser(&friend, payload.UserName); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	for _, fr := range user.Friends {
 		if fr.ID == friend.ID {
-			ctx.JSON(http.StatusConflict, gin.H{"message": "User is already your friend."})
+			ctx.JSON(http.StatusConflict, gin.H{"msg": "User is already your friend."})
 			return
 		}
 	}
@@ -309,14 +309,14 @@ func (u *Service) SendFriendReq(ctx *gin.Context) {
 	for i < len(user.RecFriendReq) || j < len(user.FriendReq) {
 		if i < len(user.RecFriendReq) {
 			if user.RecFriendReq[i].UserID == friend.ID {
-				ctx.JSON(http.StatusConflict, gin.H{"message": "User has already sent you a friend reqest."})
+				ctx.JSON(http.StatusConflict, gin.H{"msg": "User has already sent you a friend reqest."})
 				return
 			}
 			i++
 		}
 		if j < len(user.FriendReq) {
 			if user.FriendReq[j].FriendID == friend.ID {
-				ctx.JSON(http.StatusConflict, gin.H{"message": "You have already send this user a friend request."})
+				ctx.JSON(http.StatusConflict, gin.H{"msg": "You have already send this user a friend request."})
 				return
 			}
 			j++
@@ -334,29 +334,29 @@ func (u *Service) SendFriendReq(ctx *gin.Context) {
 		req.Message = payload.Message
 	}
 
-	if err := u.DB.AddFriendReq(&req); err != nil {
+	if err := s.DB.AddFriendReq(&req); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	u.Email.SendFriendReqEmail(friend.Email, user.UserName, friend.UserName, req.Message, "")
+	_ = s.Email.SendFriendReqEmail(friend.Email, user.UserName, friend.UserName, req.Message, "")
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Friend request sent successfully."})
+	ctx.JSON(http.StatusOK, gin.H{"msg": "Friend request sent successfully."})
 }
 
 // ViewFriendReq -> friend requests endpoint
-func (u *Service) ViewFriendReq(ctx *gin.Context) {
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) ViewFriendReq(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.ViewFriendReq(&user, uid); err != nil {
+	if err := s.DB.ViewFriendReq(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -383,102 +383,91 @@ func (u *Service) ViewFriendReq(ctx *gin.Context) {
 }
 
 // UpdateFriendReqStatus -> friend request endpoint
-func (u *Service) UpdateFriendReqStatus(ctx *gin.Context) {
-	uid, tp, reqID, status := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id"), ctx.Query("status")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
-		return
-	}
-
-	rid, err := strconv.ParseUint(reqID, 10, 64)
-	if err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Invalid request id."})
+func (s *Service) UpdateFriendReqStatus(ctx *gin.Context) {
+	uid, tp, reqID, status := ctx.GetString("userID"), ctx.GetString("purpose"), ctx.Query("id"), ctx.Query("status")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var req model.FriendReq
-	if err := u.DB.FetchFriendReq(&req, uint(rid)); err != nil {
+	if err := s.DB.FetchFriendReq(&req, reqID); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.FetchUserPreloadF(&user, uid); err != nil {
+	if err := s.DB.FetchUserPreloadF(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	if req.FriendID != user.ID {
-		ctx.JSON(http.StatusForbidden, gin.H{"message": "You can't update the status of this request."})
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can't update the status of this request."})
 		return
 	}
 
 	var friend model.User
-	if err := u.DB.FetchUserPreloadF(&friend, req.UserID); err != nil {
+	var chat model.Chat
+	if err := s.DB.FetchUserPreloadF(&friend, req.UserID); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	switch status {
 	case model.StatusRejected:
-		if err := u.DB.UpdateFriendReqReject(&req); err != nil {
+		if err := s.DB.UpdateFriendReqReject(&req); err != nil {
 			cm := err.(*core.CustomMessage)
-			ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+			ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 			return
 		}
 	case model.StatusAccepted:
-		if err := u.DB.UpdateFriendReqAccept(&req, &user, &friend); err != nil {
+		if err := s.DB.UpdateFriendReqAccept(&req, &user, &friend, &chat); err != nil {
 			cm := err.(*core.CustomMessage)
-			ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+			ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 			return
 		}
 	default:
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid status."})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid status."})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"message": "Status updated successfully."})
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Status updated successfully.", "chat_id": chat.ID})
 }
 
 // DeleteSentReq -> sent request endpoint
-func (u *Service) DeleteSentReq(ctx *gin.Context) {
-	uid, tp, reqID := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
-		return
-	}
-
-	rid, err := strconv.ParseUint(reqID, 10, 64)
-	if err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Invalid request id."})
+func (s *Service) DeleteSentReq(ctx *gin.Context) {
+	uid, tp, reqID := ctx.GetString("userID"), ctx.GetString("purpose"), ctx.Query("id")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var req model.FriendReq
-	if err := u.DB.FetchFriendReq(&req, uint(rid)); err != nil {
+	if err := s.DB.FetchFriendReq(&req, reqID); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.FetchUser(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	if req.UserID != user.ID {
-		ctx.JSON(http.StatusForbidden, gin.H{"message": "You can't delete this request."})
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can't delete this request."})
 		return
 	}
 
-	if err := u.DB.DeleteFriendReq(&req); err != nil {
+	if err := s.DB.DeleteFriendReq(&req); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -486,17 +475,17 @@ func (u *Service) DeleteSentReq(ctx *gin.Context) {
 }
 
 // DeleteUserFriend -> Remove friend endpoint
-func (u *Service) DeleteUserFriend(ctx *gin.Context) {
-	uid, tp, username := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) DeleteUserFriend(ctx *gin.Context) {
+	uid, tp, username := ctx.GetString("userID"), ctx.GetString("purpose"), ctx.Query("id")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.FetchUserPreloadF(&user, uid); err != nil {
+	if err := s.DB.FetchUserPreloadF(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -508,13 +497,13 @@ func (u *Service) DeleteUserFriend(ctx *gin.Context) {
 		}
 	}
 	if friend == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "User is not your friend."})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "User is not your friend."})
 		return
 	}
 
-	if err := u.DB.DeleteFriend(&user, friend); err != nil {
+	if err := s.DB.DeleteFriend(&user, friend); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -522,17 +511,17 @@ func (u *Service) DeleteUserFriend(ctx *gin.Context) {
 }
 
 // ViewUserFriends -> view all user friend endpoint
-func (u *Service) ViewUserFriends(ctx *gin.Context) {
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) ViewUserFriends(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.FetchUserPreloadF(&user, uid); err != nil {
+	if err := s.DB.FetchUserPreloadF(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -548,122 +537,122 @@ func (u *Service) ViewUserFriends(ctx *gin.Context) {
 }
 
 // ForgotPassword -> send otp for password reset endpoint
-func (u *Service) ForgotPassword(ctx *gin.Context) {
+func (s *Service) ForgotPassword(ctx *gin.Context) {
 	var payload schema.ForgotPasswordEmail
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload."})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.SearchUserEmail(&user, payload.Email); err != nil {
+	if err := s.DB.SearchUserEmail(&user, payload.Email); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	token := core.GenerateOTP()
-	if err := u.RDB.SetOTP(token, user.ID); err != nil {
-		log.Printf("Failed to store token in redis -> %s", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store otp"})
+	if err := s.RDB.SetOTP(token, user.ID); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if err := u.Email.SendForgotPassEmail(user.Email, user.UserName, token); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to send email"})
+	if err := s.Email.SendForgotPassEmail(user.Email, user.UserName, token); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to send email"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Email sent successfully."})
+	ctx.JSON(http.StatusOK, gin.H{"msg": "Email sent successfully."})
 }
 
 // VerifyOTP -> verify otp for password reset endpoint
-func (u *Service) VerifyOTP(ctx *gin.Context) {
+func (s *Service) VerifyOTP(ctx *gin.Context) {
 	var payload schema.VerifyOTP
 
 	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload"})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload"})
 		return
 	}
 
-	var token schema.OTPInfo
-	err := u.RDB.GetOTP(payload.Token, &token)
+	uid, err := s.RDB.GetOTP(payload.Token)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Invalid token."})
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	jwt, err := GenerateJWT(token.UserID, "reset", JWTRExpiry)
+	jwt, err := GenerateJWT(uid, "reset", JWTRExpiry)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create jwt token"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to create jwt token"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "otp verified", "token": jwt})
+	ctx.JSON(http.StatusOK, gin.H{"msg": "otp verified", "token": jwt})
 }
 
 // ResetPassword -> Actual reset password endpoint
-func (u *Service) ResetPassword(ctx *gin.Context) {
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
-	if uid == 0 || tp != "reset" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user"})
+func (s *Service) ResetPassword(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "reset" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user"})
 		return
 	}
 
 	var payload schema.ResetPassword
 	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload"})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload"})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.FetchUser(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	hashed, err := core.HashPassword(payload.Password)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Unable to hash password"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Unable to hash password"})
 		return
 	}
 
 	user.Password = hashed
 
-	if err := u.DB.SaveUser(&user); err != nil {
+	if err := s.DB.SaveUser(&user); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"message": "password reset successfully."})
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "password reset successfully."})
 }
 
 // UpdateUserInfo -> user info endpoint
-func (u *Service) UpdateUserInfo(ctx *gin.Context) {
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) UpdateUserInfo(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var user, existingUser model.User
 	var payload schema.UserProfileRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload."})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
 		return
 	}
 
-	if err := u.DB.FetchUser(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if err := u.DB.CheckExistingUserUpdate(&existingUser, payload.Email, payload.UserName, user.ID); err != nil {
+	if err := s.DB.CheckExistingUserUpdate(&existingUser, payload.Email, payload.UserName, user.ID); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -672,9 +661,9 @@ func (u *Service) UpdateUserInfo(ctx *gin.Context) {
 	user.FullName = payload.FullName
 	user.UserName = payload.UserName
 
-	if err := u.DB.SaveUser(&user); err != nil {
+	if err := s.DB.SaveUser(&user); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -688,101 +677,101 @@ func (u *Service) UpdateUserInfo(ctx *gin.Context) {
 		Availability: user.Availability,
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"message": "User profile updated successfully.", "user": profile})
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "User profile updated successfully.", "user": profile})
 }
 
 // UpdateUserPassword -> user password endpoint
-func (u *Service) UpdateUserPassword(ctx *gin.Context) {
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) UpdateUserPassword(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var payload schema.UpdatePassword
 	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload."})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.FetchUser(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	if err := core.VerifyHashedPassword(payload.FormerPassword, user.Password); err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	hashed, err := core.HashPassword(payload.Password)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate hash for user password"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to generate hash for user password"})
 		return
 	}
 	user.Password = hashed
 
-	if err := u.DB.SaveUser(&user); err != nil {
+	if err := s.DB.SaveUser(&user); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"message": "User password updated successfully."})
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "User password updated successfully."})
 }
 
 // UpdateUserAvaibilityStatus -> user avaibility status endpoint
-func (u *Service) UpdateUserAvaibilityStatus(ctx *gin.Context) {
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) UpdateUserAvaibilityStatus(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	status := ctx.Param("status")
 	statusbool, err := strconv.ParseBool(status)
 	if err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Availability status can only be true or false."})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Availability status can only be true or false."})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.FetchUser(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 	user.Availability = statusbool
 
-	if err := u.DB.SaveUser(&user); err != nil {
+	if err := s.DB.SaveUser(&user); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"message": "User availability updated successfully."})
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "User availability updated successfully."})
 }
 
 // UpdateUserSkills -> user skills endpoint
-func (u *Service) UpdateUserSkills(ctx *gin.Context) {
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) UpdateUserSkills(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var payload schema.UpdateUserSkillsRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload."})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.FetchUserPreloadS(&user, uid); err != nil {
+	if err := s.DB.FetchUserPreloadS(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -790,39 +779,39 @@ func (u *Service) UpdateUserSkills(ctx *gin.Context) {
 		payload.Skills[i] = strings.ToLower(payload.Skills[i])
 	}
 
-	allskills, err := u.CheckAndUpdateSkills(payload.Skills)
+	allskills, err := s.CheckAndUpdateSkills(payload.Skills)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user skills."})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to update user skills."})
 		return
 	}
 
-	if err := u.DB.UpdateSkills(&user, allskills); err != nil {
+	if err := s.DB.UpdateSkills(&user, allskills); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"message": "User skills updated successfully.", "user": payload.Skills})
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "User skills updated successfully.", "user": payload.Skills})
 }
 
 // DeleteUserSkills -> user skills endpoint
-func (u *Service) DeleteUserSkills(ctx *gin.Context) {
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) DeleteUserSkills(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var payload schema.DeleteUserSkillsRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse the payload."})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.FetchUserPreloadS(&user, uid); err != nil {
+	if err := s.DB.FetchUserPreloadS(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -838,9 +827,9 @@ func (u *Service) DeleteUserSkills(ctx *gin.Context) {
 		}
 	}
 
-	if err := u.DB.DeleteSkills(&user, skillsToDelete); err != nil {
+	if err := s.DB.DeleteSkills(&user, skillsToDelete); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -848,23 +837,23 @@ func (u *Service) DeleteUserSkills(ctx *gin.Context) {
 }
 
 // DeleteUserAccount -> user account endpoint using soft deleting
-func (u *Service) DeleteUserAccount(ctx *gin.Context) {
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) DeleteUserAccount(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var user model.User
-	if err := u.DB.FetchUser(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if err := u.DB.DeleteUser(&user); err != nil {
+	if err := s.DB.DeleteUser(&user); err != nil {
 		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"message": cm.Message})
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 

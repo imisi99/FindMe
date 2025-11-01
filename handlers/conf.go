@@ -12,11 +12,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"gorm.io/gorm"
 )
 
 type JWTClaims struct {
-	UserID  uint
+	UserID  string
 	Purpose string
 	jwt.RegisteredClaims
 }
@@ -29,7 +28,7 @@ var (
 )
 
 // GenerateJWT -> Generates JWT token
-func GenerateJWT(userID uint, purpose string, expiry time.Duration) (string, error) {
+func GenerateJWT(userID string, purpose string, expiry time.Duration) (string, error) {
 	claims := JWTClaims{
 		UserID:  userID,
 		Purpose: purpose,
@@ -79,7 +78,7 @@ func Authorization(user *model.User, password string) (string, error) {
 }
 
 // Authentication -> Authenticate user
-func (c *Service) Authentication() gin.HandlerFunc {
+func (s *Service) Authentication() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authHeader := ctx.GetHeader("Authorization")
 
@@ -111,12 +110,12 @@ func (c *Service) Authentication() gin.HandlerFunc {
 }
 
 // CheckAndUpdateSkills -> Helper func for checking and updating skills
-func (c *Service) CheckAndUpdateSkills(payload []string) ([]*model.Skill, error) {
-	skills, err := c.RDB.RetrieveCachedSkills(payload)
+func (s *Service) CheckAndUpdateSkills(payload []string) ([]*model.Skill, error) {
+	skills, err := s.RDB.RetrieveCachedSkills(payload)
 	if err != nil { // Falling back to the db if the cache fails
 		var existingSkills []*model.Skill
 
-		if err := c.DB.FindExistingSkills(&existingSkills, payload); err != nil {
+		if err := s.DB.FindExistingSkills(&existingSkills, payload); err != nil {
 			return nil, err
 		}
 
@@ -133,7 +132,7 @@ func (c *Service) CheckAndUpdateSkills(payload []string) ([]*model.Skill, error)
 		}
 
 		if len(newSkill) > 0 {
-			if err := c.DB.AddSkills(&newSkill); err != nil {
+			if err := s.DB.AddSkills(&newSkill); err != nil {
 				return nil, err
 			}
 		}
@@ -144,17 +143,17 @@ func (c *Service) CheckAndUpdateSkills(payload []string) ([]*model.Skill, error)
 	var newskills, allskills []*model.Skill
 	for _, skill := range payload {
 		if id, exists := skills[skill]; exists {
-			allskills = append(allskills, &model.Skill{Name: skill, Model: gorm.Model{ID: id}})
+			allskills = append(allskills, &model.Skill{Name: skill, GormModel: model.GormModel{ID: id}})
 			continue
 		}
 		newskills = append(newskills, &model.Skill{Name: skill})
 	}
 
 	if len(newskills) > 0 {
-		if err := c.DB.AddSkills(&newskills); err != nil {
+		if err := s.DB.AddSkills(&newskills); err != nil {
 			return nil, err
 		}
-		c.RDB.AddNewSkillToCache(newskills)
+		s.RDB.AddNewSkillToCache(newskills)
 	}
 	allskills = append(allskills, newskills...)
 	return allskills, nil

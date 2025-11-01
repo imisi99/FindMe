@@ -3,15 +3,17 @@ package model
 import (
 	"strings"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type Skill struct {
-	gorm.Model
+	GormModel
 	Name string `gorm:"unique;not null"`
 }
 
 func (s *Skill) BeforeCreate(tx *gorm.DB) (err error) {
 	s.Name = strings.ToLower(s.Name)
+	s.ID = uuid.NewString()
 	return err
 }

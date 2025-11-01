@@ -89,7 +89,7 @@ type UserProfileResponse struct {
 }
 
 type FriendReqStatus struct {
-	ID       uint
+	ID       string
 	Username string
 	Message  string
 	Status   string
@@ -98,8 +98,4 @@ type FriendReqStatus struct {
 type ViewFriends struct {
 	Username string
 	Bio      string
-}
-
-type OTPInfo struct {
-	UserID uint
 }

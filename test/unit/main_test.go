@@ -17,6 +17,12 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+var (
+	id1 = ""
+	id2 = ""
+	pid = ""
+)
+
 var router *gin.Engine
 
 func getTestDB() *core.GormDB {
@@ -48,7 +54,6 @@ func getTestDB() *core.GormDB {
 func getTestRouter(service *handlers.Service) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
-
 	handlers.SetupHandler(router, service)
 	return router
 }
@@ -95,6 +100,10 @@ func superUser(db *gorm.DB) {
 		Availability: true,
 	}
 
+	id1 = super.ID
+	id2 = super1.ID
+	pid = post.ID
+
 	db.Create(&post)
 	db.Model(&super).Association("Friends").Append(&super1)
 	db.Model(&super1).Association("Friends").Append(&super)
@@ -110,8 +119,8 @@ func TestMain(m *testing.M) {
 	service.DB.FetchAllSkills(&skills)
 	service.RDB.CacheSkills(skills)
 	router = getTestRouter(service)
-	tokenString, _ = handlers.GenerateJWT(1, "login", handlers.JWTExpiry)  // Initially the logged in user is the super user me for the post test
-	tokenString1, _ = handlers.GenerateJWT(2, "login", handlers.JWTExpiry) // User for saving post
+	tokenString, _ = handlers.GenerateJWT(id1, "login", handlers.JWTExpiry)  // Initially the logged in user is the super user me for the post test
+	tokenString1, _ = handlers.GenerateJWT(id2, "login", handlers.JWTExpiry) // User for saving post
 
 	code := m.Run()
 

@@ -165,7 +165,7 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 			existingUser.GitUserName = &user.UserName
 			existingUser.GitUser = true
 
-			if err := g.DB.SaveUser(&existingUser).Error; err != nil {
+			if err := g.DB.SaveUser(&existingUser); err != nil {
 				ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to log in user."})
 				return
 			}
@@ -200,7 +200,7 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 		Bio:          user.Bio,
 	}
 
-	if err := g.DB.AddUser(&newUser).Error; err != nil {
+	if err := g.DB.AddUser(&newUser); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to signup with github."})
 		return
 	}

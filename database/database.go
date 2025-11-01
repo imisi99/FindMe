@@ -35,6 +35,7 @@ func Connect() *gorm.DB {
 		&model.UserFriend{},
 		&model.FriendReq{},
 		&model.UserMessage{},
+		&model.Chat{},
 	)
 	if err != nil {
 		log.Fatalf("[ERROR] [DB] Failed to create tables -> %s", err.Error())

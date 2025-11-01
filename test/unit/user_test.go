@@ -183,7 +183,7 @@ func TestSendDuplicateFriendReq(t *testing.T) {
 		"username": defPayload["username"],
 	}
 	body, _ := json.Marshal(payload)
-	userToken, _ = handlers.GenerateJWT(1, "login", 5*time.Minute) // Super created user from the test above to test the accepting of friend request sent
+	userToken, _ = handlers.GenerateJWT(id1, "login", 5*time.Minute) // Super created user from the test above to test the accepting of friend request sent
 	req, _ := http.NewRequest(http.MethodPost, "/api/user/send-user-req", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+userToken)
 

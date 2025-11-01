@@ -1,194 +1,148 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
-	"strconv"
 
+	"findme/core"
 	"findme/model"
 	"findme/schema"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // TODO:
-// I Could use like a chat ID to reference a user and his chat ?
-// This would require a Model ?
-// It would make getting the chat history very fast though :)
+// Use the chat ID to find the friends instead of looping through user Friends
+// Add a way to get the chatID if it's not present from the payload
 
 // CreateMessage -> Add Message endpoint
-func (m *Service) CreateMessage(ctx *gin.Context) {
-	uid, tp := ctx.GetUint("userID"), ctx.GetString("purpose")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
-		return
-	}
-
-	var user model.User
-	if err := m.DB.Preload("Friends").Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+func (s *Service) CreateMessage(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var payload schema.NewMessage
 	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload."})
-		return
-	}
-
-	// This is not efficient i guess looping through all the user friends ?
-
-	var friend *model.User
-	for _, fr := range user.Friends {
-		if fr.UserName == payload.To {
-			friend = fr
-			break
-		}
-	}
-
-	if friend == nil {
-		ctx.JSON(http.StatusForbidden, gin.H{"message": "user is not your friend."})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse msg payload."})
 		return
 	}
 
 	msg := model.UserMessage{
-		FromID:  user.ID,
-		ToID:    friend.ID,
+		ChatID:  payload.ChatID,
 		Message: payload.Message,
+		FromID:  uid,
 	}
 
-	if err := m.DB.Create(&msg).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to send message."})
+	if err := s.DB.AddMessage(&msg); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"message": "message sent successfully."})
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": msg})
 }
 
 // ViewMessages -> View messages history from a friend endpoint
-func (m *Service) ViewMessages(ctx *gin.Context) {
-	uid, tp, username := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
+func (s *Service) ViewMessages(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
-	var user, friend model.User
-	if err := m.DB.Preload("RecMessage").Preload("Message").Where("id = ?", uid).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "User not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve user from db."})
-		}
+	var payload schema.GetChat
+	if err := ctx.BindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload"})
 		return
 	}
 
-	if err := m.DB.Where("username = ?", username).First(&friend).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Friend not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve friend from db."})
-		}
+	var chat model.Chat
+	chatID := payload.ID
+	if err := s.DB.GetChatHistory(chatID, &chat); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	var hist []schema.ViewMessage
-	for _, msg := range user.Message {
-		if msg.ToID == friend.ID {
-			hist = append(hist, schema.ViewMessage{
-				ID:      msg.ID,
-				Message: msg.Message,
-				Sent:    msg.CreatedAt,
-				Edited:  msg.UpdatedAt,
-			})
-		}
+	var hist schema.ViewChat
+	for _, msg := range chat.Messages {
+		hist.Message = append(hist.Message, schema.ViewMessage{
+			ID:      msg.ID,
+			UserID:  uid,
+			Sent:    msg.CreatedAt,
+			Edited:  msg.UpdatedAt,
+			Message: msg.Message,
+		})
 	}
 
-	for _, msg := range user.RecMessage {
-		if msg.FromID == friend.ID {
-			hist = append(hist, schema.ViewMessage{
-				ID:      msg.ID,
-				Message: msg.Message,
-				Sent:    msg.CreatedAt,
-				Edited:  msg.UpdatedAt,
-			})
-		}
-	}
-
-	ctx.JSON(http.StatusOK, hist)
+	ctx.JSON(http.StatusOK, gin.H{"msg": hist})
 }
 
 // EditMessage -> Edit a message endpoint
-func (m *Service) EditMessage(ctx *gin.Context) {
-	uid, tp, idStr := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
-		return
-	}
-
-	id, err := strconv.ParseUint(idStr, 10, 64)
-	if err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Invalid message id."})
-		return
-	}
-
-	var msg model.UserMessage
-	if err := m.DB.Where("id = ?", uint(id)).Where("from_id = ?", uid).First(&msg).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Message not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve message from db."})
-		}
+func (s *Service) EditMessage(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var payload schema.EditMessage
 	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Failed to parse payload."})
-		return
-	}
-
-	msg.Message = payload.Message
-
-	if err := m.DB.Save(&msg).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to edit message."})
-		return
-	}
-
-	ctx.JSON(http.StatusAccepted, gin.H{"message": "Message Edited successfully."})
-}
-
-// DeleteMessage -> Delete a message endpoint
-func (m *Service) DeleteMessage(ctx *gin.Context) {
-	uid, tp, idStr := ctx.GetUint("userID"), ctx.GetString("purpose"), ctx.Query("id")
-	if uid == 0 || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized user."})
-		return
-	}
-
-	id, err := strconv.ParseUint(idStr, 10, 64)
-	if err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"message": "Invalid message id."})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
 		return
 	}
 
 	var msg model.UserMessage
-	if err := m.DB.Where("id = ?", uint(id)).Where("from_id = ?", uid).First(&msg).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Message not found."})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to retrieve message from db."})
-		}
+	if err := s.DB.FetchMsg(&msg, payload.ID); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if err := m.DB.Delete(&msg).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete message."})
+	if msg.FromID != uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You cannot delete a message that's not owned by you."})
+		return
+	}
+
+	msg.Message = payload.Message
+	if err := s.DB.SaveMsg(&msg); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": msg})
+}
+
+// DeleteMessage -> Delete a message endpoint
+func (s *Service) DeleteMessage(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	var payload schema.DeleteMessage
+	if err := ctx.BindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
+		return
+	}
+
+	var msg model.UserMessage
+	if err := s.DB.FetchMsg(&msg, payload.ID); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if msg.FromID != uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You cannot delete a message that's not owned by you."})
+	}
+
+	if err := s.DB.DeleteMsg(&msg); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
