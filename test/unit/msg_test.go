@@ -10,42 +10,58 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var msgDefPayload = map[string]string{
-	"msg":  "Yo i need your help with the frontend or mobile dev.",
-	"user": superUserName1,
-}
+var (
+	msgDefPayload = map[string]string{
+		"msg":     "Yo i need your help with the frontend or mobile dev.",
+		"chat_id": cid,
+	}
+	msg *ViewMsg
+)
 
 func TestCreateMessage(t *testing.T) {
 	payload := msgDefPayload
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/user/send-message", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/msg/send-message", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "message sent successfully")
+	assert.Contains(t, w.Body.String(), payload["msg"])
+
+	_ = json.Unmarshal(w.Body.Bytes(), msg)
 }
 
-func TestCreateMessageNotFriends(t *testing.T) {
+func TestCreateMessageInvalidChatID(t *testing.T) {
 	payload := msgDefPayload
-	payload["user"] = defPayload["username"]
+	payload["chat_id"] = "nil"
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/user/send-message", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/msg/send-message", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
-	assert.Contains(t, w.Body.String(), "user is not your friend.")
+	assert.Contains(t, w.Body.String(), "Chat not found.")
 }
 
-func TestViewMessages(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-message?id="+superUserName1, nil)
+func TestViewHist(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-hist?id="+cid, nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), msgDefPayload["msg"])
+}
+
+func TestViewChats(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "api/msg/view-chats", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -57,22 +73,23 @@ func TestViewMessages(t *testing.T) {
 
 func TestEditMessage(t *testing.T) {
 	payload := map[string]string{
-		"msg": "Yo i really need your help i'm almost done with the project but i don't do mobile dev",
+		"msg":    "Yo i really need your help i'm almost done with the project but i don't do mobile dev",
+		"msg_id": msg.ID,
 	}
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPatch, "/api/user/edit-message?id=1", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/edit-message", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "Message Edited successfully.")
+	assert.Contains(t, w.Body.String(), payload["msg"])
 }
 
 func TestDeleteMessage(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-message?id=1", nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-message?id="+msg.ID, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()

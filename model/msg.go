@@ -19,7 +19,7 @@ type UserMessage struct {
 type Chat struct {
 	GormModel
 	Messages []*UserMessage `gorm:"foreignKey:ChatID"`
-	Users    []*User
+	Users    []*User        `gorm:"many2many:chat_users"`
 }
 
 type ChatUser struct {

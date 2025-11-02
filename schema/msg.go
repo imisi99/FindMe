@@ -5,7 +5,7 @@ import "time"
 
 type NewMessage struct {
 	Message string `json:"msg" binding:"required"`
-	ChatID  string `json:"chat_id" binding:"omitempty"`
+	ChatID  string `json:"chat_id" binding:"required"`
 }
 
 type EditMessage struct {
@@ -21,15 +21,7 @@ type ViewMessage struct {
 	Edited  time.Time
 }
 
-type GetChat struct {
-	ID string `json:"chat_id" binding:"omitempty"`
-}
-
-type DeleteMessage struct {
-	ID string `json:"msg_id" binding:"required"`
-}
-
 type ViewChat struct {
-	ID      string
+	CID     string
 	Message []ViewMessage
 }

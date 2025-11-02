@@ -7,8 +7,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"findme/schema"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,11 +19,12 @@ var (
 	reqPayload         = map[string]string{
 		"msg": "hey I'm interested in this projec",
 	}
-	post *schema.PostResponse
+	post    *PostResponse
+	postReq *PostApplicationResponse
 )
 
 func TestGetPost(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/post?id="+pid, nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/post/view?id="+pid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -48,7 +47,7 @@ func TestCreatePost(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
-	assert.Contains(t, w.Body.String(), "Post created successfully.")
+	assert.Contains(t, w.Body.String(), postPayload["description"])
 	_ = json.Unmarshal(w.Body.Bytes(), post)
 }
 
@@ -195,7 +194,9 @@ func TestApplyForPost(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, w.Code, http.StatusOK)
-	assert.Contains(t, w.Body.String(), "Application sent successfully.")
+	assert.Contains(t, w.Body.String(), reqPayload["msg"])
+
+	_ = json.Unmarshal(w.Body.Bytes(), postReq)
 }
 
 func TestViewPostApplicationsApplicant(t *testing.T) {
@@ -223,7 +224,7 @@ func TestViewPostApplicationsPostOwner(t *testing.T) {
 }
 
 func TestUpdatePostApplicationReject(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id=1&status=rejected", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+postReq.ReqID+"&status=rejected", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -234,7 +235,7 @@ func TestUpdatePostApplicationReject(t *testing.T) {
 }
 
 func TestUpdatePostApplicationInvalidStatus(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id=1&status=invalidstatus", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+postReq.ReqID+"&status=invalidstatus", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -245,7 +246,7 @@ func TestUpdatePostApplicationInvalidStatus(t *testing.T) {
 }
 
 func TestUpdatePostApplicationAccept(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id=1&status=accepted", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+postReq.ReqID+"&status=accepted", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -258,18 +259,18 @@ func TestUpdatePostApplicationAccept(t *testing.T) {
 func TestCreatePostApplicationToDelete(t *testing.T) {
 	body, _ := json.Marshal(defPayload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id=1", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id="+post.ID, bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Application sent successfully.")
+	_ = json.Unmarshal(w.Body.Bytes(), postReq)
 }
 
 func TestDeletePostApplication(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/post/delete-application?id=2", nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/post/delete-application?id="+postReq.ReqID, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
@@ -279,7 +280,7 @@ func TestDeletePostApplication(t *testing.T) {
 }
 
 func TestDeletePost(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/post/delete/2", nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/post/delete?id="+post.ID, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()

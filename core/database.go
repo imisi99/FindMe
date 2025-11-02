@@ -62,6 +62,7 @@ type DB interface {
 	FindExistingGitID(user *model.User, gitid int64) error
 	AddMessage(msg *model.UserMessage) error
 	GetChatHistory(chatID string, chat *model.Chat) error
+	FetchChat(chatID string, chat *model.Chat) error
 	FetchUserPreloadC(user *model.User, uid string) error
 	FetchMsg(msg *model.UserMessage, mid string) error
 	SaveMsg(msg *model.UserMessage) error
@@ -589,6 +590,17 @@ func (db *GormDB) GetChatHistory(chatID string, chat *model.Chat) error {
 			return &CustomMessage{http.StatusNotFound, "Chat not found."}
 		} else {
 			return &CustomMessage{http.StatusInternalServerError, "Failed to get chat history."}
+		}
+	}
+	return nil
+}
+
+func (db *GormDB) FetchChat(chatID string, chat *model.Chat) error {
+	if err := db.DB.Where("id = ?", chatID).First(chat).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &CustomMessage{http.StatusNotFound, "Chat not found."}
+		} else {
+			return &CustomMessage{http.StatusInternalServerError, "Failed to get chat."}
 		}
 	}
 	return nil

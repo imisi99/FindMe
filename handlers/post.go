@@ -180,7 +180,7 @@ func (s *Service) CreatePost(ctx *gin.Context) {
 		Views:       post.Views,
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"msg": "Post created successfully.", "post": result})
+	ctx.JSON(http.StatusCreated, gin.H{"post": result})
 }
 
 // EditPost -> Endpoint for editing post
@@ -238,7 +238,7 @@ func (s *Service) EditPost(ctx *gin.Context) {
 		Views:       post.Views,
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Post updated successfully.", "post": result})
+	ctx.JSON(http.StatusAccepted, gin.H{"post": result})
 }
 
 // EditPostView -> Ednpoint for updating a post view
@@ -377,7 +377,21 @@ func (s *Service) SavePost(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Post saved successfully"})
+	var tags []string
+	for _, tag := range post.Tags {
+		tags = append(tags, tag.Name)
+	}
+
+	postRes := schema.PostResponse{
+		ID:          post.ID,
+		Description: post.Description,
+		Available:   post.Availability,
+		Tags:        tags,
+		CreatedAt:   post.CreatedAt,
+		UpdatedAt:   post.UpdatedAt,
+		Views:       post.Views,
+	}
+	ctx.JSON(http.StatusAccepted, gin.H{"post": postRes})
 }
 
 // ViewSavedPost -> Endpoint for viewing saved post
@@ -508,9 +522,15 @@ func (s *Service) ApplyForPost(ctx *gin.Context) {
 		return
 	}
 
+	application := schema.ViewPostApplication{
+		ReqID:    req.ID,
+		Status:   req.Status,
+		Message:  req.Message,
+		Username: post.User.UserName,
+	}
 	_ = s.Email.SendPostApplicationEmail(post.User.Email, user.UserName, post.User.UserName, post.Description, "nil")
 
-	ctx.JSON(http.StatusOK, gin.H{"msg": "Application sent successfully."})
+	ctx.JSON(http.StatusOK, gin.H{"post_req": application})
 }
 
 // ViewPostApplications -> Endpoint for Viewing post applications

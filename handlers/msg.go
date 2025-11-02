@@ -28,6 +28,13 @@ func (s *Service) CreateMessage(ctx *gin.Context) {
 		return
 	}
 
+	var chat model.Chat
+	if err := s.DB.FetchChat(payload.ChatID, &chat); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
 	msg := model.UserMessage{
 		ChatID:  payload.ChatID,
 		Message: payload.Message,
@@ -40,10 +47,18 @@ func (s *Service) CreateMessage(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"msg": msg})
+	mesRes := schema.ViewMessage{
+		ID:      msg.ID,
+		Message: msg.Message,
+		UserID:  uid,
+		Sent:    msg.CreatedAt,
+		Edited:  msg.UpdatedAt,
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": mesRes})
 }
 
-// ViewMessages -> View messages history from a friend endpoint
+// ViewMessages -> View chat history
 func (s *Service) ViewMessages(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
@@ -51,15 +66,14 @@ func (s *Service) ViewMessages(ctx *gin.Context) {
 		return
 	}
 
-	var payload schema.GetChat
-	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload"})
+	cid := ctx.Query("id")
+	if cid == "" {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Invalid chat id."})
 		return
 	}
 
 	var chat model.Chat
-	chatID := payload.ID
-	if err := s.DB.GetChatHistory(chatID, &chat); err != nil {
+	if err := s.DB.GetChatHistory(cid, &chat); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -77,6 +91,45 @@ func (s *Service) ViewMessages(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"msg": hist})
+}
+
+// FetchUserChats -> Fetch all user chats.
+func (s *Service) FetchUserChats(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	var user model.User
+	if err := s.DB.FetchUserPreloadC(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	var chats []schema.ViewChat
+	for _, chat := range user.Chats {
+		var lastChat *model.UserMessage
+		if len(chat.Messages) > 0 {
+			lastChat = chat.Messages[len(chat.Messages)-1]
+		}
+
+		chats = append(chats, schema.ViewChat{
+			CID: chat.ID,
+			Message: []schema.ViewMessage{
+				{
+					ID:      lastChat.ID,
+					Message: lastChat.Message,
+					UserID:  lastChat.FromID,
+					Sent:    lastChat.CreatedAt,
+					Edited:  lastChat.UpdatedAt,
+				},
+			},
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"msg": chats})
 }
 
 // EditMessage -> Edit a message endpoint
@@ -112,7 +165,15 @@ func (s *Service) EditMessage(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"msg": msg})
+	msgRes := schema.ViewMessage{
+		ID:      msg.ID,
+		Message: msg.Message,
+		UserID:  msg.FromID,
+		Sent:    msg.CreatedAt,
+		Edited:  msg.UpdatedAt,
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": msgRes})
 }
 
 // DeleteMessage -> Delete a message endpoint
@@ -123,14 +184,14 @@ func (s *Service) DeleteMessage(ctx *gin.Context) {
 		return
 	}
 
-	var payload schema.DeleteMessage
-	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
+	mid := ctx.Query("id")
+	if mid == "" {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Invalid message id."})
 		return
 	}
 
 	var msg model.UserMessage
-	if err := s.DB.FetchMsg(&msg, payload.ID); err != nil {
+	if err := s.DB.FetchMsg(&msg, mid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return

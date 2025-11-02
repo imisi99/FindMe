@@ -21,6 +21,7 @@ var (
 	id1 = ""
 	id2 = ""
 	pid = ""
+	cid = ""
 )
 
 var router *gin.Engine
@@ -100,13 +101,19 @@ func superUser(db *gorm.DB) {
 		Availability: true,
 	}
 
+	chat := model.Chat{}
+
+	db.Create(&post)
+	db.Create(&chat)
+	db.Model(&super).Association("Friends").Append(&super1)
+	db.Model(&super1).Association("Friends").Append(&super)
+	db.Model(&super).Association("Chats").Append(&chat)
+	db.Model(&super1).Association("Chats").Append(&chat)
+
 	id1 = super.ID
 	id2 = super1.ID
 	pid = post.ID
-
-	db.Create(&post)
-	db.Model(&super).Association("Friends").Append(&super1)
-	db.Model(&super1).Association("Friends").Append(&super)
+	cid = chat.ID
 }
 
 func TestMain(m *testing.M) {
