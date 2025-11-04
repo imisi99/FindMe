@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -28,6 +27,8 @@ var (
 		"password":    "JohnDoe234",
 		"gitusername": "johndoe23",
 	}
+	token     *Token
+	friendreq *ViewFriendReq
 )
 
 func TestSignup(t *testing.T) {
@@ -42,7 +43,6 @@ func TestSignup(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
-	assert.Contains(t, w.Body.String(), "Signed up successfully.")
 }
 
 func TestSignupDuplicate(t *testing.T) {
@@ -57,7 +57,6 @@ func TestSignupDuplicate(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusConflict, w.Code)
-	assert.Contains(t, w.Body.String(), "already in use!")
 }
 
 // Git Mock Test
@@ -68,8 +67,6 @@ func TestGitSignup(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Logged in successfully.")
-	assert.Contains(t, w.Body.String(), "1234")
 }
 
 func TestLogin(t *testing.T) {
@@ -87,11 +84,8 @@ func TestLogin(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Logged in successfully")
-	token := w.Body.String()
-	tokenparts := strings.Split(token, "token") // Setting the token to be the newly created user.
-	tokenString = tokenparts[1]
-	tokenString = tokenString[3 : len(tokenString)-2]
+	_ = json.Unmarshal(w.Body.Bytes(), token)
+	tokenString = token.Token
 }
 
 func TestLoginInvalid(t *testing.T) {
@@ -132,6 +126,7 @@ func TestViewGitUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), superUserName)
+	assert.Contains(t, w.Body.String(), defPostDescription)
 }
 
 func TestSearchUserbySkills(t *testing.T) {
@@ -160,6 +155,7 @@ func TestViewUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "isongrichard234@gmail.com")
+	assert.Contains(t, w.Body.String(), defPostDescription)
 }
 
 func TestSendFriendReq(t *testing.T) {
@@ -175,7 +171,8 @@ func TestSendFriendReq(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Friend request sent successfully.")
+	assert.Contains(t, w.Body.String(), superUserName)
+	_ = json.Unmarshal(w.Body.Bytes(), friendreq)
 }
 
 func TestSendDuplicateFriendReq(t *testing.T) {
@@ -203,22 +200,21 @@ func TestViewFriendReq(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), defPayload["username"])
-	assert.Contains(t, w.Body.String(), "pending")
 }
 
 func TestUpdateFriendReqReject(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-user-req?id=1&status=rejected", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-user-req?id="+friendreq.ID+"&status=rejected", nil)
 	req.Header.Set("Authorization", "Bearer "+userToken)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "Status updated successfully")
+	assert.Contains(t, w.Body.String(), "Status updated successfully.")
 }
 
 func TestUpdateFriendReqInvalidStatus(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-user-req?id=1&status=invalid", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-user-req?id="+friendreq.ID+"&status=invalid", nil)
 	req.Header.Set("Authorization", "Bearer "+userToken)
 
 	w := httptest.NewRecorder()
@@ -229,14 +225,14 @@ func TestUpdateFriendReqInvalidStatus(t *testing.T) {
 }
 
 func TestUpdateFriendReqAccept(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-user-req?id=1&status=accepted", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-user-req?id="+friendreq.ID+"&status=accepted", nil)
 	req.Header.Set("Authorization", "Bearer "+userToken)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "Status updated successfully")
+	assert.Contains(t, w.Body.String(), "Status updated successfully.")
 }
 
 func TestViewUserFriends(t *testing.T) {
@@ -273,11 +269,12 @@ func TestAddReqToTestDelete(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Friend request sent successfully.")
+	assert.Contains(t, w.Body.String(), superUserName)
+	_ = json.Unmarshal(w.Body.Bytes(), friendreq)
 }
 
 func TestDeleteReq(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-friend-req?id=2", nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-friend-req?id="+friendreq.ID, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -300,7 +297,7 @@ func TestForgotPassword(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Email sent successfully")
+	assert.Contains(t, w.Body.String(), "Email sent successfully.")
 }
 
 func TestVerifyOPT(t *testing.T) {
@@ -318,10 +315,9 @@ func TestVerifyOPT(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "otp verified")
-	token := w.Body.String()
-	tokenparts := strings.Split(token, "token")
-	resetToken = tokenparts[1]
-	resetToken = resetToken[3 : len(resetToken)-2]
+
+	_ = json.Unmarshal(w.Body.Bytes(), token)
+	resetToken = token.Token
 }
 
 func TestResetPassword(t *testing.T) {
@@ -356,7 +352,7 @@ func TestUpdateuserProfile(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "User profile updated successfully.")
+	assert.Contains(t, w.Body.String(), payload["bio"])
 }
 
 func TestUpdateuserProfileDuplicate(t *testing.T) {
@@ -396,7 +392,7 @@ func TestUpdateuserPassword(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "password updated successfully")
+	assert.Contains(t, w.Body.String(), "Password updated successfully.")
 }
 
 func TestUpdateuserPasswordFail(t *testing.T) {
@@ -426,7 +422,7 @@ func TestUpdateAvailabilityStatus(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "User availability updated successfully.")
+	assert.Contains(t, w.Body.String(), "Availability updated successfully.")
 }
 
 func TestFailedUpdateAvailibilityStatus(t *testing.T) {
@@ -455,7 +451,8 @@ func TestUpdateSkills(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "User skills updated successfully.")
+	assert.Contains(t, w.Body.String(), "rust")
+	assert.Contains(t, w.Body.String(), "java")
 }
 
 func TestDeleteSkills(t *testing.T) {

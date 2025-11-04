@@ -71,7 +71,7 @@ func (s *Service) AddUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"msg": "Signed up successfully.", "token": jwtToken})
+	ctx.JSON(http.StatusCreated, gin.H{"token": jwtToken})
 }
 
 // VerifyUser -> Log in endpoint for user
@@ -96,7 +96,7 @@ func (s *Service) VerifyUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"msg": "Logged in successfully.", "token": jwtToken})
+	ctx.JSON(http.StatusOK, gin.H{"token": jwtToken})
 }
 
 // GetUserInfo ->  user info enpoint
@@ -268,7 +268,7 @@ func (s *Service) ViewUserbySkills(ctx *gin.Context) {
 		})
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"profiles": profiles})
+	ctx.JSON(http.StatusOK, gin.H{"users": profiles})
 }
 
 // SendFriendReq -> friend request endpoint
@@ -342,7 +342,14 @@ func (s *Service) SendFriendReq(ctx *gin.Context) {
 
 	_ = s.Email.SendFriendReqEmail(friend.Email, user.UserName, friend.UserName, req.Message, "")
 
-	ctx.JSON(http.StatusOK, gin.H{"msg": "Friend request sent successfully."})
+	friendReq := schema.FriendReqStatus{
+		ID:       req.ID,
+		Username: friend.UserName,
+		Message:  req.Message,
+		Status:   req.Status,
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"req": friendReq})
 }
 
 // ViewFriendReq -> friend requests endpoint
@@ -474,6 +481,32 @@ func (s *Service) DeleteSentReq(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
+// ViewUserFriends -> view all user friend endpoint
+func (s *Service) ViewUserFriends(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	var user model.User
+	if err := s.DB.FetchUserPreloadF(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	var friends []schema.ViewFriends
+	for _, fr := range user.Friends {
+		friends = append(friends, schema.ViewFriends{
+			Username: fr.UserName,
+			Bio:      fr.Bio,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"friends": friends})
+}
+
 // DeleteUserFriend -> Remove friend endpoint
 func (s *Service) DeleteUserFriend(ctx *gin.Context) {
 	uid, tp, username := ctx.GetString("userID"), ctx.GetString("purpose"), ctx.Query("id")
@@ -508,32 +541,6 @@ func (s *Service) DeleteUserFriend(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusNoContent, nil)
-}
-
-// ViewUserFriends -> view all user friend endpoint
-func (s *Service) ViewUserFriends(ctx *gin.Context) {
-	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
-		return
-	}
-
-	var user model.User
-	if err := s.DB.FetchUserPreloadF(&user, uid); err != nil {
-		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
-		return
-	}
-
-	var friends []schema.ViewFriends
-	for _, fr := range user.Friends {
-		friends = append(friends, schema.ViewFriends{
-			Username: fr.UserName,
-			Bio:      fr.Bio,
-		})
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"friends": friends})
 }
 
 // ForgotPassword -> send otp for password reset endpoint
@@ -588,7 +595,7 @@ func (s *Service) VerifyOTP(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"msg": "otp verified", "token": jwt})
+	ctx.JSON(http.StatusOK, gin.H{"token": jwt})
 }
 
 // ResetPassword -> Actual reset password endpoint
@@ -677,7 +684,7 @@ func (s *Service) UpdateUserInfo(ctx *gin.Context) {
 		Availability: user.Availability,
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"msg": "User profile updated successfully.", "user": profile})
+	ctx.JSON(http.StatusAccepted, gin.H{"user": profile})
 }
 
 // UpdateUserPassword -> user password endpoint
@@ -719,7 +726,7 @@ func (s *Service) UpdateUserPassword(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"msg": "User password updated successfully."})
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Password updated successfully."})
 }
 
 // UpdateUserAvaibilityStatus -> user avaibility status endpoint
@@ -751,7 +758,7 @@ func (s *Service) UpdateUserAvaibilityStatus(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"msg": "User availability updated successfully."})
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Availability updated successfully."})
 }
 
 // UpdateUserSkills -> user skills endpoint
@@ -791,7 +798,7 @@ func (s *Service) UpdateUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"msg": "User skills updated successfully.", "user": payload.Skills})
+	ctx.JSON(http.StatusAccepted, gin.H{"user": payload.Skills})
 }
 
 // DeleteUserSkills -> user skills endpoint

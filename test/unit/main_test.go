@@ -2,6 +2,7 @@
 package unit
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -46,9 +47,10 @@ func getTestDB() *core.GormDB {
 	db.SetupJoinTable(&model.Post{}, "Tags", &model.PostSkill{})
 	db.SetupJoinTable(&model.User{}, "Skills", &model.UserSkill{})
 	db.SetupJoinTable(&model.User{}, "Friends", &model.UserFriend{})
-	superUser(db)
+	db.SetupJoinTable(&model.User{}, "Chats", &model.ChatUser{})
 
 	gdb := core.NewGormDB(db)
+	superUser(gdb)
 	return gdb
 }
 
@@ -59,14 +61,20 @@ func getTestRouter(service *handlers.Service) *gin.Engine {
 	return router
 }
 
-func superUser(db *gorm.DB) {
+func viewUsers(db *core.GormDB) {
+	var users []model.User
+	db.DB.Find(&users)
+	log.Println("First User in db ->", users[0].ID)
+}
+
+func superUser(db *core.GormDB) {
 	gitusername := "imisi99"
 
 	be := model.Skill{Name: "backend"}
 	ml := model.Skill{Name: "ml"}
 
 	skill := []*model.Skill{&ml, &be}
-	db.Create(skill)
+	db.DB.Create(skill)
 
 	hashpass, _ := core.HashPassword("Password")
 	super := model.User{
@@ -92,7 +100,9 @@ func superUser(db *gorm.DB) {
 	}
 
 	users := []*model.User{&super, &super1}
-	db.Create(users)
+	db.DB.Create(users)
+	log.Println("Super user ID ->", super.ID)
+	viewUsers(db)
 	post := model.Post{
 		Description:  "Working on a platform for finding developers for contributive project",
 		UserID:       super.ID,
@@ -103,12 +113,17 @@ func superUser(db *gorm.DB) {
 
 	chat := model.Chat{}
 
-	db.Create(&post)
-	db.Create(&chat)
-	db.Model(&super).Association("Friends").Append(&super1)
-	db.Model(&super1).Association("Friends").Append(&super)
-	db.Model(&super).Association("Chats").Append(&chat)
-	db.Model(&super1).Association("Chats").Append(&chat)
+	db.DB.Create(&post)
+	log.Println("Super user ID ->", super.ID)
+	viewUsers(db)
+	db.DB.Create(&chat)
+	db.DB.Model(&model.User{GormModel: model.GormModel{ID: super.ID}}).Association("Friends").Append(&model.User{GormModel: model.GormModel{ID: super1.ID}})
+	db.DB.Model(&model.User{GormModel: model.GormModel{ID: super1.ID}}).Association("Friends").Append(&model.User{GormModel: model.GormModel{ID: super.ID}})
+	db.DB.Model(&model.User{GormModel: model.GormModel{ID: super.ID}}).Association("Chats").Append(&chat)
+	db.DB.Model(&model.User{GormModel: model.GormModel{ID: super1.ID}}).Association("Chats").Append(&chat)
+
+	log.Println("Super user ID ->", super.ID)
+	viewUsers(db)
 
 	id1 = super.ID
 	id2 = super1.ID
@@ -122,13 +137,13 @@ func TestMain(m *testing.M) {
 	email := NewEmailMock()
 	git := NewGitMock()
 	service := handlers.NewService(db, rdb, email, git, &http.Client{})
+
 	var skills []model.Skill
 	service.DB.FetchAllSkills(&skills)
 	service.RDB.CacheSkills(skills)
 	router = getTestRouter(service)
 	tokenString, _ = handlers.GenerateJWT(id1, "login", handlers.JWTExpiry)  // Initially the logged in user is the super user me for the post test
 	tokenString1, _ = handlers.GenerateJWT(id2, "login", handlers.JWTExpiry) // User for saving post
-
 	code := m.Run()
 
 	os.Exit(code)

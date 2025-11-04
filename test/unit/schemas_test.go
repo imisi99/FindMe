@@ -18,3 +18,16 @@ type ViewMsg struct {
 type ViewChats struct {
 	schema.ViewChat `json:"msg"`
 }
+
+type Token struct {
+	Token string `json:"token"`
+}
+
+type ViewFriendReq struct {
+	schema.FriendReqStatus `json:"req"`
+}
+
+type ViewAllFriendReq struct {
+	SentReq []schema.FriendReqStatus `json:"sent_req"`
+	RecReq  []schema.FriendReqStatus `json:"rec_req"`
+}

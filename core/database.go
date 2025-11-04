@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	"findme/model"
@@ -608,6 +609,7 @@ func (db *GormDB) FetchChat(chatID string, chat *model.Chat) error {
 
 func (db *GormDB) FetchUserPreloadC(user *model.User, uid string) error {
 	if err := db.DB.Preload("Chats").Where("id = ?", uid).First(user).Error; err != nil {
+		log.Println(err)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{http.StatusNotFound, "User not found."}
 		} else {

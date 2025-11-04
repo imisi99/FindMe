@@ -13,13 +13,14 @@ import (
 var (
 	msgDefPayload = map[string]string{
 		"msg":     "Yo i need your help with the frontend or mobile dev.",
-		"chat_id": cid,
+		"chat_id": "",
 	}
 	msg *ViewMsg
 )
 
 func TestCreateMessage(t *testing.T) {
 	payload := msgDefPayload
+	payload["chat_id"] = cid
 	body, _ := json.Marshal(payload)
 
 	req, _ := http.NewRequest(http.MethodPost, "/api/msg/send-message", bytes.NewBuffer(body))
@@ -45,12 +46,12 @@ func TestCreateMessageInvalidChatID(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Contains(t, w.Body.String(), "Chat not found.")
 }
 
 func TestViewHist(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-hist?id="+cid, nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/msg/view-hist?id="+cid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -61,7 +62,7 @@ func TestViewHist(t *testing.T) {
 }
 
 func TestViewChats(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "api/msg/view-chats", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/msg/view-chats", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -69,6 +70,7 @@ func TestViewChats(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), msgDefPayload["msg"])
+	assert.Contains(t, w.Body.String(), cid)
 }
 
 func TestEditMessage(t *testing.T) {

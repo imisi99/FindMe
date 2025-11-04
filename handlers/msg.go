@@ -113,20 +113,25 @@ func (s *Service) FetchUserChats(ctx *gin.Context) {
 		var lastChat *model.UserMessage
 		if len(chat.Messages) > 0 {
 			lastChat = chat.Messages[len(chat.Messages)-1]
+
+			chats = append(chats, schema.ViewChat{
+				CID: chat.ID,
+				Message: []schema.ViewMessage{
+					{
+						ID:      lastChat.ID,
+						Message: lastChat.Message,
+						UserID:  lastChat.FromID,
+						Sent:    lastChat.CreatedAt,
+						Edited:  lastChat.UpdatedAt,
+					},
+				},
+			})
+		} else {
+			chats = append(chats, schema.ViewChat{
+				CID: chat.ID,
+			})
 		}
 
-		chats = append(chats, schema.ViewChat{
-			CID: chat.ID,
-			Message: []schema.ViewMessage{
-				{
-					ID:      lastChat.ID,
-					Message: lastChat.Message,
-					UserID:  lastChat.FromID,
-					Sent:    lastChat.CreatedAt,
-					Edited:  lastChat.UpdatedAt,
-				},
-			},
-		})
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"msg": chats})
