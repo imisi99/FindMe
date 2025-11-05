@@ -70,12 +70,17 @@ const (
 )
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
-	u.ID = uuid.NewString()
+	if u.ID == "" {
+		u.ID = uuid.NewString()
+	}
 	return err
 }
 
 func (f *FriendReq) BeforeCreate(tx *gorm.DB) (err error) {
-	f.ID = uuid.NewString()
+	if f.ID == "" {
+		f.ID = uuid.NewString()
+	}
+
 	return err
 }
 

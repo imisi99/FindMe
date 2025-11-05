@@ -14,6 +14,9 @@ type Skill struct {
 
 func (s *Skill) BeforeCreate(tx *gorm.DB) (err error) {
 	s.Name = strings.ToLower(s.Name)
-	s.ID = uuid.NewString()
+	if s.ID == "" {
+		s.ID = uuid.NewString()
+	}
+
 	return err
 }

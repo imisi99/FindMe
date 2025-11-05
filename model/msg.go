@@ -31,11 +31,15 @@ type ChatUser struct {
 }
 
 func (c *Chat) BeforeCreate(tx *gorm.DB) (err error) {
-	c.ID = uuid.NewString()
+	if c.ID == "" {
+		c.ID = uuid.NewString()
+	}
 	return err
 }
 
 func (u *UserMessage) BeforeCreate(tx *gorm.DB) (err error) {
-	u.ID = uuid.NewString()
+	if u.ID == "" {
+		u.ID = uuid.NewString()
+	}
 	return err
 }

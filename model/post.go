@@ -40,11 +40,15 @@ type PostSkill struct {
 }
 
 func (p *Post) BeforeCreate(tx *gorm.DB) (err error) {
-	p.ID = uuid.NewString()
+	if p.ID == "" {
+		p.ID = uuid.NewString()
+	}
 	return err
 }
 
 func (p *PostReq) BeforeCreate(tx *gorm.DB) (err error) {
-	p.ID = uuid.NewString()
-	return err
+	if p.ID == "" {
+		p.ID = uuid.NewString()
+	}
+	return nil
 }

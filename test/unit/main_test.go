@@ -61,10 +61,13 @@ func getTestRouter(service *handlers.Service) *gin.Engine {
 	return router
 }
 
-func viewUsers(db *core.GormDB) {
-	var users []model.User
-	db.DB.Find(&users)
-	log.Println("First User in db ->", users[0].ID)
+func viewChats(db *core.GormDB) {
+	var chats []model.Chat
+	var chatUse []model.ChatUser
+	db.DB.Find(&chats)
+	db.DB.Find(&chatUse)
+	log.Println("Chat DB -> ", chats)
+	log.Println("ChatUser DB -> ", chatUse)
 }
 
 func superUser(db *core.GormDB) {
@@ -101,8 +104,7 @@ func superUser(db *core.GormDB) {
 
 	users := []*model.User{&super, &super1}
 	db.DB.Create(users)
-	log.Println("Super user ID ->", super.ID)
-	viewUsers(db)
+
 	post := model.Post{
 		Description:  "Working on a platform for finding developers for contributive project",
 		UserID:       super.ID,
@@ -114,21 +116,24 @@ func superUser(db *core.GormDB) {
 	chat := model.Chat{}
 
 	db.DB.Create(&post)
-	log.Println("Super user ID ->", super.ID)
-	viewUsers(db)
-	db.DB.Create(&chat)
-	db.DB.Model(&model.User{GormModel: model.GormModel{ID: super.ID}}).Association("Friends").Append(&model.User{GormModel: model.GormModel{ID: super1.ID}})
-	db.DB.Model(&model.User{GormModel: model.GormModel{ID: super1.ID}}).Association("Friends").Append(&model.User{GormModel: model.GormModel{ID: super.ID}})
-	db.DB.Model(&model.User{GormModel: model.GormModel{ID: super.ID}}).Association("Chats").Append(&chat)
-	db.DB.Model(&model.User{GormModel: model.GormModel{ID: super1.ID}}).Association("Chats").Append(&chat)
 
-	log.Println("Super user ID ->", super.ID)
-	viewUsers(db)
+	db.DB.Create(&chat)
+
+	log.Println("Chat ID -> ", chat.ID)
+	viewChats(db)
+
+	db.DB.Model(&super).Association("Friends").Append(&super1)
+	db.DB.Model(&super1).Association("Friends").Append(&super)
+	db.DB.Model(&super).Association("Chats").Append(&chat)
+	db.DB.Model(&super1).Association("Chats").Append(&chat) // &chat
 
 	id1 = super.ID
 	id2 = super1.ID
 	pid = post.ID
 	cid = chat.ID
+
+	log.Println("Chat ID -> ", chat.ID)
+	viewChats(db)
 }
 
 func TestMain(m *testing.M) {
