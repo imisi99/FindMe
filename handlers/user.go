@@ -13,6 +13,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO:
+// Find a more efficient way to find existing friend req, and exising friend and also delete one
+// Add a Delete chat endpoint that will remove the chat from the one user end
+// Check that only sent friend req can be deleted but rec friend req can be ignored
+// Should ignored be deleted automatically also ?
+// Don't include the user in the search user with tags endpoint
+// Return user IDs across all places
+
 // AddUser -> Sign up endpoint for user
 func (s *Service) AddUser(ctx *gin.Context) {
 	var payload schema.SignupRequest
@@ -136,12 +144,17 @@ func (s *Service) GetUserInfo(ctx *gin.Context) {
 
 // ViewUser -> search for user with username endpoint
 func (s *Service) ViewUser(ctx *gin.Context) {
-	uid, tp, username := ctx.GetString("userID"), ctx.GetString("purpose"), ctx.Query("id")
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
+	username := ctx.Query("id")
+	if username == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Username not in query."})
+		return
+	}
 	var user model.User
 	if err := s.DB.SearchUserPreloadSP(&user, username); err != nil {
 		cm := err.(*core.CustomMessage)
@@ -154,6 +167,7 @@ func (s *Service) ViewUser(ctx *gin.Context) {
 		skills = append(skills, skill.Name)
 	}
 	userprofile := schema.UserProfileResponse{
+		ID:           user.ID,
 		UserName:     user.UserName,
 		FullName:     user.FullName,
 		GitUserName:  user.GitUserName,
@@ -184,9 +198,15 @@ func (s *Service) ViewUser(ctx *gin.Context) {
 
 // ViewGitUser -> Search for user with github username endpoint
 func (s *Service) ViewGitUser(ctx *gin.Context) {
-	uid, tp, username := ctx.GetString("userID"), ctx.GetString("purpose"), ctx.Query("id")
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	username := ctx.Query("id")
+	if username == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Git username not in query."})
 		return
 	}
 
@@ -203,6 +223,7 @@ func (s *Service) ViewGitUser(ctx *gin.Context) {
 	}
 
 	profile := schema.UserProfileResponse{
+		ID:           user.ID,
 		UserName:     user.UserName,
 		FullName:     user.FullName,
 		GitUserName:  user.GitUserName,
@@ -241,7 +262,7 @@ func (s *Service) ViewUserbySkills(ctx *gin.Context) {
 
 	var payload schema.SearchUserbySkills
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload"})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
 		return
 	}
 
@@ -281,7 +302,7 @@ func (s *Service) SendFriendReq(ctx *gin.Context) {
 
 	var payload schema.SendFriendReq
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload.."})
 		return
 	}
 
@@ -292,7 +313,7 @@ func (s *Service) SendFriendReq(ctx *gin.Context) {
 		return
 	}
 
-	if err := s.DB.SearchUser(&friend, payload.UserName); err != nil {
+	if err := s.DB.FetchUser(&friend, payload.ID); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -309,7 +330,7 @@ func (s *Service) SendFriendReq(ctx *gin.Context) {
 	for i < len(user.RecFriendReq) || j < len(user.FriendReq) {
 		if i < len(user.RecFriendReq) {
 			if user.RecFriendReq[i].UserID == friend.ID {
-				ctx.JSON(http.StatusConflict, gin.H{"msg": "User has already sent you a friend reqest."})
+				ctx.JSON(http.StatusConflict, gin.H{"msg": "User has already sent you a friend request."})
 				return
 			}
 			i++
@@ -509,32 +530,31 @@ func (s *Service) ViewUserFriends(ctx *gin.Context) {
 
 // DeleteUserFriend -> Remove friend endpoint
 func (s *Service) DeleteUserFriend(ctx *gin.Context) {
-	uid, tp, username := ctx.GetString("userID"), ctx.GetString("purpose"), ctx.Query("id")
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
-	var user model.User
+	id := ctx.Query("id")
+	if id == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Friend ID not in query"})
+		return
+	}
+	var user, friend model.User
 	if err := s.DB.FetchUserPreloadF(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	var friend *model.User
-	for _, fr := range user.Friends {
-		if username == fr.UserName {
-			friend = fr
-			break
-		}
-	}
-	if friend == nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "User is not your friend."})
+	if err := s.DB.FetchUser(&friend, id); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if err := s.DB.DeleteFriend(&user, friend); err != nil {
+	if err := s.DB.DeleteFriend(&user, &friend); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -566,7 +586,7 @@ func (s *Service) ForgotPassword(ctx *gin.Context) {
 	}
 
 	if err := s.Email.SendForgotPassEmail(user.Email, user.UserName, token); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to send email"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to send email."})
 		return
 	}
 
@@ -577,8 +597,8 @@ func (s *Service) ForgotPassword(ctx *gin.Context) {
 func (s *Service) VerifyOTP(ctx *gin.Context) {
 	var payload schema.VerifyOTP
 
-	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload"})
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
 		return
 	}
 
@@ -591,7 +611,7 @@ func (s *Service) VerifyOTP(ctx *gin.Context) {
 
 	jwt, err := GenerateJWT(uid, "reset", JWTRExpiry)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to create jwt token"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to create jwt token."})
 		return
 	}
 
@@ -602,13 +622,13 @@ func (s *Service) VerifyOTP(ctx *gin.Context) {
 func (s *Service) ResetPassword(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "reset" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	var payload schema.ResetPassword
-	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload"})
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
 		return
 	}
 
@@ -621,7 +641,7 @@ func (s *Service) ResetPassword(ctx *gin.Context) {
 
 	hashed, err := core.HashPassword(payload.Password)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Unable to hash password"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Unable to hash password."})
 		return
 	}
 
@@ -696,8 +716,8 @@ func (s *Service) UpdateUserPassword(ctx *gin.Context) {
 	}
 
 	var payload schema.UpdatePassword
-	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
 		return
 	}
 
@@ -709,13 +729,13 @@ func (s *Service) UpdateUserPassword(ctx *gin.Context) {
 	}
 
 	if err := core.VerifyHashedPassword(payload.FormerPassword, user.Password); err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Invalid Password."})
 		return
 	}
 
 	hashed, err := core.HashPassword(payload.Password)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to generate hash for user password"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to generate hash for user password."})
 		return
 	}
 	user.Password = hashed
@@ -798,7 +818,7 @@ func (s *Service) UpdateUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"user": payload.Skills})
+	ctx.JSON(http.StatusAccepted, gin.H{"skills": payload.Skills})
 }
 
 // DeleteUserSkills -> user skills endpoint

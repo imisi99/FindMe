@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"log"
 
 	"gopkg.in/gomail.v2"
 )
@@ -24,6 +25,11 @@ type MyEmail struct {
 func NewEmail(server, addr, pass string, port int) *MyEmail {
 	return &MyEmail{Server: server, MailPort: port, Addr: addr, Password: pass}
 }
+
+// TODO:
+// The sending of email for a new post application is not working and the Subject is not descriptive
+// The sending of email for the accepting of post request is not working
+// Implement a sending of email for rejected post request
 
 // SendForgotPassEmail -> Sends an OTP for reseting Password
 func (e *MyEmail) SendForgotPassEmail(email, username, token string) error {
@@ -86,6 +92,7 @@ func (e *MyEmail) SendForgotPassEmail(email, username, token string) error {
 	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
 
 	if err := mail.DialAndSend(msg); err != nil {
+		log.Println("An error occured while trying to send a forgot password email -> ", err.Error())
 		return err
 	}
 	return nil
@@ -228,7 +235,7 @@ func (e *MyEmail) SendPostApplicationEmail(email, fromUsername, toUsername, mess
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "New Application")
+	msg.SetHeader("Subject", "New Post Application")
 	msg.SetHeader("text/html", htmlBody)
 
 	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)

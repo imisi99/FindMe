@@ -5,6 +5,8 @@ import "time"
 type NewPostRequest struct {
 	Description string   `json:"description" binding:"required"`
 	Tags        []string `json:"tags" binding:"required"`
+	Git         bool     `json:"git" binding:"required"`
+	GitLink     string   `json:"git_link" binding:"omitempty"`
 }
 
 type PostResponse struct {
@@ -19,7 +21,9 @@ type PostResponse struct {
 
 type DetailedPostResponse struct {
 	PostResponse
-	Username string
+	Username   string
+	GitProject bool
+	GitLink    string
 }
 
 type PostApplication struct {

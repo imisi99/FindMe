@@ -10,10 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO:
-// Use the chat ID to find the friends instead of looping through user Friends
-// Add a way to get the chatID if it's not present from the payload
-
 // CreateMessage -> Add Message endpoint
 func (s *Service) CreateMessage(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
@@ -23,8 +19,8 @@ func (s *Service) CreateMessage(ctx *gin.Context) {
 	}
 
 	var payload schema.NewMessage
-	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse msg payload."})
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
 		return
 	}
 
@@ -81,6 +77,7 @@ func (s *Service) ViewMessages(ctx *gin.Context) {
 
 	var hist schema.ViewChat
 	for _, msg := range chat.Messages {
+		hist.CID = cid
 		hist.Message = append(hist.Message, schema.ViewMessage{
 			ID:      msg.ID,
 			UserID:  uid,
@@ -111,11 +108,17 @@ func (s *Service) FetchUserChats(ctx *gin.Context) {
 	var chats []schema.ViewChat
 	for _, chat := range user.Chats {
 		var lastChat *model.UserMessage
+		var chatName string
+		if chat.Users[0].ID == uid {
+			chatName = chat.Users[1].UserName
+		} else {
+			chatName = chat.Users[0].UserName
+		}
 		if len(chat.Messages) > 0 {
 			lastChat = chat.Messages[len(chat.Messages)-1]
-
 			chats = append(chats, schema.ViewChat{
-				CID: chat.ID,
+				Name: chatName,
+				CID:  chat.ID,
 				Message: []schema.ViewMessage{
 					{
 						ID:      lastChat.ID,
@@ -128,7 +131,8 @@ func (s *Service) FetchUserChats(ctx *gin.Context) {
 			})
 		} else {
 			chats = append(chats, schema.ViewChat{
-				CID: chat.ID,
+				Name: chatName,
+				CID:  chat.ID,
 			})
 		}
 
@@ -146,8 +150,8 @@ func (s *Service) EditMessage(ctx *gin.Context) {
 	}
 
 	var payload schema.EditMessage
-	if err := ctx.BindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
 		return
 	}
 

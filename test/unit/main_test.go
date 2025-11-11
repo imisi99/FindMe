@@ -2,7 +2,6 @@
 package unit
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -61,15 +60,6 @@ func getTestRouter(service *handlers.Service) *gin.Engine {
 	return router
 }
 
-func viewChats(db *core.GormDB) {
-	var chats []model.Chat
-	var chatUse []model.ChatUser
-	db.DB.Find(&chats)
-	db.DB.Find(&chatUse)
-	log.Println("Chat DB -> ", chats)
-	log.Println("ChatUser DB -> ", chatUse)
-}
-
 func superUser(db *core.GormDB) {
 	gitusername := "imisi99"
 
@@ -119,21 +109,15 @@ func superUser(db *core.GormDB) {
 
 	db.DB.Create(&chat)
 
-	log.Println("Chat ID -> ", chat.ID)
-	viewChats(db)
-
 	db.DB.Model(&super).Association("Friends").Append(&super1)
 	db.DB.Model(&super1).Association("Friends").Append(&super)
 	db.DB.Model(&super).Association("Chats").Append(&chat)
-	db.DB.Model(&super1).Association("Chats").Append(&chat) // &chat
+	db.DB.Model(&super1).Association("Chats").Append(&chat)
 
 	id1 = super.ID
 	id2 = super1.ID
 	pid = post.ID
 	cid = chat.ID
-
-	log.Println("Chat ID -> ", chat.ID)
-	viewChats(db)
 }
 
 func TestMain(m *testing.M) {

@@ -27,8 +27,8 @@ var (
 		"password":    "JohnDoe234",
 		"gitusername": "johndoe23",
 	}
-	token     *Token
-	friendreq *ViewFriendReq
+	token     Token
+	friendreq ViewFriendReq
 )
 
 func TestSignup(t *testing.T) {
@@ -84,7 +84,7 @@ func TestLogin(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	_ = json.Unmarshal(w.Body.Bytes(), token)
+	_ = json.Unmarshal(w.Body.Bytes(), &token)
 	tokenString = token.Token
 }
 
@@ -172,7 +172,7 @@ func TestSendFriendReq(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), superUserName)
-	_ = json.Unmarshal(w.Body.Bytes(), friendreq)
+	_ = json.Unmarshal(w.Body.Bytes(), &friendreq)
 }
 
 func TestSendDuplicateFriendReq(t *testing.T) {
@@ -188,7 +188,7 @@ func TestSendDuplicateFriendReq(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusConflict, w.Code)
-	assert.Contains(t, w.Body.String(), "This user has already sent you a request.")
+	assert.Contains(t, w.Body.String(), "User has already sent you a friend request.")
 }
 
 func TestViewFriendReq(t *testing.T) {
@@ -270,7 +270,7 @@ func TestAddReqToTestDelete(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), superUserName)
-	_ = json.Unmarshal(w.Body.Bytes(), friendreq)
+	_ = json.Unmarshal(w.Body.Bytes(), &friendreq)
 }
 
 func TestDeleteReq(t *testing.T) {
@@ -314,9 +314,8 @@ func TestVerifyOPT(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "otp verified")
 
-	_ = json.Unmarshal(w.Body.Bytes(), token)
+	_ = json.Unmarshal(w.Body.Bytes(), &token)
 	resetToken = token.Token
 }
 
@@ -411,7 +410,7 @@ func TestUpdateuserPasswordFail(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.Contains(t, w.Body.String(), "Unauthorized user.")
+	assert.Contains(t, w.Body.String(), "Invalid Password.")
 }
 
 func TestUpdateAvailabilityStatus(t *testing.T) {

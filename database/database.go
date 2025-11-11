@@ -30,12 +30,14 @@ func Connect() *gorm.DB {
 		&model.User{},
 		&model.Skill{},
 		&model.Post{},
+		&model.PostReq{},
 		&model.PostSkill{},
 		&model.UserSkill{},
 		&model.UserFriend{},
 		&model.FriendReq{},
 		&model.UserMessage{},
 		&model.Chat{},
+		&model.ChatUser{},
 	)
 	if err != nil {
 		log.Fatalf("[ERROR] [DB] Failed to create tables -> %s", err.Error())
@@ -54,6 +56,11 @@ func Connect() *gorm.DB {
 	err = db.SetupJoinTable(&model.User{}, "Friends", &model.UserFriend{})
 	if err != nil {
 		log.Fatalf("[ERROR] [DB] Failed to create join table on user and friends -> %s", err.Error())
+	}
+
+	err = db.SetupJoinTable(&model.User{}, "Chats", &model.ChatUser{})
+	if err != nil {
+		log.Fatalf("[ERROR] [DB] Failed to create join table on user and chats -> %s", err.Error())
 	}
 
 	log.Println("[INFO] [DB] Connected to the database successfully.")

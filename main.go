@@ -31,7 +31,7 @@ func main() {
 	db := core.NewGormDB(dbClient)
 	rdb := core.NewRDB(rdbClient)
 	client := &http.Client{Timeout: 10 * time.Minute}
-	email := core.NewEmail("smtp.gmail.com", os.Getenv("EMAIL"), os.Getenv("EMAIL_PASSWORD"), 587)
+	email := core.NewEmail("smtp.gmail.com", os.Getenv("EMAIL"), os.Getenv("EMAIL_APP_PASSWORD"), 587)
 	git := handlers.NewGitService(os.Getenv("GIT_CLIENT_ID"), os.Getenv("GIT_CLIENT_SECRET"), os.Getenv("GIT_CALLBACK_URL"), db, client)
 	service := handlers.NewService(db, rdb, email, git, client)
 	var skills []model.Skill

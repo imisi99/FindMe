@@ -10,6 +10,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// TODO:
+// Also remove the chats between users when removing a friend
+
 type DB interface {
 	FetchAllSkills(skills *[]model.Skill) error
 	AddUser(user *model.User) error
@@ -23,7 +26,7 @@ type DB interface {
 	FetchUserPreloadS(user *model.User, uid string) error
 	FetchUserPreloadF(user *model.User, uid string) error
 	FetchUserPreloadFReq(user *model.User, uid string) error
-	SearchUser(user *model.User, username string) error
+	FetchUserPreloadPReq(user *model.User, uid string) error
 	SearchUserEmail(user *model.User, email string) error
 	SearchUserPreloadSP(user *model.User, username string) error
 	SearchUserGitPreloadSP(user *model.User, gitusername string) error
@@ -87,6 +90,7 @@ func (db *GormDB) FetchAllSkills(skills *[]model.Skill) error {
 
 func (db *GormDB) AddUser(user *model.User) error {
 	if err := db.DB.Create(user).Error; err != nil {
+		log.Println("Failed to create user err -> ", err.Error())
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to create new user."}
 	}
 	return nil
@@ -96,9 +100,9 @@ func (db *GormDB) CheckExistingUser(user *model.User, email, username string) er
 	err := db.DB.Where("username = ? OR email = ?", username, email).First(user).Error
 	if err == nil {
 		if user.Email == email {
-			return &CustomMessage{Code: http.StatusConflict, Message: "Email already in use !"}
+			return &CustomMessage{Code: http.StatusConflict, Message: "Email already in use!"}
 		} else {
-			return &CustomMessage{Code: http.StatusConflict, Message: "Username already in use !"}
+			return &CustomMessage{Code: http.StatusConflict, Message: "Username already in use!"}
 		}
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -111,12 +115,12 @@ func (db *GormDB) CheckExistingUserUpdate(user *model.User, email, username, uid
 	err := db.DB.Where("username = ? OR email = ?", username, email).First(user).Error
 	if err == nil && user.ID != uid {
 		if user.Email == email {
-			return &CustomMessage{Code: http.StatusConflict, Message: "Email already in use !"}
+			return &CustomMessage{Code: http.StatusConflict, Message: "Email already in use!"}
 		} else {
-			return &CustomMessage{Code: http.StatusConflict, Message: "Username already in use !"}
+			return &CustomMessage{Code: http.StatusConflict, Message: "Username already in use!"}
 		}
 	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
+	if !errors.Is(err, gorm.ErrRecordNotFound) && err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to retrieve user."}
 	}
 	return nil
@@ -125,7 +129,7 @@ func (db *GormDB) CheckExistingUserUpdate(user *model.User, email, username, uid
 func (db *GormDB) VerifyUser(user *model.User, username string) error {
 	if err := db.DB.Where("username = ? OR email = ?", username, username).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &CustomMessage{Code: http.StatusNotFound, Message: "Invalid Credentials !"}
+			return &CustomMessage{Code: http.StatusNotFound, Message: "Invalid Credentials!"}
 		} else {
 			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to retrieve user."}
 		}
@@ -135,6 +139,7 @@ func (db *GormDB) VerifyUser(user *model.User, username string) error {
 
 func (db *GormDB) SaveUser(user *model.User) error {
 	if err := db.DB.Save(user).Error; err != nil {
+		log.Println("Failed to save user with id -> ", user.ID, "err -> ", err.Error())
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to save user."}
 	}
 	return nil
@@ -184,8 +189,8 @@ func (db *GormDB) FetchUserPreloadFReq(user *model.User, uid string) error {
 	return nil
 }
 
-func (db *GormDB) SearchUser(user *model.User, username string) error {
-	if err := db.DB.Where("username = ?", username).First(user).Error; err != nil {
+func (db *GormDB) FetchUserPreloadPReq(user *model.User, uid string) error {
+	if err := db.DB.Preload("SentPostReq").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
 		} else {
@@ -240,17 +245,16 @@ func (db *GormDB) SearchUsersBySKills(users *[]model.User, skills []string) erro
 	return nil
 }
 
-// TODO: I can use the users friend req list instead of the DB this makes it more efficient
-
 func (db *GormDB) CheckExistingFriendReq(req *model.FriendReq, uid, fid string) error {
 	if err := db.DB.Where("user_id = ?", uid).Where("friend_id = ?", fid).First(req).Error; err == nil {
-		return &CustomMessage{Code: http.StatusConflict, Message: "Request to this user already exists !"}
+		return &CustomMessage{Code: http.StatusConflict, Message: "Request to this user already exists!"}
 	}
 	return nil
 }
 
 func (db *GormDB) AddFriendReq(req *model.FriendReq) error {
 	if err := db.DB.Create(req).Error; err != nil {
+		log.Println("Failed to create friend req err -> ", err.Error())
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to create request."}
 	}
 	return nil
@@ -299,6 +303,12 @@ func (db *GormDB) UpdateFriendReqAccept(req *model.FriendReq, user, friend *mode
 		if err := tx.Create(chat).Error; err != nil {
 			return err
 		}
+		if err := tx.Model(user).Association("Chats").Append(chat); err != nil {
+			return err
+		}
+		if err := tx.Model(friend).Association("Chats").Append(chat); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to update request status."}
@@ -308,6 +318,7 @@ func (db *GormDB) UpdateFriendReqAccept(req *model.FriendReq, user, friend *mode
 
 func (db *GormDB) DeleteFriendReq(req *model.FriendReq) error {
 	if err := db.DB.Unscoped().Delete(req).Error; err != nil {
+		log.Println("Failed to delete friend req with id -> ", req.ID, "err -> ", err.Error())
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to delete friend request."}
 	}
 	return nil
@@ -323,6 +334,7 @@ func (db *GormDB) DeleteFriend(user, friend *model.User) error {
 		}
 		return nil
 	}); err != nil {
+		log.Println("Failed to delete user friend with ids -> ", user.ID, friend.ID, "err -> ", err.Error())
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to delete friend."}
 	}
 	return nil
@@ -344,14 +356,18 @@ func (db *GormDB) DeleteSkills(user *model.User, skills []*model.Skill) error {
 
 func (db *GormDB) DeleteUser(user *model.User) error {
 	if err := db.DB.Delete(user).Error; err != nil {
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to delete user"}
+		log.Println("Failed to delete user with id -> ", user.ID, "err -> ", err.Error())
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to delete user."}
 	}
 	return nil
 }
 
 func (db *GormDB) AddPost(post *model.Post) error {
-	err := db.DB.Create(post).Error
-	return err
+	if err := db.DB.Create(post).Error; err != nil {
+		log.Println("Failed to create post err -> ", err.Error())
+		return &CustomMessage{http.StatusInternalServerError, "Failed to create post."}
+	}
+	return nil
 }
 
 func (db *GormDB) FetchUserPosts(user *model.User, uid string) error {
@@ -415,6 +431,7 @@ func (db *GormDB) EditPost(post *model.Post, skills []*model.Skill) error {
 
 func (db *GormDB) SavePost(post *model.Post) error {
 	if err := db.DB.Save(post).Error; err != nil {
+		log.Println("Failed to save post with id -> ", post.ID, "err -> ", err.Error())
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to save post."}
 	}
 	return nil
@@ -470,6 +487,7 @@ func (db *GormDB) RemoveBookmarkedPost(user *model.User, post *model.Post) error
 
 func (db *GormDB) AddPostApplicationReq(req *model.PostReq) error {
 	if err := db.DB.Save(req).Error; err != nil {
+		log.Println("Failed to save post application req with id -> ", req.ID, "err -> ", err.Error())
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to send post application request."}
 	}
 	return nil
@@ -537,6 +555,7 @@ func (db *GormDB) FetchPostAppPreloadFU(req *model.PostReq, rid string) error {
 
 func (db *GormDB) DeletePostApplicationReq(req *model.PostReq) error {
 	if err := db.DB.Unscoped().Delete(req).Error; err != nil {
+		log.Println("Failed to delete post application req with id -> ", req.ID, "err -> ", err.Error())
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to delete post application request."}
 	}
 	return nil
@@ -544,6 +563,8 @@ func (db *GormDB) DeletePostApplicationReq(req *model.PostReq) error {
 
 func (db *GormDB) DeletePost(post *model.Post) error {
 	if err := db.DB.Delete(post).Error; err != nil {
+		log.Println("Failed to delete post with id -> ", post.ID, "err -> ", err.Error())
+
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to delete post."}
 	}
 	return nil
@@ -580,6 +601,7 @@ func (db *GormDB) CheckExistingUsername(user *model.User, username string) error
 
 func (db *GormDB) AddMessage(msg *model.UserMessage) error {
 	if err := db.DB.Create(msg).Error; err != nil {
+		log.Println("Failed to create msg err -> ", err.Error())
 		return &CustomMessage{http.StatusInternalServerError, "Failed to send message."}
 	}
 	return nil
@@ -608,8 +630,7 @@ func (db *GormDB) FetchChat(chatID string, chat *model.Chat) error {
 }
 
 func (db *GormDB) FetchUserPreloadC(user *model.User, uid string) error {
-	if err := db.DB.Preload("Chats").Where("id = ?", uid).First(user).Error; err != nil {
-		log.Println(err)
+	if err := db.DB.Preload("Chats.Messages").Preload("Chats.Users").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{http.StatusNotFound, "User not found."}
 		} else {
@@ -632,13 +653,15 @@ func (db *GormDB) FetchMsg(msg *model.UserMessage, mid string) error {
 
 func (db *GormDB) SaveMsg(msg *model.UserMessage) error {
 	if err := db.DB.Save(msg).Error; err != nil {
+		log.Println("Failed to save msg with id -> ", msg.ID, "err -> ", err.Error())
 		return &CustomMessage{http.StatusInternalServerError, "Failed to edit msg."}
 	}
 	return nil
 }
 
 func (db *GormDB) DeleteMsg(msg *model.UserMessage) error {
-	if err := db.DB.Delete(msg); err != nil {
+	if err := db.DB.Delete(msg).Error; err != nil {
+		log.Println("Failed to delete msg with id -> ", msg.ID, "err -> ", err.Error())
 		return &CustomMessage{http.StatusInternalServerError, "Failed to delete msg."}
 	}
 	return nil

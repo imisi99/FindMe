@@ -29,10 +29,16 @@ func NewRDB(rdb *redis.Client) *RDB {
 	return &RDB{Cache: rdb}
 }
 
+// TODO:
+// Remove the otp for reseting passwords after use.
+
 // CacheSkills -> Cache skills in rdb at app startup
 func (c *RDB) CacheSkills(skills []model.Skill) {
-	skillName := make(map[string]string, 0)
+	skillName := make(map[string]any, 0)
 
+	for _, skill := range skills {
+		skillName[skill.Name] = skill.ID
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if _, err := c.Cache.HSet(ctx, "skills", skillName).Result(); err != nil {
@@ -65,8 +71,11 @@ func (c *RDB) RetrieveCachedSkills(skills []string) (map[string]string, error) {
 
 // AddNewSkillToCache -> Add new skills to rdb
 func (c *RDB) AddNewSkillToCache(newskills []*model.Skill) {
-	skills := make(map[string]string, 0)
+	skills := make(map[string]any, 0)
 
+	for _, skill := range newskills {
+		skills[skill.Name] = skill.ID
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

@@ -3,6 +3,7 @@ package unit
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,7 +16,7 @@ var (
 		"msg":     "Yo i need your help with the frontend or mobile dev.",
 		"chat_id": "",
 	}
-	msg *ViewMsg
+	msg ViewMsg
 )
 
 func TestCreateMessage(t *testing.T) {
@@ -32,7 +33,7 @@ func TestCreateMessage(t *testing.T) {
 	assert.Equal(t, http.StatusAccepted, w.Code)
 	assert.Contains(t, w.Body.String(), payload["msg"])
 
-	_ = json.Unmarshal(w.Body.Bytes(), msg)
+	_ = json.Unmarshal(w.Body.Bytes(), &msg)
 }
 
 func TestCreateMessageInvalidChatID(t *testing.T) {
@@ -80,7 +81,7 @@ func TestEditMessage(t *testing.T) {
 	}
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPatch, "/api/user/edit-message", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPatch, "/api/msg/edit-message", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -91,11 +92,12 @@ func TestEditMessage(t *testing.T) {
 }
 
 func TestDeleteMessage(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-message?id="+msg.ID, nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/msg/delete-message?id="+msg.ID, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
+	log.Println(w.Body.String())
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }

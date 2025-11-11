@@ -13,6 +13,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO:
+// Should there also be a applications on a post for easy tracking ?
+// Possibly a chat group to be associated to the post nah
+// Remove user's post in the search for post tags ?
+
 // GetPosts -> Endpoint for getting all user posts
 func (s *Service) GetPosts(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
@@ -83,7 +88,9 @@ func (s *Service) ViewPost(ctx *gin.Context) {
 			Views:       post.Views,
 			Available:   post.Availability,
 		},
-		Username: post.User.UserName,
+		Username:   post.User.UserName,
+		GitProject: post.GitProject,
+		GitLink:    post.GitLink,
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"post": result})
@@ -165,6 +172,12 @@ func (s *Service) CreatePost(ctx *gin.Context) {
 		Views:        0,
 		Availability: true,
 	}
+
+	if payload.Git {
+		post.GitProject = true
+		post.GitLink = payload.GitLink
+	}
+
 	if err := s.DB.AddPost(&post); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
@@ -311,6 +324,11 @@ func (s *Service) EditPostAvailability(ctx *gin.Context) {
 	if err := s.DB.FetchPost(&post, pid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if post.ID != uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You aren't authorized to edit this post."})
 		return
 	}
 
@@ -478,7 +496,7 @@ func (s *Service) ApplyForPost(ctx *gin.Context) {
 	}
 
 	var payload schema.PostApplication
-	if err := ctx.BindJSON(&payload); err != nil {
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload"})
 		return
 	}
@@ -491,10 +509,17 @@ func (s *Service) ApplyForPost(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := s.DB.FetchUser(&user, uid); err != nil {
+	if err := s.DB.FetchUserPreloadPReq(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
+	}
+
+	for _, req := range user.SentPostReq {
+		if req.PostID == pid {
+			ctx.JSON(http.StatusConflict, gin.H{"msg": "You already have a pending applicatioin to this post"})
+			return
+		}
 	}
 
 	if post.User.ID == user.ID {

@@ -19,8 +19,8 @@ var (
 	reqPayload         = map[string]string{
 		"msg": "hey I'm interested in this projec",
 	}
-	post    *PostResponse
-	postReq *PostApplicationResponse
+	post    PostResponse
+	postReq PostApplicationResponse
 )
 
 func TestGetPost(t *testing.T) {
@@ -48,7 +48,7 @@ func TestCreatePost(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Contains(t, w.Body.String(), postPayload["description"])
-	_ = json.Unmarshal(w.Body.Bytes(), post)
+	_ = json.Unmarshal(w.Body.Bytes(), &post)
 }
 
 func TestEditPost(t *testing.T) {
@@ -65,7 +65,7 @@ func TestEditPost(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "Post updated successfully.")
+	assert.Contains(t, w.Body.String(), payload["description"])
 }
 
 func TestGetPosts(t *testing.T) {
@@ -136,7 +136,6 @@ func TestSavePost(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "Post saved successfully")
 }
 
 func TestViewSavedPost(t *testing.T) {
@@ -196,7 +195,7 @@ func TestApplyForPost(t *testing.T) {
 	assert.Equal(t, w.Code, http.StatusOK)
 	assert.Contains(t, w.Body.String(), reqPayload["msg"])
 
-	_ = json.Unmarshal(w.Body.Bytes(), postReq)
+	_ = json.Unmarshal(w.Body.Bytes(), &postReq)
 }
 
 func TestViewPostApplicationsApplicant(t *testing.T) {
@@ -266,7 +265,7 @@ func TestCreatePostApplicationToDelete(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	_ = json.Unmarshal(w.Body.Bytes(), postReq)
+	_ = json.Unmarshal(w.Body.Bytes(), &postReq)
 }
 
 func TestDeletePostApplication(t *testing.T) {

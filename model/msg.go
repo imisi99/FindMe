@@ -8,9 +8,9 @@ import (
 
 type UserMessage struct {
 	GormModel
-	ChatID  string
-	FromID  string
-	Message string
+	ChatID  string `gorm:"not null"`
+	FromID  string `gorm:"not null"`
+	Message string `gorm:"not null"`
 
 	// Relations:
 	FromUser User `gorm:"foreignKey:FromID"`

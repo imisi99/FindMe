@@ -12,9 +12,11 @@ type Post struct {
 	Availability bool
 
 	// Relations:
-	UserID string   `gorm:"not null"`
-	User   User     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Tags   []*Skill `gorm:"many2many:post_skills"`
+	UserID     string   `gorm:"not null"`
+	User       User     `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Tags       []*Skill `gorm:"many2many:post_skills"`
+	GitProject bool
+	GitLink    string
 }
 
 type PostReq struct {

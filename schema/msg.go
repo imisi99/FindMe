@@ -22,6 +22,7 @@ type ViewMessage struct {
 }
 
 type ViewChat struct {
+	Name    string
 	CID     string
 	Message []ViewMessage
 }
