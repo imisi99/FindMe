@@ -36,8 +36,8 @@ type UserFriend struct {
 	FriendID string `gorm:"primaryKey"`
 
 	// Relations:
-	User   User `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Friend User `gorm:"foreignKey:FriendID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	User   *User `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Friend *User `gorm:"foreignKey:FriendID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 type UserSkill struct {
@@ -45,7 +45,7 @@ type UserSkill struct {
 	SkillID string `gorm:"primaryKey"`
 
 	// Relations:
-	User User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	User *User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 type UserSavedPost struct {
@@ -53,8 +53,8 @@ type UserSavedPost struct {
 	PostID string `gorm:"primaryKey"`
 
 	// Relations:
-	User User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Post Post `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	User *User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Post *Post `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 type FriendReq struct {

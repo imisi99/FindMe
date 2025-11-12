@@ -13,7 +13,7 @@ type UserMessage struct {
 	Message string `gorm:"not null"`
 
 	// Relations:
-	FromUser User `gorm:"foreignKey:FromID"`
+	FromUser *User `gorm:"foreignKey:FromID"`
 }
 
 type Chat struct {
@@ -26,8 +26,8 @@ type ChatUser struct {
 	UserID string `gorm:"primaryKey"`
 	ChatID string `gorm:"primaryKey"`
 
-	User User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Chat Chat `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	User *User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Chat *Chat `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 func (c *Chat) BeforeCreate(tx *gorm.DB) (err error) {

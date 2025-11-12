@@ -46,20 +46,24 @@ type DB interface {
 	FetchPost(post *model.Post, pid string) error
 	FetchPostPreloadT(post *model.Post, pid string) error
 	FetchPostPreloadTU(post *model.Post, pid string) error
+	FetchPostPreloadA(post *model.Post, pid string) error
+	FetchPostPreloadC(post *model.Post, pid string) error
 	EditPost(post *model.Post, skills []*model.Skill) error
 	SavePost(post *model.Post) error
 	BookmarkPost(user *model.User, post *model.Post) error
 	FetchUserPreloadB(user *model.User, uid string) error
 	FetchPostPreloadU(post *model.Post, pid string) error
-	SearchPostsBySKills(posts *[]model.Post, skills []string) error
+	SearchPostsBySKills(posts *[]model.Post, skills []string, uid string) error
 	RemoveBookmarkedPost(user *model.User, post *model.Post) error
 	AddPostApplicationReq(req *model.PostReq) error
 	ViewPostApplications(user *model.User, uid string) error
 	FetchPostApplication(req *model.PostReq, rid string) error
 	UpdatePostAppliationReject(req *model.PostReq) error
-	UpdatePostApplicationAccept(req *model.PostReq, user1, user2 *model.User, friends bool) error
+	UpdatePostApplicationAccept(req *model.PostReq, user *model.User, chat *model.Chat) error
+	UpdatePostApplicationAcceptF(req *model.PostReq, user1, user2 *model.User, post *model.Post, chat *model.Chat) error
 	FetchPostAppPreloadFU(req *model.PostReq, rid string) error
 	DeletePostApplicationReq(req *model.PostReq) error
+	ClearPostApplication(req []*model.PostReq) error
 	DeletePost(post *model.Post) error
 	AddSkills(skills *[]*model.Skill) error
 	FindExistingSkills(skills *[]*model.Skill, skill []string) error
@@ -414,6 +418,28 @@ func (db *GormDB) FetchPostPreloadTU(post *model.Post, pid string) error {
 	return nil
 }
 
+func (db *GormDB) FetchPostPreloadA(post *model.Post, pid string) error {
+	if err := db.DB.Preload("Applications").Where("id = ?", pid).First(post).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &CustomMessage{Code: http.StatusNotFound, Message: "Post not found."}
+		} else {
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch post."}
+		}
+	}
+	return nil
+}
+
+func (db *GormDB) FetchPostPreloadC(post *model.Post, pid string) error {
+	if err := db.DB.Preload("Chat").Where("id = ?", pid).First(post).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &CustomMessage{Code: http.StatusNotFound, Message: "Post not found."}
+		} else {
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch post."}
+		}
+	}
+	return nil
+}
+
 func (db *GormDB) EditPost(post *model.Post, skills []*model.Skill) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(post).Association("Tags").Replace(skills); err != nil {
@@ -466,13 +492,13 @@ func (db *GormDB) FetchPostPreloadU(post *model.Post, pid string) error {
 	return nil
 }
 
-func (db *GormDB) SearchPostsBySKills(posts *[]model.Post, skills []string) error {
+func (db *GormDB) SearchPostsBySKills(posts *[]model.Post, skills []string, uid string) error {
 	subquery := db.DB.Select("post_id").
 		Table("post_skills").
 		Joins("JOIN skills s ON post_skills.skill_id = s.id").
 		Where("s.name IN ?", skills)
 
-	if err := db.DB.Preload("Tags").Where("id IN (?)", subquery).Find(&posts).Error; err != nil {
+	if err := db.DB.Preload("Tags").Where("id IN (?)", subquery).Where("user_id != ?", uid).Find(&posts).Error; err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to search post by skills."}
 	}
 	return nil
@@ -522,18 +548,43 @@ func (db *GormDB) UpdatePostAppliationReject(req *model.PostReq) error {
 	return nil
 }
 
-func (db *GormDB) UpdatePostApplicationAccept(req *model.PostReq, user1, user2 *model.User, friends bool) error {
+func (db *GormDB) UpdatePostApplicationAccept(req *model.PostReq, user *model.User, chat *model.Chat) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Unscoped().Delete(req).Error; err != nil {
 			return err
 		}
-		if !friends {
-			if err := tx.Model(user1).Association("Friends").Append(user2); err != nil {
-				return err
-			}
-			if err := tx.Model(user2).Association("Friends").Append(user1); err != nil {
-				return err
-			}
+
+		if err := tx.Model(user).Association("Chat").Append(chat); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to update post application status."}
+	}
+	return nil
+}
+
+func (db *GormDB) UpdatePostApplicationAcceptF(req *model.PostReq, user1, user2 *model.User, post *model.Post, chat *model.Chat) error {
+	if err := db.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Unscoped().Delete(req).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Create(chat).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(post).Update("ChatID", &chat.ID).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Model(user1).Association("Chat").Append(chat); err != nil {
+			return err
+		}
+
+		if err := tx.Model(user2).Association("Chat").Append(chat); err != nil {
+			return err
 		}
 		return nil
 	}); err != nil {
@@ -557,6 +608,14 @@ func (db *GormDB) DeletePostApplicationReq(req *model.PostReq) error {
 	if err := db.DB.Unscoped().Delete(req).Error; err != nil {
 		log.Println("Failed to delete post application req with id -> ", req.ID, "err -> ", err.Error())
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to delete post application request."}
+	}
+	return nil
+}
+
+func (db *GormDB) ClearPostApplication(req []*model.PostReq) error {
+	if err := db.DB.Unscoped().Delete(req).Error; err != nil {
+		log.Println("Failed to clear post applications for post with id -> ", req[0].PostID, "err -> ", err.Error())
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to clear post applications."}
 	}
 	return nil
 }

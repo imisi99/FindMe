@@ -14,9 +14,13 @@ import (
 )
 
 // TODO:
-// Should there also be a applications on a post for easy tracking ?
-// Possibly a chat group to be associated to the post nah
+// Remodel requests to delete after ignored or rejected
+
+// DONE:
+// Should there also be a applications on a post for easy tracking ? (This can also be used to check for existing req to a post)
+// Possibly a chat group to be associated to the post nah (This can be used instead of enforcing a friendship)
 // Remove user's post in the search for post tags ?
+// An Endpoint to clear all applications on a post or rejected one ?
 
 // GetPosts -> Endpoint for getting all user posts
 func (s *Service) GetPosts(ctx *gin.Context) {
@@ -96,6 +100,48 @@ func (s *Service) ViewPost(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"post": result})
 }
 
+// ViewSinglePostApplication -> Endpoint for viewing a post applications
+func (s *Service) ViewSinglePostApplication(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	id := ctx.Query("id")
+	if id == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid post id."})
+		return
+	}
+
+	var post model.Post
+	if err := s.DB.FetchPostPreloadA(&post, id); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if post.UserID != uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You don't have permission to view the applicants on this post."})
+		return
+	}
+
+	var applications []schema.ViewPostApplication
+	for _, req := range post.Applications {
+		applications = append(applications, schema.ViewPostApplication{
+			ReqID:    req.ID,
+			Status:   req.Status,
+			Message:  req.Message,
+			Username: req.FromUser.UserName,
+		})
+	}
+	result := schema.ApplicationPostResponse{
+		Applications: applications,
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"req": result})
+}
+
 // SearchPost -> Endpoint for searching post with tags
 func (s *Service) SearchPost(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
@@ -115,7 +161,7 @@ func (s *Service) SearchPost(ctx *gin.Context) {
 	}
 
 	var posts []model.Post
-	if err := s.DB.SearchPostsBySKills(&posts, payload.Tags); err != nil {
+	if err := s.DB.SearchPostsBySKills(&posts, payload.Tags, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -502,28 +548,28 @@ func (s *Service) ApplyForPost(ctx *gin.Context) {
 	}
 
 	var post model.Post
-	if err := s.DB.FetchPostPreloadU(&post, pid); err != nil {
+	if err := s.DB.FetchPostPreloadA(&post, pid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	var user model.User
-	if err := s.DB.FetchUserPreloadPReq(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	for _, req := range user.SentPostReq {
-		if req.PostID == pid {
-			ctx.JSON(http.StatusConflict, gin.H{"msg": "You already have a pending applicatioin to this post"})
+	for _, req := range post.Applications {
+		if req.FromID == uid {
+			ctx.JSON(http.StatusConflict, gin.H{"msg": "You have already submitted a request to this post."})
 			return
 		}
 	}
 
-	if post.User.ID == user.ID {
-		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can't apply for a post owned by you."})
+	if post.UserID == uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can't apply for your own post."})
 		return
 	}
 
@@ -537,6 +583,7 @@ func (s *Service) ApplyForPost(ctx *gin.Context) {
 		FromID: user.ID,
 		ToID:   post.User.ID,
 	}
+
 	if len(payload.Message) > 0 {
 		req.Message = payload.Message
 	}
@@ -615,14 +662,21 @@ func (s *Service) UpdatePostApplication(ctx *gin.Context) {
 		return
 	}
 
-	var user, friend model.User
-	if err := s.DB.FetchUserPreloadF(&user, uid); err != nil {
+	var post model.Post
+	if err := s.DB.FetchPostPreloadC(&post, req.PostID); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if err := s.DB.FetchUser(&friend, req.FromID); err != nil {
+	var user, applicant model.User
+	if err := s.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if err := s.DB.FetchUser(&applicant, req.FromID); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -633,14 +687,6 @@ func (s *Service) UpdatePostApplication(ctx *gin.Context) {
 		return
 	}
 
-	var friends bool
-	for _, fr := range user.Friends {
-		if friend.ID == fr.ID {
-			friends = true
-			break
-		}
-	}
-
 	switch status {
 	case model.StatusRejected:
 		if err := s.DB.UpdatePostAppliationReject(&req); err != nil {
@@ -648,14 +694,24 @@ func (s *Service) UpdatePostApplication(ctx *gin.Context) {
 			ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 			return
 		}
-		_ = s.Email.SendPostApplicationReject(friend.Email, user.UserName, friend.UserName, req.Post.Description, "reason")
+		_ = s.Email.SendPostApplicationReject(applicant.Email, user.UserName, applicant.UserName, post.Description, "reason")
 	case model.StatusAccepted:
-		if err := s.DB.UpdatePostApplicationAccept(&req, &user, &friend, friends); err != nil {
+		var err error
+		var chat model.Chat
+
+		if post.ChatID == nil {
+			err = s.DB.UpdatePostApplicationAcceptF(&req, &user, &applicant, &post, &chat)
+		} else {
+			err = s.DB.UpdatePostApplicationAccept(&req, &applicant, post.Chat)
+		}
+
+		if err != nil {
 			cm := err.(*core.CustomMessage)
 			ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 			return
 		}
-		_ = s.Email.SendPostApplicationAccept(friend.Email, user.UserName, friend.UserName, req.Post.Description, "")
+
+		_ = s.Email.SendPostApplicationAccept(applicant.Email, user.UserName, applicant.UserName, req.Post.Description, "")
 	default:
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid status."})
 		return
@@ -698,6 +754,36 @@ func (s *Service) DeletePostApplication(ctx *gin.Context) {
 	}
 
 	if err := s.DB.DeletePostApplicationReq(&req); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, nil)
+}
+
+// ClearPostApplication -> Endpoint for clearing a post applications
+func (s *Service) ClearPostApplication(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	pid := ctx.Query("id")
+	if pid == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid post id."})
+		return
+	}
+
+	var post model.Post
+	if err := s.DB.FetchPostPreloadA(&post, pid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if err := s.DB.ClearPostApplication(post.Applications); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return

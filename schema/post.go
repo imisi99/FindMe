@@ -26,6 +26,10 @@ type DetailedPostResponse struct {
 	GitLink    string
 }
 
+type ApplicationPostResponse struct {
+	Applications []ViewPostApplication
+}
+
 type PostApplication struct {
 	Message string `json:"msg" binding:"omitempty,max=50"`
 }
