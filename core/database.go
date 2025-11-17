@@ -78,7 +78,7 @@ type DB interface {
 	FetchMsg(msg *model.UserMessage, mid string) error
 	SaveMsg(msg *model.UserMessage) error
 	DeleteMsg(msg *model.UserMessage) error
-	DeleteChat(chat *model.Chat) error
+	LeaveChat(chat *model.Chat, user *model.User) error
 }
 
 type GormDB struct {
@@ -441,7 +441,7 @@ func (db *GormDB) FetchPostPreloadTU(post *model.Post, pid string) error {
 }
 
 func (db *GormDB) FetchPostPreloadA(post *model.Post, pid string) error {
-	if err := db.DB.Preload("Applications").Where("id = ?", pid).First(post).Error; err != nil {
+	if err := db.DB.Preload("Applications.FromUser").Where("id = ?", pid).First(post).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "Post not found."}
 		} else {
@@ -760,10 +760,10 @@ func (db *GormDB) DeleteMsg(msg *model.UserMessage) error {
 	return nil
 }
 
-func (db *GormDB) DeleteChat(chat *model.Chat) error {
-	if err := db.DB.Delete(chat).Error; err != nil {
-		log.Println("Failed to delete chat with id -> ", chat.ID, "err -> ", err.Error())
-		return &CustomMessage{http.StatusInternalServerError, "Failed to delete chat."}
+func (db *GormDB) LeaveChat(chat *model.Chat, user *model.User) error {
+	if err := db.DB.Model(chat).Association("Users").Delete(user); err != nil {
+		log.Println("Failed to remove user from chat with ID -> ", err.Error())
+		return &CustomMessage{http.StatusInternalServerError, "Failed to leave chat."}
 	}
 	return nil
 }

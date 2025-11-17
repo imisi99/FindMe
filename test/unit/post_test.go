@@ -201,7 +201,7 @@ func TestApplyForPost(t *testing.T) {
 	_ = json.Unmarshal(w.Body.Bytes(), &postReq)
 }
 
-func TestViewPostApplicationsApplicant(t *testing.T) {
+func TestViewPostApplications(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/post/view-applications", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
@@ -213,8 +213,8 @@ func TestViewPostApplicationsApplicant(t *testing.T) {
 	assert.Contains(t, w.Body.String(), superUserName)
 }
 
-func TestViewPostApplicationsPostOwner(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/post/view-applications", nil)
+func TestViewSinglePostApplications(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/post/view-application?id="+pid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -223,6 +223,7 @@ func TestViewPostApplicationsPostOwner(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), reqPayload["msg"])
 	assert.Contains(t, w.Body.String(), superUserName1)
+	assert.Contains(t, w.Body.String(), postReq.ReqID)
 }
 
 func TestUpdatePostApplicationInvalidStatus(t *testing.T) {
@@ -287,6 +288,29 @@ func TestCreatePostApplicationToDelete(t *testing.T) {
 func TestDeletePostApplication(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodDelete, "/api/post/delete-application?id="+postReq.ReqID, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
+func TestCreatePostApplicationToClear(t *testing.T) {
+	body, _ := json.Marshal(defPayload)
+
+	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id="+post.ID, bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+tokenString1)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	_ = json.Unmarshal(w.Body.Bytes(), &postReq)
+}
+
+func TestClearPostApplication(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodDelete, "/api/post/clear-application?id="+post.ID, nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)

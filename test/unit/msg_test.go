@@ -3,7 +3,6 @@ package unit
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -98,6 +97,14 @@ func TestDeleteMessage(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	log.Println(w.Body.String())
+	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
+func TestLeaveChat(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodDelete, "/api/msg/leave-chat?id="+cid, nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }

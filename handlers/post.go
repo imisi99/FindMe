@@ -142,9 +142,7 @@ func (s *Service) ViewSinglePostApplication(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"req": result})
-}
-
-// SearchPost -> Endpoint for searching post with tags
+} // SearchPost -> Endpoint for searching post with tags
 func (s *Service) SearchPost(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {

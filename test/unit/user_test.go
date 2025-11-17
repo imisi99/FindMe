@@ -70,6 +70,24 @@ func TestGitSignup(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+func TestGitConnect(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPost, "/api/user/connect-github", nil)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGitViewRepo(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-repo", nil)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
 func TestLogin(t *testing.T) {
 	payload := map[string]string{
 		"username": "JohnDoe23",

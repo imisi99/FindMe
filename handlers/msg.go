@@ -12,11 +12,15 @@ import (
 
 // TODO:
 // Add a Delete chat endpoint that will remove the chat from the one user end (
+// A add user to chat endpoint for a project chat ?
+// Select Friend to msg endpoint
+// Close message endpoint
 // Check to see if the delete user chat will cascade to the messages attached to the chats.
 // If the chat is deleted by one user does it mean it's deleted on both end ?
 // If the chat's not deleted on both end do we need a check for new msg to a deleted chat ?
 // Is this needed ?
 // If the chat is removed from the user side how will you detect new changes ?
+// It can just be modeled like discord where you can create and close msg so you can sort of start a chat by searching a friend ?
 // )
 
 // CreateMessage -> Add Message endpoint
@@ -226,8 +230,8 @@ func (s *Service) DeleteMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// DeleteChat -> Delete a chat endpoint
-func (s *Service) DeleteChat(ctx *gin.Context) {
+// LeaveChat -> Leave a chat endpoint
+func (s *Service) LeaveChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -248,18 +252,13 @@ func (s *Service) DeleteChat(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := s.DB.FetchUserPreloadC(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if chat.Users[0].ID != uid && chat.Users[1].ID != uid {
-		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You don't have permission to delete this chat."})
-		return
-	}
-
-	if err := s.DB.DeleteChat(&chat); err != nil {
+	if err := s.DB.LeaveChat(&chat, &user); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
