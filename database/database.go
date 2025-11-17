@@ -36,6 +36,7 @@ func Connect() *gorm.DB {
 		&model.UserFriend{},
 		&model.FriendReq{},
 		&model.UserMessage{},
+		&model.UserSavedPost{},
 		&model.Chat{},
 		&model.ChatUser{},
 	)
@@ -61,6 +62,11 @@ func Connect() *gorm.DB {
 	err = db.SetupJoinTable(&model.User{}, "Chats", &model.ChatUser{})
 	if err != nil {
 		log.Fatalf("[ERROR] [DB] Failed to create join table on user and chats -> %s", err.Error())
+	}
+
+	err = db.SetupJoinTable(&model.User{}, "SavedPosts", &model.UserSavedPost{})
+	if err != nil {
+		log.Fatalf("[ERROR] [DB] Failed to create join table on user and saved posts -> %s", err.Error())
 	}
 
 	log.Println("[INFO] [DB] Connected to the database successfully.")

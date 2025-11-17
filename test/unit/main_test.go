@@ -2,6 +2,7 @@
 package unit
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -101,6 +102,8 @@ func superUser(db *core.GormDB) {
 		Views:        4,
 		Tags:         []*model.Skill{&be},
 		Availability: true,
+		GitProject:   true,
+		GitLink:      "https://github.com/imisi99/FindMe",
 	}
 
 	chat := model.Chat{}
@@ -109,8 +112,6 @@ func superUser(db *core.GormDB) {
 
 	db.DB.Create(&chat)
 
-	db.DB.Model(&super).Association("Friends").Append(&super1)
-	db.DB.Model(&super1).Association("Friends").Append(&super)
 	db.DB.Model(&super).Association("Chats").Append(&chat)
 	db.DB.Model(&super1).Association("Chats").Append(&chat)
 
@@ -118,6 +119,8 @@ func superUser(db *core.GormDB) {
 	id2 = super1.ID
 	pid = post.ID
 	cid = chat.ID
+	log.Println("User 1 -> ", id1)
+	log.Println("User 2 -> ", id2)
 }
 
 func TestMain(m *testing.M) {

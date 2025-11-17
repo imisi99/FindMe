@@ -18,7 +18,7 @@ type UserMessage struct {
 
 type Chat struct {
 	GormModel
-	Messages []*UserMessage `gorm:"foreignKey:ChatID"`
+	Messages []*UserMessage `gorm:"foreignKey:ChatID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	Users    []*User        `gorm:"many2many:chat_users"`
 }
 

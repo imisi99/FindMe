@@ -31,6 +31,7 @@ func NewRDB(rdb *redis.Client) *RDB {
 
 // TODO:
 // Remove the otp for reseting passwords after use.
+// Install redis 8.0 for HSETEX for deleting the otps after they expire and after use.
 
 // CacheSkills -> Cache skills in rdb at app startup
 func (c *RDB) CacheSkills(skills []model.Skill) {

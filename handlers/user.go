@@ -14,12 +14,14 @@ import (
 )
 
 // TODO:
-// Find a more efficient way to find existing friend req, and exising friend and also delete one
-// Add a Delete chat endpoint that will remove the chat from the one user end
-// Check that only sent friend req can be deleted but rec friend req can be ignored
-// Should ignored be deleted automatically also ?
-// Don't include the user in the search user with tags endpoint
+
+// DONE:
 // Return user IDs across all places
+// Don't include the user in the search user with tags endpoint
+// Should ignored be deleted automatically also ?
+// Check that only sent friend req can be deleted but rec friend req can be ignored
+// Find users chat before deleting friend to pass as an arg.
+// Find a more efficient way to find existing friend req, and exising friend and also delete one
 
 // AddUser -> Sign up endpoint for user
 func (s *Service) AddUser(ctx *gin.Context) {
@@ -267,7 +269,7 @@ func (s *Service) ViewUserbySkills(ctx *gin.Context) {
 	}
 
 	var users []model.User
-	if err := s.DB.SearchUsersBySKills(&users, payload.Skills); err != nil {
+	if err := s.DB.SearchUsersBySKills(&users, payload.Skills, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -280,6 +282,7 @@ func (s *Service) ViewUserbySkills(ctx *gin.Context) {
 			skills = append(skills, skill.Name)
 		}
 		profiles = append(profiles, schema.SearchUser{
+			ID:           user.ID,
 			UserName:     user.UserName,
 			Bio:          user.Bio,
 			Availability: user.Availability,
@@ -306,8 +309,20 @@ func (s *Service) SendFriendReq(ctx *gin.Context) {
 		return
 	}
 
+	if err, friends := s.DB.CheckExistingFriends(uid, payload.ID); err != nil || friends {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if err, exists := s.DB.CheckExistingFriendReq(uid, payload.ID); err != nil || exists {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
 	var friend, user model.User
-	if err := s.DB.FetchUserPreloadFReq(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -317,31 +332,6 @@ func (s *Service) SendFriendReq(ctx *gin.Context) {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
-	}
-
-	for _, fr := range user.Friends {
-		if fr.ID == friend.ID {
-			ctx.JSON(http.StatusConflict, gin.H{"msg": "User is already your friend."})
-			return
-		}
-	}
-
-	i, j := 0, 0
-	for i < len(user.RecFriendReq) || j < len(user.FriendReq) {
-		if i < len(user.RecFriendReq) {
-			if user.RecFriendReq[i].UserID == friend.ID {
-				ctx.JSON(http.StatusConflict, gin.H{"msg": "User has already sent you a friend request."})
-				return
-			}
-			i++
-		}
-		if j < len(user.FriendReq) {
-			if user.FriendReq[j].FriendID == friend.ID {
-				ctx.JSON(http.StatusConflict, gin.H{"msg": "You have already send this user a friend request."})
-				return
-			}
-			j++
-		}
 	}
 
 	req := model.FriendReq{
@@ -536,9 +526,14 @@ func (s *Service) DeleteUserFriend(ctx *gin.Context) {
 		return
 	}
 
-	id := ctx.Query("id")
+	id, cid := ctx.Query("id"), ctx.Query("chat_id")
 	if id == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Friend ID not in query"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Friend ID not in query."})
+		return
+	}
+
+	if cid == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Chat ID not in query."})
 		return
 	}
 	var user, friend model.User
@@ -554,7 +549,14 @@ func (s *Service) DeleteUserFriend(ctx *gin.Context) {
 		return
 	}
 
-	if err := s.DB.DeleteFriend(&user, &friend); err != nil {
+	var chat model.Chat
+	if err := s.DB.FetchChat(cid, &chat); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if err := s.DB.DeleteFriend(&user, &friend, &chat); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return

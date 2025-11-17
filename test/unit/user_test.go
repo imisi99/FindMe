@@ -29,6 +29,7 @@ var (
 	}
 	token     Token
 	friendreq ViewFriendReq
+	chat      GetChatID
 )
 
 func TestSignup(t *testing.T) {
@@ -160,12 +161,14 @@ func TestViewUser(t *testing.T) {
 
 func TestSendFriendReq(t *testing.T) {
 	payload := map[string]string{
-		"username": superUserName,
+		"msg": "Yo what's up ?",
+		"uid": id1,
 	}
+
 	body, _ := json.Marshal(payload)
 
 	req, _ := http.NewRequest(http.MethodPost, "/api/user/send-user-req", bytes.NewBuffer(body))
-	req.Header.Set("Authorization", "Bearer "+tokenString)
+	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -177,10 +180,13 @@ func TestSendFriendReq(t *testing.T) {
 
 func TestSendDuplicateFriendReq(t *testing.T) {
 	payload := map[string]string{
-		"username": defPayload["username"],
+		"msg": "Yo what's up ?",
+		"uid": id2,
 	}
+
 	body, _ := json.Marshal(payload)
 	userToken, _ = handlers.GenerateJWT(id1, "login", 5*time.Minute) // Super created user from the test above to test the accepting of friend request sent
+
 	req, _ := http.NewRequest(http.MethodPost, "/api/user/send-user-req", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+userToken)
 
@@ -188,7 +194,7 @@ func TestSendDuplicateFriendReq(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusConflict, w.Code)
-	assert.Contains(t, w.Body.String(), "User has already sent you a friend request.")
+	assert.Contains(t, w.Body.String(), "An existing request exists.")
 }
 
 func TestViewFriendReq(t *testing.T) {
@@ -199,18 +205,7 @@ func TestViewFriendReq(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), defPayload["username"])
-}
-
-func TestUpdateFriendReqReject(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-user-req?id="+friendreq.ID+"&status=rejected", nil)
-	req.Header.Set("Authorization", "Bearer "+userToken)
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusAccepted, w.Code)
-	assert.Contains(t, w.Body.String(), "Status updated successfully.")
+	assert.Contains(t, w.Body.String(), superUserName1)
 }
 
 func TestUpdateFriendReqInvalidStatus(t *testing.T) {
@@ -224,8 +219,8 @@ func TestUpdateFriendReqInvalidStatus(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Invalid status")
 }
 
-func TestUpdateFriendReqAccept(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-user-req?id="+friendreq.ID+"&status=accepted", nil)
+func TestUpdateFriendReqReject(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-user-req?id="+friendreq.ID+"&status=rejected", nil)
 	req.Header.Set("Authorization", "Bearer "+userToken)
 
 	w := httptest.NewRecorder()
@@ -235,9 +230,40 @@ func TestUpdateFriendReqAccept(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Status updated successfully.")
 }
 
+func TestSendFriendReqToAccept(t *testing.T) {
+	payload := map[string]string{
+		"msg": "Yo what's up ?",
+		"uid": id1,
+	}
+
+	body, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodPost, "/api/user/send-user-req", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+tokenString1)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), superUserName)
+	_ = json.Unmarshal(w.Body.Bytes(), &friendreq)
+}
+
+func TestUpdateFriendReqAccept(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-user-req?id="+friendreq.ID+"&status=accepted", nil)
+	req.Header.Set("Authorization", "Bearer "+userToken)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Contains(t, w.Body.String(), "Status updated successfully.")
+	_ = json.Unmarshal(w.Body.Bytes(), &chat)
+}
+
 func TestViewUserFriends(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-user-friend", nil)
-	req.Header.Set("Authorization", "Bearer "+tokenString)
+	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -247,8 +273,8 @@ func TestViewUserFriends(t *testing.T) {
 }
 
 func TestDeleteFriend(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-user-friend?id="+superUserName, nil)
-	req.Header.Set("Authorization", "Bearer "+tokenString)
+	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-user-friend?id="+id1+"&chat_id="+chat.ChatID, nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -258,7 +284,8 @@ func TestDeleteFriend(t *testing.T) {
 
 func TestAddReqToTestDelete(t *testing.T) {
 	payload := map[string]string{
-		"username": superUserName,
+		"msg": "Testing the delete",
+		"uid": id1,
 	}
 	body, _ := json.Marshal(payload)
 

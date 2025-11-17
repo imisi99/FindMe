@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"findme/model"
+	"findme/schema"
 
 	"github.com/gin-gonic/gin"
 )
@@ -74,9 +75,24 @@ func NewEmailMock() *EmailMock {
 type GitMock struct{}
 
 func (mock *GitMock) GitHubAddUser(_ *gin.Context) {}
+func (mock *GitMock) ConnectGitHub(_ *gin.Context) {}
 
 func (mock *GitMock) GitHubAddUserCallback(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"token": "1234", "message": "Logged in successfully."})
+}
+
+func (mock *GitMock) ConnectGitHubCallback(ctx *gin.Context) {
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Github account connected successfully."})
+}
+
+func (mock *GitMock) ViewRepo(ctx *gin.Context) {
+	repo := schema.ViewRepo{
+		Name:     "FindMe",
+		HTMLURL:  "https://github.com/imisi99/FindMe",
+		Language: "Go",
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"repos": repo})
 }
 
 func NewGitMock() *GitMock {

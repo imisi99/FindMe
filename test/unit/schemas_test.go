@@ -31,3 +31,8 @@ type ViewAllFriendReq struct {
 	SentReq []schema.FriendReqStatus `json:"sent_req"`
 	RecReq  []schema.FriendReqStatus `json:"rec_req"`
 }
+
+type GetChatID struct {
+	Msg    string `json:"msg"`
+	ChatID string `json:"chat_id"`
+}

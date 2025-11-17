@@ -5,7 +5,7 @@ import "time"
 type NewPostRequest struct {
 	Description string   `json:"description" binding:"required"`
 	Tags        []string `json:"tags" binding:"required"`
-	Git         bool     `json:"git" binding:"required"`
+	Git         bool     `json:"git" binding:"omitempty"`
 	GitLink     string   `json:"git_link" binding:"omitempty"`
 }
 

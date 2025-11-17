@@ -14,13 +14,15 @@ import (
 )
 
 // TODO:
-// Remodel requests to delete after ignored or rejected
+// Add a better way to check for already applied post in
 
+// Maybe an endpoint to add the project to a github project?
 // DONE:
 // Should there also be a applications on a post for easy tracking ? (This can also be used to check for existing req to a post)
 // Possibly a chat group to be associated to the post nah (This can be used instead of enforcing a friendship)
 // Remove user's post in the search for post tags ?
 // An Endpoint to clear all applications on a post or rejected one ?
+// Remodel requests to delete after ignored or rejected
 
 // GetPosts -> Endpoint for getting all user posts
 func (s *Service) GetPosts(ctx *gin.Context) {
@@ -200,6 +202,7 @@ func (s *Service) CreatePost(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
 		return
 	}
+	log.Println(payload.Git)
 
 	for i := range payload.Tags {
 		payload.Tags[i] = strings.ToLower(payload.Tags[i])
@@ -373,7 +376,7 @@ func (s *Service) EditPostAvailability(ctx *gin.Context) {
 		return
 	}
 
-	if post.ID != uid {
+	if post.UserID != uid {
 		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You aren't authorized to edit this post."})
 		return
 	}
@@ -548,7 +551,7 @@ func (s *Service) ApplyForPost(ctx *gin.Context) {
 	}
 
 	var post model.Post
-	if err := s.DB.FetchPostPreloadA(&post, pid); err != nil {
+	if err := s.DB.FetchPostPreloadU(&post, pid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return

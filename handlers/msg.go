@@ -10,6 +10,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO:
+// Add a Delete chat endpoint that will remove the chat from the one user end (
+// Check to see if the delete user chat will cascade to the messages attached to the chats.
+// If the chat is deleted by one user does it mean it's deleted on both end ?
+// If the chat's not deleted on both end do we need a check for new msg to a deleted chat ?
+// Is this needed ?
+// If the chat is removed from the user side how will you detect new changes ?
+// )
+
 // CreateMessage -> Add Message endpoint
 func (s *Service) CreateMessage(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
@@ -99,7 +108,7 @@ func (s *Service) FetchUserChats(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := s.DB.FetchUserPreloadC(&user, uid); err != nil {
+	if err := s.DB.FetchUserPreloadCM(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -117,9 +126,7 @@ func (s *Service) FetchUserChats(ctx *gin.Context) {
 		if len(chat.Messages) > 0 {
 			lastChat = chat.Messages[len(chat.Messages)-1]
 			chats = append(chats, schema.ViewChat{
-				Name: chatName,
-				CID:  chat.ID,
-				Message: []schema.ViewMessage{
+				Name: chatName, CID: chat.ID, Message: []schema.ViewMessage{
 					{
 						ID:      lastChat.ID,
 						Message: lastChat.Message,
@@ -195,7 +202,7 @@ func (s *Service) DeleteMessage(ctx *gin.Context) {
 
 	mid := ctx.Query("id")
 	if mid == "" {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Invalid message id."})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid message id."})
 		return
 	}
 
@@ -211,6 +218,48 @@ func (s *Service) DeleteMessage(ctx *gin.Context) {
 	}
 
 	if err := s.DB.DeleteMsg(&msg); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, nil)
+}
+
+// DeleteChat -> Delete a chat endpoint
+func (s *Service) DeleteChat(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	cid := ctx.Query("id")
+	if cid == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid chat id."})
+		return
+	}
+
+	var chat model.Chat
+	if err := s.DB.FetchChat(cid, &chat); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	var user model.User
+	if err := s.DB.FetchUserPreloadC(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if chat.Users[0].ID != uid && chat.Users[1].ID != uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You don't have permission to delete this chat."})
+		return
+	}
+
+	if err := s.DB.DeleteChat(&chat); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return

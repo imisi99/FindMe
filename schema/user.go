@@ -101,3 +101,13 @@ type ViewFriends struct {
 	Username string
 	Bio      string
 }
+
+type ViewRepo struct {
+	Name     string `json:"name"`
+	HTMLURL  string `json:"html_url"`
+	Language string `json:"language"`
+}
+
+type GitToken struct {
+	AccessToken string `json:"access_token"`
+}

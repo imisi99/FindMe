@@ -15,6 +15,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// TODO:
+// Use index for all ids in the ERM
+// Rewrite all searches to use DB fast lookups instead of preloading.
+
 func main() {
 	// Load environment variables from .env file
 	log.SetPrefix("[FindMe]")

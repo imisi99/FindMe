@@ -25,12 +25,12 @@ func SetupHandler(router *gin.Engine, service *Service) {
 		ctx.JSON(200, gin.H{"message": "APP is up and running"})
 	})
 
-	// User Endpoints
 	router.POST("/signup", service.AddUser)
 	router.POST("/login", service.VerifyUser)
 
 	router.GET("/github-signup", service.Git.GitHubAddUser)
 	router.GET("/api/v1/auth/github/callback", service.Git.GitHubAddUserCallback)
+	router.GET("/api/v1/auth/connect-github/callback", service.Git.ConnectGitHubCallback)
 
 	router.GET("/forgot-password", service.ForgotPassword)
 	router.GET("/verify-otp", service.VerifyOTP)
@@ -48,7 +48,9 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedUserRoutes.GET("/view-git", service.ViewGitUser)
 	protectedUserRoutes.GET("/view-user-req", service.ViewFriendReq)
 	protectedUserRoutes.GET("/view-user-friend", service.ViewUserFriends)
+	protectedUserRoutes.GET("/view-repo", service.Git.ViewRepo)
 	protectedUserRoutes.POST("/send-user-req", service.SendFriendReq)
+	protectedUserRoutes.POST("/connect-github", service.Git.ConnectGitHub)
 	protectedUserRoutes.PUT("/update-profile", service.UpdateUserInfo)
 	protectedUserRoutes.PATCH("/update-user-req", service.UpdateFriendReqStatus)
 	protectedUserRoutes.PATCH("/update-password", service.UpdateUserPassword)
@@ -65,10 +67,12 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedMsgRoutes.POST("/send-message", service.CreateMessage)
 	protectedMsgRoutes.PATCH("/edit-message", service.EditMessage)
 	protectedMsgRoutes.DELETE("/delete-message", service.DeleteMessage)
+	protectedMsgRoutes.DELETE("/delete-chat", service.DeleteChat)
 
 	protectedPostRoutes.GET("/posts/all", service.GetPosts)
 	protectedPostRoutes.GET("/view", service.ViewPost)
 	protectedPostRoutes.GET("/view-applications", service.ViewPostApplications)
+	protectedPostRoutes.GET("/view-application", service.ViewSinglePostApplication)
 	protectedPostRoutes.GET("/view/saved-post", service.ViewSavedPost)
 	protectedPostRoutes.GET("/tags", service.SearchPost)
 	protectedPostRoutes.POST("/create", service.CreatePost)
@@ -80,5 +84,6 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedPostRoutes.PATCH("/edit-status", service.EditPostAvailability)
 	protectedPostRoutes.PATCH("/update-application", service.UpdatePostApplication)
 	protectedPostRoutes.DELETE("/delete-application", service.DeletePostApplication)
+	protectedPostRoutes.DELETE("/clear-application", service.ClearPostApplication)
 	protectedPostRoutes.DELETE("/delete", service.DeletePost)
 }
