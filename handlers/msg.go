@@ -11,17 +11,14 @@ import (
 )
 
 // TODO:
-// Add a Delete chat endpoint that will remove the chat from the one user end (
+// A way to name the chats you can use before create.
+// An Endpoint for renaming chat and stuff.
+
+// DONE:
 // A add user to chat endpoint for a project chat ?
 // Select Friend to msg endpoint
 // Close message endpoint
-// Check to see if the delete user chat will cascade to the messages attached to the chats.
-// If the chat is deleted by one user does it mean it's deleted on both end ?
-// If the chat's not deleted on both end do we need a check for new msg to a deleted chat ?
-// Is this needed ?
-// If the chat is removed from the user side how will you detect new changes ?
 // It can just be modeled like discord where you can create and close msg so you can sort of start a chat by searching a friend ?
-// )
 
 // CreateMessage -> Add Message endpoint
 func (s *Service) CreateMessage(ctx *gin.Context) {
@@ -87,10 +84,8 @@ func (s *Service) ViewMessages(ctx *gin.Context) {
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
-
 	var hist schema.ViewChat
 	for _, msg := range chat.Messages {
-		hist.CID = cid
 		hist.Message = append(hist.Message, schema.ViewMessage{
 			ID:      msg.ID,
 			UserID:  uid,
@@ -122,15 +117,21 @@ func (s *Service) FetchUserChats(ctx *gin.Context) {
 	for _, chat := range user.Chats {
 		var lastChat *model.UserMessage
 		var chatName string
-		if chat.Users[0].ID == uid {
-			chatName = chat.Users[1].UserName
+		if !chat.Group {
+			if chat.Users[0].ID == uid {
+				chatName = chat.Users[1].UserName
+			} else {
+				chatName = chat.Users[0].UserName
+			}
 		} else {
-			chatName = chat.Users[0].UserName
+			chatName = chat.Name
 		}
 		if len(chat.Messages) > 0 {
 			lastChat = chat.Messages[len(chat.Messages)-1]
 			chats = append(chats, schema.ViewChat{
-				Name: chatName, CID: chat.ID, Message: []schema.ViewMessage{
+				Name: chatName,
+				CID:  chat.ID,
+				Message: []schema.ViewMessage{
 					{
 						ID:      lastChat.ID,
 						Message: lastChat.Message,
@@ -139,11 +140,13 @@ func (s *Service) FetchUserChats(ctx *gin.Context) {
 						Edited:  lastChat.UpdatedAt,
 					},
 				},
+				Group: chat.Group,
 			})
 		} else {
 			chats = append(chats, schema.ViewChat{
-				Name: chatName,
-				CID:  chat.ID,
+				Name:  chatName,
+				CID:   chat.ID,
+				Group: chat.Group,
 			})
 		}
 
@@ -222,6 +225,149 @@ func (s *Service) DeleteMessage(ctx *gin.Context) {
 	}
 
 	if err := s.DB.DeleteMsg(&msg); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, nil)
+}
+
+func (s *Service) OpenChat(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	fid := ctx.Query("id")
+	if fid == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid friend id."})
+		return
+	}
+
+	var chat model.Chat
+	if err := s.DB.FindChat(uid, fid, &chat); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	var msgs []schema.ViewMessage
+	for _, msg := range chat.Messages {
+		msgs = append(msgs, schema.ViewMessage{
+			ID:      msg.ID,
+			Message: msg.Message,
+			UserID:  msg.FromID,
+			Sent:    msg.CreatedAt,
+			Edited:  msg.UpdatedAt,
+		})
+	}
+
+	var chatName string
+	if chat.Users[0].ID == uid {
+		chatName = chat.Users[1].UserName
+	} else {
+		chatName = chat.Users[0].UserName
+	}
+
+	result := schema.ViewChat{
+		Name:    chatName,
+		CID:     chat.ID,
+		Message: msgs,
+		Group:   chat.Group,
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"msg": result})
+}
+
+// AddUserToChat -> Add a user to a chat endpoint
+func (s *Service) AddUserToChat(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	var payload schema.AddUserChat
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
+		return
+	}
+
+	var chat model.Chat
+	if err := s.DB.FetchChat(payload.ChatID, &chat); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if chat.OwnerID != &uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You aren't permitted to add users to this chat."})
+		return
+	}
+
+	if payload.UserID == uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You're already in the group."})
+		return
+	}
+
+	var user model.User
+	if err := s.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if err := s.DB.AddUserChat(&chat, &user); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "User added to Chat."})
+}
+
+// RemoveUserChat -> Remove a user from the chat
+func (s *Service) RemoveUserChat(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	var payload schema.AddUserChat
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
+		return
+	}
+
+	var chat model.Chat
+
+	if err := s.DB.FetchChat(payload.ChatID, &chat); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if chat.OwnerID != &uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You aren't permitted to remove users from this chat."})
+		return
+	}
+
+	if payload.UserID == uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can't remove yourself from the group."})
+		return
+	}
+
+	var user model.User
+	if err := s.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if err := s.DB.RemoveUserChat(&chat, &user); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return

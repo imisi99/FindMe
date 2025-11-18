@@ -2,7 +2,6 @@
 package unit
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -23,6 +22,7 @@ var (
 	id2 = ""
 	pid = ""
 	cid = ""
+	gid = ""
 )
 
 var router *gin.Engine
@@ -108,19 +108,24 @@ func superUser(db *core.GormDB) {
 
 	chat := model.Chat{}
 
+	groupchat := model.Chat{}
+	groupchat.Group = true
+	groupchat.OwnerID = &super.ID
+
 	db.DB.Create(&post)
 
 	db.DB.Create(&chat)
+	db.DB.Create(&groupchat)
 
 	db.DB.Model(&super).Association("Chats").Append(&chat)
 	db.DB.Model(&super1).Association("Chats").Append(&chat)
+	db.DB.Model(&super).Association("Chats").Append(&groupchat)
 
 	id1 = super.ID
 	id2 = super1.ID
 	pid = post.ID
 	cid = chat.ID
-	log.Println("User 1 -> ", id1)
-	log.Println("User 2 -> ", id2)
+	gid = groupchat.ID
 }
 
 func TestMain(m *testing.M) {

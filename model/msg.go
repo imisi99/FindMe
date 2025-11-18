@@ -18,8 +18,13 @@ type UserMessage struct {
 
 type Chat struct {
 	GormModel
+	Name     string
 	Messages []*UserMessage `gorm:"foreignKey:ChatID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	Users    []*User        `gorm:"many2many:chat_users"`
+
+	Group   bool `gorm:"not null"`
+	OwnerID *string
+	Owner   *User `gorm:"constraint:OnUpdate;CASCADE,OnDelete:CASCADE"`
 }
 
 type ChatUser struct {

@@ -64,9 +64,12 @@ func SetupHandler(router *gin.Engine, service *Service) {
 
 	protectedMsgRoutes.GET("/view-hist", service.ViewMessages)
 	protectedMsgRoutes.GET("/view-chats", service.FetchUserChats)
+	protectedMsgRoutes.GET("/open-chat", service.OpenChat)
 	protectedMsgRoutes.POST("/send-message", service.CreateMessage)
+	protectedMsgRoutes.PUT("/add-user", service.AddUserToChat)
 	protectedMsgRoutes.PATCH("/edit-message", service.EditMessage)
 	protectedMsgRoutes.DELETE("/delete-message", service.DeleteMessage)
+	protectedMsgRoutes.DELETE("/remove-user", service.RemoveUserChat)
 	protectedMsgRoutes.DELETE("/leave-chat", service.LeaveChat)
 
 	protectedPostRoutes.GET("/posts/all", service.GetPosts)

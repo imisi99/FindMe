@@ -78,6 +78,9 @@ type DB interface {
 	FetchMsg(msg *model.UserMessage, mid string) error
 	SaveMsg(msg *model.UserMessage) error
 	DeleteMsg(msg *model.UserMessage) error
+	FindChat(uid, fid string, chat *model.Chat) error
+	AddUserChat(chat *model.Chat, user *model.User) error
+	RemoveUserChat(chat *model.Chat, user *model.User) error
 	LeaveChat(chat *model.Chat, user *model.User) error
 }
 
@@ -756,6 +759,37 @@ func (db *GormDB) DeleteMsg(msg *model.UserMessage) error {
 	if err := db.DB.Delete(msg).Error; err != nil {
 		log.Println("Failed to delete msg with id -> ", msg.ID, "err -> ", err.Error())
 		return &CustomMessage{http.StatusInternalServerError, "Failed to delete msg."}
+	}
+	return nil
+}
+
+func (db *GormDB) FindChat(uid, fid string, chat *model.Chat) error {
+	if err := db.DB.
+		Preload("Messages").
+		Preload("Users").
+		Joins("JOIN chat_users cu1 ON cu1.chat_id = chats.id AND cu1.user_id = ?", uid).
+		Joins("JOIN chat_users cu2 ON cu2.chat_id = chats.id AND cu2.user_id = ?", fid).First(chat).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &CustomMessage{http.StatusNotFound, "Chat for friend not found."}
+		} else {
+			return &CustomMessage{http.StatusInternalServerError, "Failed to fetch chat for friend."}
+		}
+	}
+	return nil
+}
+
+func (db *GormDB) AddUserChat(chat *model.Chat, user *model.User) error {
+	if err := db.DB.Model(chat).Association("Users").Append(user); err != nil {
+		log.Printf("Unable to add user with id -> %v to chat with id -> %v, Error: %v", user.ID, chat.ID, err.Error())
+		return &CustomMessage{http.StatusInternalServerError, "Failed to add user to chat."}
+	}
+	return nil
+}
+
+func (db *GormDB) RemoveUserChat(chat *model.Chat, user *model.User) error {
+	if err := db.DB.Model(chat).Association("Users").Delete(user); err != nil {
+		log.Printf("Unable to remove user with id -> %v from chat with id -> %v, Error: %v", user.ID, chat.ID, err.Error())
+		return &CustomMessage{http.StatusInternalServerError, "Failed to remove user from chat."}
 	}
 	return nil
 }

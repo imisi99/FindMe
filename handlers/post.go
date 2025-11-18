@@ -699,6 +699,8 @@ func (s *Service) UpdatePostApplication(ctx *gin.Context) {
 	case model.StatusAccepted:
 		var err error
 		var chat model.Chat
+		chat.Group = true
+		chat.OwnerID = &uid
 
 		if post.ChatID == nil {
 			err = s.DB.UpdatePostApplicationAcceptF(&req, &user, &applicant, &post, &chat)

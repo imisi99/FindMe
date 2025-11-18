@@ -25,4 +25,10 @@ type ViewChat struct {
 	Name    string
 	CID     string
 	Message []ViewMessage
+	Group   bool
+}
+
+type AddUserChat struct {
+	ChatID string `json:"chat_id" binding:"required"`
+	UserID string `json:"user_id" binding:"required"`
 }
