@@ -111,6 +111,24 @@ func TestOpenChat(t *testing.T) {
 	assert.Contains(t, w.Body.String(), superUserName1)
 }
 
+func TestRenameChat(t *testing.T) {
+	payload := map[string]string{
+		"chat_id": gid,
+		"name":    "Bankai",
+	}
+
+	body, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodPatch, "/api/msg/rename-chat", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Contains(t, w.Body.String(), "Chat name updated successfully.")
+}
+
 func TestAddUserToChat(t *testing.T) {
 	payload := map[string]string{
 		"chat_id": gid,

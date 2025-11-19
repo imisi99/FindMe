@@ -34,13 +34,11 @@ func NewGitService(id, secret, callback string, db core.DB, client *http.Client)
 	return &GitService{ClientID: id, ClientSecret: secret, CallbackURL: callback, DB: db, Client: client}
 }
 
-// TODO:
+// DONE:
 // Add a check for already existing email when signing up and ask user to connect instead of assuming.
 // Add an endpoint for connecting to github.
-// Add a Get user repo endpoint.
 // On the signup Endpoint perform the existing userID check before the fetch for private email.
-// TODO:
-// Should Users be able to signup even if the email is not available from github.
+// Add a Get user repo endpoint.
 
 // GitHubAddUser -> Signing up user using github
 func (g *GitService) GitHubAddUser(ctx *gin.Context) {
@@ -117,6 +115,17 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 		return
 	}
 
+	var existingUser model.User
+	if err := g.DB.FindExistingGitID(&existingUser, user.ID); err == nil {
+		userToken, err := GenerateJWT(existingUser.ID, "login", JWTExpiry)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
+			return
+		}
+		ctx.JSON(http.StatusOK, gin.H{"token": userToken, "message": "Logged in successfully."})
+		return
+	}
+
 	if user.Email == "" {
 		emailReq, _ := http.NewRequest(http.MethodGet, "https://api.github.com/user/emails", nil)
 		emailReq.Header.Set("Authorization", "Bearer "+token)
@@ -148,50 +157,19 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 		}
 
 		if user.Email == "" {
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Unable to signup with github."})
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Unable to signup with github no github email."})
 			return
 		}
 
 	}
 
-	var existingUser model.User
-	if err := g.DB.FindExistingGitID(&existingUser, user.ID); err == nil {
-		userToken, err := GenerateJWT(existingUser.ID, "login", JWTExpiry)
-		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
-			return
-		}
-		ctx.JSON(http.StatusOK, gin.H{"token": userToken, "message": "Logged in successfully."})
+	if err := g.DB.CheckExistingEmail(user.Email); err == nil {
+		ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"msg": "There's an account associated with that email already!"})
 		return
 	}
 
-	if err := g.DB.CheckExistingEmail(&existingUser, user.Email); err == nil {
-		if !existingUser.GitUser {
-			existingUser.GitID = &user.ID
-			existingUser.GitUserName = &user.UserName
-			existingUser.GitUser = true
-
-			if err := g.DB.SaveUser(&existingUser); err != nil {
-				ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to log in user."})
-				return
-			}
-
-			userToken, err := GenerateJWT(existingUser.ID, "login", JWTExpiry)
-			if err != nil {
-				ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
-				return
-			}
-
-			ctx.JSON(http.StatusOK, gin.H{"token": userToken, "message": "Logged in successfully."})
-			return
-		} else {
-			ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"message": "A github accouont associated with your email already in use."})
-			return
-		}
-	}
-
 	newUsername := user.UserName
-	if err := g.DB.CheckExistingUsername(&existingUser, newUsername); err == nil {
+	if err := g.DB.CheckExistingUsername(newUsername); err == nil {
 		newUsername = core.GenerateUsername(existingUser.UserName)
 	}
 

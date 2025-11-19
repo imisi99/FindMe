@@ -15,7 +15,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// TODO:
+// DONE:
 // Use index for all ids in the ERM
 // Rewrite all searches to use DB fast lookups instead of preloading.
 

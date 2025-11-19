@@ -72,6 +72,7 @@ func TestGitSignup(t *testing.T) {
 
 func TestGitConnect(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPost, "/api/user/connect-github", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -81,6 +82,7 @@ func TestGitConnect(t *testing.T) {
 
 func TestGitViewRepo(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-repo", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -174,6 +176,18 @@ func TestViewUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "isongrichard234@gmail.com")
+	assert.Contains(t, w.Body.String(), defPostDescription)
+}
+
+func TestGetUser(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/get-user?id="+id1, nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), superUserName)
 	assert.Contains(t, w.Body.String(), defPostDescription)
 }
 

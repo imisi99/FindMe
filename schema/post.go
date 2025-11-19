@@ -43,4 +43,5 @@ type ViewPostApplication struct {
 	Status   string
 	Message  string
 	Username string
+	Sent     time.Time
 }

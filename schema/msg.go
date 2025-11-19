@@ -32,3 +32,8 @@ type AddUserChat struct {
 	ChatID string `json:"chat_id" binding:"required"`
 	UserID string `json:"user_id" binding:"required"`
 }
+
+type RenameChat struct {
+	ChatID string `json:"chat_id" binding:"required"`
+	Name   string `json:"name" binding:"required"`
+}

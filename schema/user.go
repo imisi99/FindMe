@@ -1,5 +1,7 @@
 package schema
 
+import "time"
+
 type SignupRequest struct {
 	FullName string   `json:"fullname" binding:"required"`
 	UserName string   `json:"username" binding:"required"`
@@ -95,9 +97,11 @@ type FriendReqStatus struct {
 	Username string
 	Message  string
 	Status   string
+	Sent     time.Time
 }
 
 type ViewFriends struct {
+	ID       string
 	Username string
 	Bio      string
 }

@@ -11,14 +11,17 @@ import (
 )
 
 // TODO:
-// A way to name the chats you can use before create.
-// An Endpoint for renaming chat and stuff.
+// A way to name the group chats you can use before create.
 
 // DONE:
 // A add user to chat endpoint for a project chat ?
 // Select Friend to msg endpoint
 // Close message endpoint
 // It can just be modeled like discord where you can create and close msg so you can sort of start a chat by searching a friend ?
+// An Endpoint for renaming chat and stuff.
+
+// FIX:
+// possibly if you search for the existing chat between users you can bring up group chat ?
 
 // CreateMessage -> Add Message endpoint
 func (s *Service) CreateMessage(ctx *gin.Context) {
@@ -281,6 +284,42 @@ func (s *Service) OpenChat(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"msg": result})
 }
 
+// RenameChat -> Rename the group chat endpoint
+func (s *Service) RenameChat(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	var payload schema.RenameChat
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
+		return
+	}
+
+	var chat model.Chat
+	if err := s.DB.FetchChat(payload.ChatID, &chat); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if *chat.OwnerID != uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You don't have permission to rename this group chat."})
+		return
+	}
+
+	chat.Name = payload.Name
+	if err := s.DB.SaveChat(&chat); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Chat name updated successfully."})
+}
+
 // AddUserToChat -> Add a user to a chat endpoint
 func (s *Service) AddUserToChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
@@ -302,7 +341,7 @@ func (s *Service) AddUserToChat(ctx *gin.Context) {
 		return
 	}
 
-	if chat.OwnerID != &uid {
+	if *chat.OwnerID != uid {
 		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You aren't permitted to add users to this chat."})
 		return
 	}
@@ -350,7 +389,7 @@ func (s *Service) RemoveUserChat(ctx *gin.Context) {
 		return
 	}
 
-	if chat.OwnerID != &uid {
+	if *chat.OwnerID != uid {
 		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You aren't permitted to remove users from this chat."})
 		return
 	}

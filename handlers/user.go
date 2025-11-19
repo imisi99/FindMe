@@ -13,8 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO:
-
 // DONE:
 // Return user IDs across all places
 // Don't include the user in the search user with tags endpoint
@@ -22,6 +20,9 @@ import (
 // Check that only sent friend req can be deleted but rec friend req can be ignored
 // Find users chat before deleting friend to pass as an arg.
 // Find a more efficient way to find existing friend req, and exising friend and also delete one
+// Return User Ids in profile and stuff.
+// Add a sent tag with the view friend req endpoint
+// Should there be a fetch user by id like for searching ?
 
 // AddUser -> Sign up endpoint for user
 func (s *Service) AddUser(ctx *gin.Context) {
@@ -109,6 +110,62 @@ func (s *Service) VerifyUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"token": jwtToken})
 }
 
+// GetUser -> Fetch User by ID endpoint
+func (s *Service) GetUser(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	userID := ctx.Query("id")
+	if userID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "User id not in query."})
+		return
+	}
+
+	var user model.User
+	if err := s.DB.FetchUserPreloadSP(&user, userID); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	var skills []string
+	for _, skill := range user.Skills {
+		skills = append(skills, skill.Name)
+	}
+
+	profile := schema.UserProfileResponse{
+		ID:           user.ID,
+		UserName:     user.UserName,
+		FullName:     user.FullName,
+		Email:        user.Email,
+		GitUserName:  user.GitUserName,
+		Gituser:      user.GitUser,
+		Bio:          user.Bio,
+		Availability: user.Availability,
+		Skills:       skills,
+	}
+
+	var posts []schema.PostResponse
+	for _, post := range user.Posts {
+		var tags []string
+		for _, tag := range post.Tags {
+			tags = append(tags, tag.Name)
+		}
+		posts = append(posts, schema.PostResponse{
+			ID:          post.ID,
+			Description: post.Description,
+			Tags:        tags,
+			CreatedAt:   post.CreatedAt,
+			UpdatedAt:   post.UpdatedAt,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"user": profile, "post": posts})
+}
+
 // GetUserInfo ->  user info enpoint
 func (s *Service) GetUserInfo(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
@@ -131,6 +188,7 @@ func (s *Service) GetUserInfo(ctx *gin.Context) {
 	}
 
 	profile := schema.UserProfileResponse{
+		ID:           user.ID,
 		UserName:     user.UserName,
 		FullName:     user.FullName,
 		Email:        user.Email,
@@ -385,6 +443,7 @@ func (s *Service) ViewFriendReq(ctx *gin.Context) {
 			Status:   fr.Status,
 			Username: fr.Friend.UserName,
 			Message:  fr.Message,
+			Sent:     fr.CreatedAt,
 		})
 	}
 
@@ -394,6 +453,7 @@ func (s *Service) ViewFriendReq(ctx *gin.Context) {
 			Status:   fr.Status,
 			Username: fr.User.UserName,
 			Message:  fr.Message,
+			Sent:     fr.CreatedAt,
 		})
 	}
 
@@ -510,6 +570,7 @@ func (s *Service) ViewUserFriends(ctx *gin.Context) {
 	var friends []schema.ViewFriends
 	for _, fr := range user.Friends {
 		friends = append(friends, schema.ViewFriends{
+			ID:       fr.ID,
 			Username: fr.UserName,
 			Bio:      fr.Bio,
 		})
@@ -537,7 +598,7 @@ func (s *Service) DeleteUserFriend(ctx *gin.Context) {
 		return
 	}
 	var user, friend model.User
-	if err := s.DB.FetchUserPreloadF(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -697,6 +758,7 @@ func (s *Service) UpdateUserInfo(ctx *gin.Context) {
 	}
 
 	profile := schema.UserProfileResponse{
+		ID:           user.ID,
 		UserName:     user.UserName,
 		FullName:     user.FullName,
 		Email:        user.Email,

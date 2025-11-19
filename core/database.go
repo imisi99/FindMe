@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// TODO:
+// DONE:
 // Let all Checks for existing records use count.
 
 type DB interface {
@@ -18,13 +18,14 @@ type DB interface {
 	AddUser(user *model.User) error
 	CheckExistingUser(user *model.User, email, username string) error
 	CheckExistingUserUpdate(user *model.User, email, username, uid string) error
-	CheckExistingEmail(user *model.User, email string) error
-	CheckExistingUsername(user *model.User, username string) error
+	CheckExistingEmail(email string) error
+	CheckExistingUsername(username string) error
 	CheckExistingFriends(uid, fid string) (error, bool)
 	CheckExistingFriendReq(uid, fid string) (error, bool)
 	VerifyUser(user *model.User, username string) error
 	SaveUser(user *model.User) error
 	FetchUser(user *model.User, uid string) error
+	FetchUserPreloadSP(user *model.User, uid string) error
 	FetchUserPreloadS(user *model.User, uid string) error
 	FetchUserPreloadF(user *model.User, uid string) error
 	FetchUserPreloadFReq(user *model.User, uid string) error
@@ -77,6 +78,7 @@ type DB interface {
 	FetchUserPreloadC(user *model.User, uid string) error
 	FetchMsg(msg *model.UserMessage, mid string) error
 	SaveMsg(msg *model.UserMessage) error
+	SaveChat(chat *model.Chat) error
 	DeleteMsg(msg *model.UserMessage) error
 	FindChat(uid, fid string, chat *model.Chat) error
 	AddUserChat(chat *model.Chat, user *model.User) error
@@ -189,6 +191,17 @@ func (db *GormDB) FetchUser(user *model.User, uid string) error {
 	return nil
 }
 
+func (db *GormDB) FetchUserPreloadSP(user *model.User, uid string) error {
+	if err := db.DB.Preload("Posts.Tags").Preload("Skills").Where("id = ?", uid).First(user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &CustomMessage{http.StatusNotFound, "User not found."}
+		} else {
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to retrieve user."}
+		}
+	}
+	return nil
+}
+
 func (db *GormDB) FetchUserPreloadS(user *model.User, uid string) error {
 	if err := db.DB.Preload("Skills").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -245,7 +258,7 @@ func (db *GormDB) SearchUserEmail(user *model.User, email string) error {
 }
 
 func (db *GormDB) SearchUserPreloadSP(user *model.User, username string) error {
-	if err := db.DB.Preload("Skills").Preload("Posts").Where("username = ?", username).First(user).Error; err != nil {
+	if err := db.DB.Preload("Skills").Preload("Posts.Tags").Where("username = ?", username).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
 		} else {
@@ -256,7 +269,7 @@ func (db *GormDB) SearchUserPreloadSP(user *model.User, username string) error {
 }
 
 func (db *GormDB) SearchUserGitPreloadSP(user *model.User, gitusername string) error {
-	if err := db.DB.Preload("Skills").Preload("Posts").Where("gitusername = ?", gitusername).First(user).Error; err != nil {
+	if err := db.DB.Preload("Skills").Preload("Posts.Tags").Where("gitusername = ?", gitusername).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
 		} else {
@@ -670,18 +683,36 @@ func (db *GormDB) FindExistingSkills(skills *[]*model.Skill, skill []string) err
 }
 
 func (db *GormDB) FindExistingGitID(user *model.User, gitid int64) error {
-	err := db.DB.Where("gitid = ?", gitid).First(user).Error
-	return err
+	if err := db.DB.Where("gitid = ?", gitid).First(user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &CustomMessage{http.StatusNotFound, "User with gitid not found."}
+		} else {
+			return &CustomMessage{http.StatusInternalServerError, "Failed to check for user by gitid."}
+		}
+	}
+	return nil
 }
 
-func (db *GormDB) CheckExistingEmail(user *model.User, email string) error {
-	err := db.DB.Where("email = ?", email).First(user).Error
-	return err
+func (db *GormDB) CheckExistingEmail(email string) error {
+	var count int64
+	if err := db.DB.Model(&model.User{}).Where("email = ?", email).Count(&count).Error; err != nil {
+		return &CustomMessage{http.StatusInternalServerError, "Failed to check for user by email."}
+	}
+	if count > 0 {
+		return &CustomMessage{http.StatusConflict, "Email already in use!"}
+	}
+	return nil
 }
 
-func (db *GormDB) CheckExistingUsername(user *model.User, username string) error {
-	err := db.DB.Where("username = ?", username).First(user).Error
-	return err
+func (db *GormDB) CheckExistingUsername(username string) error {
+	var count int64
+	if err := db.DB.Model(&model.User{}).Where("username = ?", username).Count(&count).Error; err != nil {
+		return &CustomMessage{http.StatusInternalServerError, "Failed to check for user by email."}
+	}
+	if count > 0 {
+		return &CustomMessage{http.StatusConflict, "Username already in use!"}
+	}
+	return nil
 }
 
 func (db *GormDB) AddMessage(msg *model.UserMessage) error {
@@ -751,6 +782,14 @@ func (db *GormDB) SaveMsg(msg *model.UserMessage) error {
 	if err := db.DB.Save(msg).Error; err != nil {
 		log.Println("Failed to save msg with id -> ", msg.ID, "err -> ", err.Error())
 		return &CustomMessage{http.StatusInternalServerError, "Failed to edit msg."}
+	}
+	return nil
+}
+
+func (db *GormDB) SaveChat(chat *model.Chat) error {
+	if err := db.DB.Save(chat).Error; err != nil {
+		log.Printf("Failed to save chat with id -> %v, err -> %v", chat.ID, err.Error())
+		return &CustomMessage{http.StatusInternalServerError, "Failed to edit chat."}
 	}
 	return nil
 }

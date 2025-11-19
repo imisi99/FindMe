@@ -24,7 +24,7 @@ type Chat struct {
 
 	Group   bool `gorm:"not null"`
 	OwnerID *string
-	Owner   *User `gorm:"constraint:OnUpdate;CASCADE,OnDelete:CASCADE"`
+	Owner   *User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 type ChatUser struct {

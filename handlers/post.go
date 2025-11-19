@@ -16,13 +16,13 @@ import (
 // TODO:
 // Add a better way to check for already applied post in
 
-// Maybe an endpoint to add the project to a github project?
 // DONE:
 // Should there also be a applications on a post for easy tracking ? (This can also be used to check for existing req to a post)
 // Possibly a chat group to be associated to the post nah (This can be used instead of enforcing a friendship)
 // Remove user's post in the search for post tags ?
 // An Endpoint to clear all applications on a post or rejected one ?
 // Remodel requests to delete after ignored or rejected
+// An endpoint to link the project to a github project?
 
 // GetPosts -> Endpoint for getting all user posts
 func (s *Service) GetPosts(ctx *gin.Context) {
@@ -142,7 +142,9 @@ func (s *Service) ViewSinglePostApplication(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"req": result})
-} // SearchPost -> Endpoint for searching post with tags
+}
+
+// SearchPost -> Endpoint for searching post with tags
 func (s *Service) SearchPost(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
@@ -283,6 +285,11 @@ func (s *Service) EditPost(ctx *gin.Context) {
 
 	post.Description = payload.Description
 
+	if payload.Git {
+		post.GitProject = true
+		post.GitLink = payload.GitLink
+	}
+
 	if err := s.DB.EditPost(&post, allskills); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
@@ -301,7 +308,7 @@ func (s *Service) EditPost(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"post": result})
 }
 
-// EditPostView -> Ednpoint for updating a post view
+// EditPostView -> Endpoint for updating a post view
 func (s *Service) EditPostView(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
@@ -562,6 +569,11 @@ func (s *Service) ApplyForPost(ctx *gin.Context) {
 		return
 	}
 
+	if !post.Availability {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "The owner of the post is no longer accepting applications."})
+		return
+	}
+
 	for _, req := range post.Applications {
 		if req.FromID == uid {
 			ctx.JSON(http.StatusConflict, gin.H{"msg": "You have already submitted a request to this post."})
@@ -571,11 +583,6 @@ func (s *Service) ApplyForPost(ctx *gin.Context) {
 
 	if post.UserID == uid {
 		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can't apply for your own post."})
-		return
-	}
-
-	if !post.Availability {
-		ctx.JSON(http.StatusForbidden, gin.H{"msg": "The owner of the post is no longer accepting applications."})
 		return
 	}
 
@@ -628,6 +635,7 @@ func (s *Service) ViewPostApplications(ctx *gin.Context) {
 			Username: rq.ToUser.UserName,
 			Message:  rq.Message,
 			Status:   rq.Status,
+			Sent:     rq.CreatedAt,
 		})
 	}
 
@@ -637,6 +645,7 @@ func (s *Service) ViewPostApplications(ctx *gin.Context) {
 			Username: rq.FromUser.UserName,
 			Message:  rq.Message,
 			Status:   rq.Status,
+			Sent:     rq.CreatedAt,
 		})
 	}
 

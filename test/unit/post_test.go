@@ -20,7 +20,7 @@ var (
 	}
 	defPostDescription = "Working on a platform for finding developers for contributive project"
 	reqPayload         = map[string]string{
-		"msg": "hey I'm interested in this projec",
+		"msg": "hey I'm interested in this project",
 	}
 	post    PostResponse
 	postReq PostApplicationResponse
