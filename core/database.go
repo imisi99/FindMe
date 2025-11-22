@@ -22,6 +22,7 @@ type DB interface {
 	CheckExistingUsername(username string) error
 	CheckExistingFriends(uid, fid string) (error, bool)
 	CheckExistingFriendReq(uid, fid string) (error, bool)
+	CheckExistingAppReq(pid, uid string) (error, bool)
 	VerifyUser(user *model.User, username string) error
 	SaveUser(user *model.User) error
 	FetchUser(user *model.User, uid string) error
@@ -84,6 +85,7 @@ type DB interface {
 	AddUserChat(chat *model.Chat, user *model.User) error
 	RemoveUserChat(chat *model.Chat, user *model.User) error
 	LeaveChat(chat *model.Chat, user *model.User) error
+	DeleteChat(chat *model.Chat) error
 }
 
 type GormDB struct {
@@ -154,6 +156,17 @@ func (db *GormDB) CheckExistingFriendReq(uid, fid string) (error, bool) {
 	var count int64
 	if err := db.DB.Model(&model.FriendReq{}).Where("(user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)", uid, fid, fid, uid).Count(&count).Error; err != nil {
 		return &CustomMessage{http.StatusInternalServerError, "Failed to check for existing friend req."}, false
+	}
+	if count > 0 {
+		return &CustomMessage{http.StatusConflict, "An existing request exists."}, true
+	}
+	return nil, false
+}
+
+func (db *GormDB) CheckExistingAppReq(pid, uid string) (error, bool) {
+	var count int64
+	if err := db.DB.Model(&model.PostReq{}).Where("(post_id = ? AND from_id = ?)", pid, uid).Count(&count).Error; err != nil {
+		return &CustomMessage{http.StatusInternalServerError, "Failed to check for existing post application req."}, false
 	}
 	if count > 0 {
 		return &CustomMessage{http.StatusConflict, "An existing request exists."}, true
@@ -569,7 +582,7 @@ func (db *GormDB) ViewPostApplications(user *model.User, uid string) error {
 }
 
 func (db *GormDB) FetchPostApplication(req *model.PostReq, rid string) error {
-	if err := db.DB.Preload("FromUser").Preload("Post").Where("id = ?", rid).First(req).Error; err != nil {
+	if err := db.DB.Preload("FromUser").Preload("ToUser").Preload("Post.Chat").Where("id = ?", rid).First(req).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "Post request not found."}
 		} else {
@@ -807,10 +820,13 @@ func (db *GormDB) FindChat(uid, fid string, chat *model.Chat) error {
 		Preload("Messages").
 		Preload("Users").
 		Joins("JOIN chat_users cu1 ON cu1.chat_id = chats.id AND cu1.user_id = ?", uid).
-		Joins("JOIN chat_users cu2 ON cu2.chat_id = chats.id AND cu2.user_id = ?", fid).First(chat).Error; err != nil {
+		Joins("JOIN chat_users cu2 ON cu2.chat_id = chats.id AND cu2.user_id = ?", fid).
+		Where("\"group\" = ?", false).
+		First(chat).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{http.StatusNotFound, "Chat for friend not found."}
 		} else {
+			log.Println(err.Error())
 			return &CustomMessage{http.StatusInternalServerError, "Failed to fetch chat for friend."}
 		}
 	}
@@ -837,6 +853,14 @@ func (db *GormDB) LeaveChat(chat *model.Chat, user *model.User) error {
 	if err := db.DB.Model(chat).Association("Users").Delete(user); err != nil {
 		log.Println("Failed to remove user from chat with ID -> ", err.Error())
 		return &CustomMessage{http.StatusInternalServerError, "Failed to leave chat."}
+	}
+	return nil
+}
+
+func (db *GormDB) DeleteChat(chat *model.Chat) error {
+	if err := db.DB.Delete(chat).Error; err != nil {
+		log.Printf("Unable to delete a group chat with id -> %v , err -> %v ", chat.ID, err.Error())
+		return &CustomMessage{http.StatusInternalServerError, "Failed to delete chat."}
 	}
 	return nil
 }

@@ -11,7 +11,7 @@ import (
 )
 
 // TODO:
-// A way to name the group chats you can use before create.
+// Add a delete group chat endpoint where owners can delete the chat.
 
 // DONE:
 // A add user to chat endpoint for a project chat ?
@@ -19,8 +19,7 @@ import (
 // Close message endpoint
 // It can just be modeled like discord where you can create and close msg so you can sort of start a chat by searching a friend ?
 // An Endpoint for renaming chat and stuff.
-
-// FIX:
+// A way to name the group chats you can use before create.
 // possibly if you search for the existing chat between users you can bring up group chat ?
 
 // CreateMessage -> Add Message endpoint
@@ -236,6 +235,7 @@ func (s *Service) DeleteMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
+// OpenChat -> Endpoint for opening a chat between users with IDs.
 func (s *Service) OpenChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
@@ -444,6 +444,41 @@ func (s *Service) LeaveChat(ctx *gin.Context) {
 	}
 
 	if err := s.DB.LeaveChat(&chat, &user); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, nil)
+}
+
+// DeleteChat -> Delete a group chat endpoint.
+func (s *Service) DeleteChat(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	cid := ctx.Query("id")
+	if cid == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid chat id."})
+		return
+	}
+
+	var chat model.Chat
+	if err := s.DB.FetchChat(cid, &chat); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if *chat.OwnerID != uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You don't have the permission to delete this chat."})
+		return
+	}
+
+	if err := s.DB.DeleteChat(&chat); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return

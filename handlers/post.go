@@ -13,9 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO:
-// Add a better way to check for already applied post in
-
 // DONE:
 // Should there also be a applications on a post for easy tracking ? (This can also be used to check for existing req to a post)
 // Possibly a chat group to be associated to the post nah (This can be used instead of enforcing a friendship)
@@ -23,6 +20,7 @@ import (
 // An Endpoint to clear all applications on a post or rejected one ?
 // Remodel requests to delete after ignored or rejected
 // An endpoint to link the project to a github project?
+// Add a better way to check for already applied post in
 
 // GetPosts -> Endpoint for getting all user posts
 func (s *Service) GetPosts(ctx *gin.Context) {
@@ -425,7 +423,7 @@ func (s *Service) SavePost(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := s.DB.FetchUserPreloadB(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -513,7 +511,7 @@ func (s *Service) RemoveSavedPost(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := s.DB.FetchUserPreloadB(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -574,11 +572,10 @@ func (s *Service) ApplyForPost(ctx *gin.Context) {
 		return
 	}
 
-	for _, req := range post.Applications {
-		if req.FromID == uid {
-			ctx.JSON(http.StatusConflict, gin.H{"msg": "You have already submitted a request to this post."})
-			return
-		}
+	if err, exists := s.DB.CheckExistingAppReq(pid, uid); err != nil || exists {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
 	}
 
 	if post.UserID == uid {
@@ -665,6 +662,16 @@ func (s *Service) UpdatePostApplication(ctx *gin.Context) {
 		return
 	}
 
+	var payload schema.RejectApplication
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, "Failed to parse the payload.")
+		return
+	}
+
+	if payload.Reason == "" {
+		payload.Reason = "The author of the project didn't add a reason."
+	}
+
 	var req model.PostReq
 	if err := s.DB.FetchPostApplication(&req, rid); err != nil {
 		cm := err.(*core.CustomMessage)
@@ -672,27 +679,7 @@ func (s *Service) UpdatePostApplication(ctx *gin.Context) {
 		return
 	}
 
-	var post model.Post
-	if err := s.DB.FetchPostPreloadC(&post, req.PostID); err != nil {
-		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
-		return
-	}
-
-	var user, applicant model.User
-	if err := s.DB.FetchUser(&user, uid); err != nil {
-		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
-		return
-	}
-
-	if err := s.DB.FetchUser(&applicant, req.FromID); err != nil {
-		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
-		return
-	}
-
-	if req.ToID != user.ID {
+	if req.ToID != uid {
 		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You don't have permission to update this application."})
 		return
 	}
@@ -704,17 +691,17 @@ func (s *Service) UpdatePostApplication(ctx *gin.Context) {
 			ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 			return
 		}
-		_ = s.Email.SendPostApplicationReject(applicant.Email, user.UserName, applicant.UserName, post.Description, "reason")
+		_ = s.Email.SendPostApplicationReject(req.FromUser.Email, req.ToUser.UserName, req.FromUser.UserName, req.Post.Description, payload.Reason)
 	case model.StatusAccepted:
 		var err error
-		var chat model.Chat
-		chat.Group = true
-		chat.OwnerID = &uid
 
-		if post.ChatID == nil {
-			err = s.DB.UpdatePostApplicationAcceptF(&req, &user, &applicant, &post, &chat)
+		if req.Post.ChatID == nil {
+			var chat model.Chat
+			chat.Group = true
+			chat.OwnerID = &uid
+			err = s.DB.UpdatePostApplicationAcceptF(&req, req.ToUser, req.FromUser, req.Post, &chat)
 		} else {
-			err = s.DB.UpdatePostApplicationAccept(&req, &applicant, post.Chat)
+			err = s.DB.UpdatePostApplicationAccept(&req, req.FromUser, req.Post.Chat)
 		}
 
 		if err != nil {
@@ -723,7 +710,7 @@ func (s *Service) UpdatePostApplication(ctx *gin.Context) {
 			return
 		}
 
-		_ = s.Email.SendPostApplicationAccept(applicant.Email, user.UserName, applicant.UserName, req.Post.Description, "")
+		_ = s.Email.SendPostApplicationAccept(req.FromUser.Email, req.ToUser.UserName, req.FromUser.UserName, req.Post.Description, "")
 	default:
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid status."})
 		return

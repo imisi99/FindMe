@@ -227,7 +227,7 @@ func TestViewSinglePostApplications(t *testing.T) {
 }
 
 func TestUpdatePostApplicationInvalidStatus(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+postReq.ReqID+"&status=invalidstatus", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+postReq.ReqID+"&status=invalidstatus", bytes.NewBufferString(`{}`))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -238,7 +238,7 @@ func TestUpdatePostApplicationInvalidStatus(t *testing.T) {
 }
 
 func TestUpdatePostApplicationReject(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+postReq.ReqID+"&status=rejected", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+postReq.ReqID+"&status=rejected", bytes.NewBufferString(`{}`))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -262,7 +262,7 @@ func TestCreatePostApplicationToAccept(t *testing.T) {
 }
 
 func TestUpdatePostApplicationAccept(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+postReq.ReqID+"&status=accepted", nil)
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+postReq.ReqID+"&status=accepted", bytes.NewBufferString(`{}`))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()

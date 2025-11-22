@@ -73,6 +73,7 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedMsgRoutes.DELETE("/delete-message", service.DeleteMessage)
 	protectedMsgRoutes.DELETE("/remove-user", service.RemoveUserChat)
 	protectedMsgRoutes.DELETE("/leave-chat", service.LeaveChat)
+	protectedMsgRoutes.DELETE("/delete-chat", service.DeleteChat)
 
 	protectedPostRoutes.GET("/posts/all", service.GetPosts)
 	protectedPostRoutes.GET("/view", service.ViewPost)

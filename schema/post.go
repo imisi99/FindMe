@@ -30,6 +30,10 @@ type ApplicationPostResponse struct {
 	Applications []ViewPostApplication
 }
 
+type RejectApplication struct {
+	Reason string `json:"msg" binding:"omitempty"`
+}
+
 type PostApplication struct {
 	Message string `json:"msg" binding:"omitempty,max=50"`
 }

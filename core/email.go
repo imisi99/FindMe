@@ -26,7 +26,7 @@ func NewEmail(server, addr, pass string, port int) *MyEmail {
 	return &MyEmail{Server: server, MailPort: port, Addr: addr, Password: pass}
 }
 
-// TODO:
+// DONE:
 // The sending of email for a new post application is not working and the Subject is not descriptive
 // The sending of email for the accepting of post request is not working
 // Implement a sending of email for rejected post request
@@ -235,8 +235,8 @@ func (e *MyEmail) SendPostApplicationEmail(email, fromUsername, toUsername, mess
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "New Post Application")
-	msg.SetHeader("text/html", htmlBody)
+	msg.SetHeader("Subject", "New Post Application Request")
+	msg.SetBody("text/html", htmlBody)
 
 	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
 
@@ -310,8 +310,8 @@ func (e *MyEmail) SendPostApplicationAccept(email, fromUsername, toUsername, mes
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "Application Update")
-	msg.SetHeader("text/html", htmlBody)
+	msg.SetHeader("Subject", "Post Application Update")
+	msg.SetBody("text/html", htmlBody)
 
 	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
 
@@ -385,8 +385,8 @@ func (e *MyEmail) SendPostApplicationReject(email, fromUsername, toUsername, mes
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "Application Update")
-	msg.SetHeader("text/html", htmlBody)
+	msg.SetHeader("Subject", "Post Application Update")
+	msg.SetBody("text/html", htmlBody)
 
 	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
 

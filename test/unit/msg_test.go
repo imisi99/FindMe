@@ -163,11 +163,38 @@ func TestRemoveUserFromChat(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }
 
-func TestLeaveChat(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/msg/leave-chat?id="+cid, nil)
+func TestAddUserToChatToLeave(t *testing.T) {
+	payload := map[string]string{
+		"chat_id": gid,
+		"user_id": id2,
+	}
+
+	body, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodPut, "/api/msg/add-user", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+}
+
+func TestLeaveChat(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodDelete, "/api/msg/leave-chat?id="+gid, nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString1)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
+func TestDeleteChat(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodDelete, "/api/msg/delete-chat?id="+gid, nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }

@@ -28,6 +28,7 @@ import (
 func (s *Service) AddUser(ctx *gin.Context) {
 	var payload schema.SignupRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		log.Println(err)
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
 		return
 	}
@@ -476,7 +477,7 @@ func (s *Service) UpdateFriendReqStatus(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := s.DB.FetchUserPreloadF(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -489,7 +490,7 @@ func (s *Service) UpdateFriendReqStatus(ctx *gin.Context) {
 
 	var friend model.User
 	var chat model.Chat
-	if err := s.DB.FetchUserPreloadF(&friend, req.UserID); err != nil {
+	if err := s.DB.FetchUser(&friend, req.UserID); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -860,7 +861,7 @@ func (s *Service) UpdateUserSkills(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := s.DB.FetchUserPreloadS(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return

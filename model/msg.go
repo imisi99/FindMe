@@ -2,9 +2,20 @@
 package model
 
 import (
+	"math/rand"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+var groupnames = []string{
+	"alpha-room",
+	"collab-space",
+	"innovation-lab",
+	"dev-dungeon",
+	"mission-base",
+	"brainstorm-hub",
+}
 
 type UserMessage struct {
 	GormModel
@@ -39,6 +50,12 @@ func (c *Chat) BeforeCreate(tx *gorm.DB) (err error) {
 	if c.ID == "" {
 		c.ID = uuid.NewString()
 	}
+
+	if c.Group {
+		idx := rand.Intn(len(groupnames))
+		c.Name = groupnames[idx]
+	}
+
 	return err
 }
 
