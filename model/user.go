@@ -20,15 +20,15 @@ type User struct {
 	Availability bool
 
 	// Relations:
-	Skills       []*Skill     `gorm:"many2many:user_skills"`
-	Posts        []*Post      `gorm:"foreignKey:UserID"`
-	SavedPosts   []*Post      `gorm:"many2many:user_saved_posts"`
-	Friends      []*User      `gorm:"many2many:user_friends"`
-	FriendReq    []*FriendReq `gorm:"foreignKey:UserID"`
-	RecFriendReq []*FriendReq `gorm:"foreignKey:FriendID"`
-	Chats        []*Chat      `gorm:"many2many:chat_users"`
-	SentPostReq  []*PostReq   `gorm:"foreignKey:FromID"`
-	RecPostReq   []*PostReq   `gorm:"foreignKey:ToID"`
+	Skills         []*Skill      `gorm:"many2many:user_skills"`
+	Projects       []*Project    `gorm:"foreignKey:UserID"`
+	SavedProjects  []*Project    `gorm:"many2many:user_saved_posts"`
+	Friends        []*User       `gorm:"many2many:user_friends"`
+	FriendReq      []*FriendReq  `gorm:"foreignKey:UserID"`
+	RecFriendReq   []*FriendReq  `gorm:"foreignKey:FriendID"`
+	Chats          []*Chat       `gorm:"many2many:chat_users"`
+	SentProjectReq []*ProjectReq `gorm:"foreignKey:FromID"`
+	RecProjectReq  []*ProjectReq `gorm:"foreignKey:ToID"`
 }
 
 type UserFriend struct {
@@ -48,13 +48,13 @@ type UserSkill struct {
 	User *User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
-type UserSavedPost struct {
-	UserID string `gorm:"primaryKey"`
-	PostID string `gorm:"primaryKey"`
+type UserSavedProject struct {
+	UserID    string `gorm:"primaryKey"`
+	ProjectID string `gorm:"primaryKey"`
 
 	// Relations:
-	User *User `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Post *Post `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	User    *User    `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Project *Project `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 type FriendReq struct {
@@ -85,7 +85,7 @@ func (f *FriendReq) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (u *User) BeforeDelete(tx *gorm.DB) (err error) {
-	if err := tx.Model(&Post{}).Where("user_id = ?", u.ID).Delete(&Post{}).Error; err != nil {
+	if err := tx.Model(&Project{}).Where("user_id = ?", u.ID).Delete(&Project{}).Error; err != nil {
 		return err
 	}
 	return nil

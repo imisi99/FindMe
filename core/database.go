@@ -45,30 +45,30 @@ type DB interface {
 	UpdateSkills(user *model.User, skills []*model.Skill) error
 	DeleteSkills(user *model.User, skills []*model.Skill) error
 	DeleteUser(user *model.User) error
-	AddPost(post *model.Post) error
-	FetchUserPosts(user *model.User, uid string) error
-	FetchPost(post *model.Post, pid string) error
-	FetchPostPreloadT(post *model.Post, pid string) error
-	FetchPostPreloadTU(post *model.Post, pid string) error
-	FetchPostPreloadA(post *model.Post, pid string) error
-	FetchPostPreloadC(post *model.Post, pid string) error
-	EditPost(post *model.Post, skills []*model.Skill) error
-	SavePost(post *model.Post) error
-	BookmarkPost(user *model.User, post *model.Post) error
+	AddProject(project *model.Project) error
+	FetchUserProjects(user *model.User, uid string) error
+	FetchProject(project *model.Project, pid string) error
+	FetchProjectPreloadT(project *model.Project, pid string) error
+	FetchProjectPreloadTU(project *model.Project, pid string) error
+	FetchProjectPreloadA(project *model.Project, pid string) error
+	FetchProjectPreloadC(project *model.Project, pid string) error
+	EditProject(project *model.Project, skills []*model.Skill) error
+	SaveProject(project *model.Project) error
+	BookmarkProject(user *model.User, project *model.Project) error
 	FetchUserPreloadB(user *model.User, uid string) error
-	FetchPostPreloadU(post *model.Post, pid string) error
-	SearchPostsBySKills(posts *[]model.Post, skills []string, uid string) error
-	RemoveBookmarkedPost(user *model.User, post *model.Post) error
-	AddPostApplicationReq(req *model.PostReq) error
-	ViewPostApplications(user *model.User, uid string) error
-	FetchPostApplication(req *model.PostReq, rid string) error
-	UpdatePostAppliationReject(req *model.PostReq) error
-	UpdatePostApplicationAccept(req *model.PostReq, user *model.User, chat *model.Chat) error
-	UpdatePostApplicationAcceptF(req *model.PostReq, user1, user2 *model.User, post *model.Post, chat *model.Chat) error
-	FetchPostAppPreloadFU(req *model.PostReq, rid string) error
-	DeletePostApplicationReq(req *model.PostReq) error
-	ClearPostApplication(req []*model.PostReq) error
-	DeletePost(post *model.Post) error
+	FetchProjectPreloadU(project *model.Project, pid string) error
+	SearchProjectsBySKills(projects *[]model.Project, skills []string, uid string) error
+	RemoveBookmarkedProject(user *model.User, project *model.Project) error
+	AddProjectApplicationReq(req *model.ProjectReq) error
+	ViewProjectApplications(user *model.User, uid string) error
+	FetchProjectApplication(req *model.ProjectReq, rid string) error
+	UpdateProjectAppliationReject(req *model.ProjectReq) error
+	UpdateProjectApplicationAccept(req *model.ProjectReq, user *model.User, chat *model.Chat) error
+	UpdateProjectApplicationAcceptF(req *model.ProjectReq, user1, user2 *model.User, project *model.Project, chat *model.Chat) error
+	FetchProjectAppPreloadFU(req *model.ProjectReq, rid string) error
+	DeleteProjectApplicationReq(req *model.ProjectReq) error
+	ClearProjectApplication(req []*model.ProjectReq) error
+	DeleteProject(project *model.Project) error
 	AddSkills(skills *[]*model.Skill) error
 	FindExistingSkills(skills *[]*model.Skill, skill []string) error
 	FindExistingGitID(user *model.User, gitid int64) error
@@ -165,8 +165,8 @@ func (db *GormDB) CheckExistingFriendReq(uid, fid string) (error, bool) {
 
 func (db *GormDB) CheckExistingAppReq(pid, uid string) (error, bool) {
 	var count int64
-	if err := db.DB.Model(&model.PostReq{}).Where("(post_id = ? AND from_id = ?)", pid, uid).Count(&count).Error; err != nil {
-		return &CustomMessage{http.StatusInternalServerError, "Failed to check for existing post application req."}, false
+	if err := db.DB.Model(&model.ProjectReq{}).Where("(project_id = ? AND from_id = ?)", pid, uid).Count(&count).Error; err != nil {
+		return &CustomMessage{http.StatusInternalServerError, "Failed to check for existing project application req."}, false
 	}
 	if count > 0 {
 		return &CustomMessage{http.StatusConflict, "An existing request exists."}, true
@@ -205,7 +205,7 @@ func (db *GormDB) FetchUser(user *model.User, uid string) error {
 }
 
 func (db *GormDB) FetchUserPreloadSP(user *model.User, uid string) error {
-	if err := db.DB.Preload("Posts.Tags").Preload("Skills").Where("id = ?", uid).First(user).Error; err != nil {
+	if err := db.DB.Preload("Projects.Tags").Preload("Skills").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{http.StatusNotFound, "User not found."}
 		} else {
@@ -249,7 +249,7 @@ func (db *GormDB) FetchUserPreloadFReq(user *model.User, uid string) error {
 }
 
 func (db *GormDB) FetchUserPreloadPReq(user *model.User, uid string) error {
-	if err := db.DB.Preload("SentPostReq").Where("id = ?", uid).First(user).Error; err != nil {
+	if err := db.DB.Preload("SentProjectReq").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
 		} else {
@@ -271,7 +271,7 @@ func (db *GormDB) SearchUserEmail(user *model.User, email string) error {
 }
 
 func (db *GormDB) SearchUserPreloadSP(user *model.User, username string) error {
-	if err := db.DB.Preload("Skills").Preload("Posts.Tags").Where("username = ?", username).First(user).Error; err != nil {
+	if err := db.DB.Preload("Skills").Preload("Projects.Tags").Where("username = ?", username).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
 		} else {
@@ -282,7 +282,7 @@ func (db *GormDB) SearchUserPreloadSP(user *model.User, username string) error {
 }
 
 func (db *GormDB) SearchUserGitPreloadSP(user *model.User, gitusername string) error {
-	if err := db.DB.Preload("Skills").Preload("Posts.Tags").Where("gitusername = ?", gitusername).First(user).Error; err != nil {
+	if err := db.DB.Preload("Skills").Preload("Projects.Tags").Where("gitusername = ?", gitusername).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
 		} else {
@@ -417,112 +417,112 @@ func (db *GormDB) DeleteUser(user *model.User) error {
 	return nil
 }
 
-func (db *GormDB) AddPost(post *model.Post) error {
-	if err := db.DB.Create(post).Error; err != nil {
-		log.Println("Failed to create post err -> ", err.Error())
-		return &CustomMessage{http.StatusInternalServerError, "Failed to create post."}
+func (db *GormDB) AddProject(project *model.Project) error {
+	if err := db.DB.Create(project).Error; err != nil {
+		log.Println("Failed to create project err -> ", err.Error())
+		return &CustomMessage{http.StatusInternalServerError, "Failed to create project."}
 	}
 	return nil
 }
 
-func (db *GormDB) FetchUserPosts(user *model.User, uid string) error {
-	if err := db.DB.Preload("Posts.Tags").Where("id = ?", uid).First(user).Error; err != nil {
+func (db *GormDB) FetchUserProjects(user *model.User, uid string) error {
+	if err := db.DB.Preload("Projects.Tags").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
 		} else {
-			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch user posts."}
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch user projects."}
 		}
 	}
 	return nil
 }
 
-func (db *GormDB) FetchPost(post *model.Post, pid string) error {
-	if err := db.DB.Where("id = ?", pid).First(post).Error; err != nil {
+func (db *GormDB) FetchProject(project *model.Project, pid string) error {
+	if err := db.DB.Where("id = ?", pid).First(project).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &CustomMessage{Code: http.StatusNotFound, Message: "Post not found."}
+			return &CustomMessage{Code: http.StatusNotFound, Message: "Project not found."}
 		} else {
-			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch post."}
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch project."}
 		}
 	}
 	return nil
 }
 
-func (db *GormDB) FetchPostPreloadT(post *model.Post, pid string) error {
-	if err := db.DB.Preload("Tags").Where("id = ?", pid).First(post).Error; err != nil {
+func (db *GormDB) FetchProjectPreloadT(project *model.Project, pid string) error {
+	if err := db.DB.Preload("Tags").Where("id = ?", pid).First(project).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &CustomMessage{Code: http.StatusNotFound, Message: "Post not found."}
+			return &CustomMessage{Code: http.StatusNotFound, Message: "Project not found."}
 		} else {
-			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch post."}
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch project."}
 		}
 	}
 	return nil
 }
 
-func (db *GormDB) FetchPostPreloadTU(post *model.Post, pid string) error {
-	if err := db.DB.Preload("Tags").Preload("User").Where("id = ?", pid).First(post).Error; err != nil {
+func (db *GormDB) FetchProjectPreloadTU(project *model.Project, pid string) error {
+	if err := db.DB.Preload("Tags").Preload("User").Where("id = ?", pid).First(project).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &CustomMessage{Code: http.StatusNotFound, Message: "Post not found."}
+			return &CustomMessage{Code: http.StatusNotFound, Message: "Project not found."}
 		} else {
-			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch post."}
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch project."}
 		}
 	}
 	return nil
 }
 
-func (db *GormDB) FetchPostPreloadA(post *model.Post, pid string) error {
-	if err := db.DB.Preload("Applications.FromUser").Where("id = ?", pid).First(post).Error; err != nil {
+func (db *GormDB) FetchProjectPreloadA(project *model.Project, pid string) error {
+	if err := db.DB.Preload("Applications.FromUser").Where("id = ?", pid).First(project).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &CustomMessage{Code: http.StatusNotFound, Message: "Post not found."}
+			return &CustomMessage{Code: http.StatusNotFound, Message: "Project not found."}
 		} else {
-			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch post."}
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch project."}
 		}
 	}
 	return nil
 }
 
-func (db *GormDB) FetchPostPreloadC(post *model.Post, pid string) error {
-	if err := db.DB.Preload("Chat").Where("id = ?", pid).First(post).Error; err != nil {
+func (db *GormDB) FetchProjectPreloadC(project *model.Project, pid string) error {
+	if err := db.DB.Preload("Chat").Where("id = ?", pid).First(project).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &CustomMessage{Code: http.StatusNotFound, Message: "Post not found."}
+			return &CustomMessage{Code: http.StatusNotFound, Message: "Project not found."}
 		} else {
-			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch post."}
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch project."}
 		}
 	}
 	return nil
 }
 
-func (db *GormDB) EditPost(post *model.Post, skills []*model.Skill) error {
+func (db *GormDB) EditProject(project *model.Project, skills []*model.Skill) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(post).Association("Tags").Replace(skills); err != nil {
+		if err := tx.Model(project).Association("Tags").Replace(skills); err != nil {
 			return err
 		}
-		if err := tx.Save(post).Error; err != nil {
+		if err := tx.Save(project).Error; err != nil {
 			return err
 		}
 		return nil
 	}); err != nil {
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to edit post."}
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to edit project."}
 	}
 	return nil
 }
 
-func (db *GormDB) SavePost(post *model.Post) error {
-	if err := db.DB.Save(post).Error; err != nil {
-		log.Println("Failed to save post with id -> ", post.ID, "err -> ", err.Error())
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to save post."}
+func (db *GormDB) SaveProject(project *model.Project) error {
+	if err := db.DB.Save(project).Error; err != nil {
+		log.Println("Failed to save project with id -> ", project.ID, "err -> ", err.Error())
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to save project."}
 	}
 	return nil
 }
 
-func (db *GormDB) BookmarkPost(user *model.User, post *model.Post) error {
-	if err := db.DB.Model(user).Association("SavedPosts").Append(post); err != nil {
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to bookmark post."}
+func (db *GormDB) BookmarkProject(user *model.User, project *model.Project) error {
+	if err := db.DB.Model(user).Association("SavedProjects").Append(project); err != nil {
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to bookmark project."}
 	}
 	return nil
 }
 
 func (db *GormDB) FetchUserPreloadB(user *model.User, uid string) error {
-	if err := db.DB.Preload("SavedPosts").Where("id = ?", uid).First(user).Error; err != nil {
+	if err := db.DB.Preload("SavedProjects").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
 		} else {
@@ -532,74 +532,74 @@ func (db *GormDB) FetchUserPreloadB(user *model.User, uid string) error {
 	return nil
 }
 
-func (db *GormDB) FetchPostPreloadU(post *model.Post, pid string) error {
-	if err := db.DB.Preload("User").Where("id = ?", pid).First(post).Error; err != nil {
+func (db *GormDB) FetchProjectPreloadU(project *model.Project, pid string) error {
+	if err := db.DB.Preload("User").Where("id = ?", pid).First(project).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &CustomMessage{Code: http.StatusNotFound, Message: "Post not found."}
+			return &CustomMessage{Code: http.StatusNotFound, Message: "Project not found."}
 		} else {
-			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch post."}
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch project."}
 		}
 	}
 	return nil
 }
 
-func (db *GormDB) SearchPostsBySKills(posts *[]model.Post, skills []string, uid string) error {
-	subquery := db.DB.Select("post_id").
-		Table("post_skills").
-		Joins("JOIN skills s ON post_skills.skill_id = s.id").
+func (db *GormDB) SearchProjectsBySKills(projects *[]model.Project, skills []string, uid string) error {
+	subquery := db.DB.Select("project_id").
+		Table("project_skills").
+		Joins("JOIN skills s ON project_skills.skill_id = s.id").
 		Where("s.name IN ?", skills)
 
-	if err := db.DB.Preload("Tags").Where("id IN (?)", subquery).Where("user_id != ?", uid).Find(&posts).Error; err != nil {
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to search post by skills."}
+	if err := db.DB.Preload("Tags").Where("id IN (?)", subquery).Where("user_id != ?", uid).Find(&projects).Error; err != nil {
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to search project by skills."}
 	}
 	return nil
 }
 
-func (db *GormDB) RemoveBookmarkedPost(user *model.User, post *model.Post) error {
-	if err := db.DB.Model(user).Association("SavedPosts").Delete(post); err != nil {
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to remove post from bookmark."}
+func (db *GormDB) RemoveBookmarkedProject(user *model.User, project *model.Project) error {
+	if err := db.DB.Model(user).Association("SavedProjects").Delete(project); err != nil {
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to remove project from bookmark."}
 	}
 	return nil
 }
 
-func (db *GormDB) AddPostApplicationReq(req *model.PostReq) error {
+func (db *GormDB) AddProjectApplicationReq(req *model.ProjectReq) error {
 	if err := db.DB.Save(req).Error; err != nil {
-		log.Println("Failed to save post application req with id -> ", req.ID, "err -> ", err.Error())
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to send post application request."}
+		log.Println("Failed to save project application req with id -> ", req.ID, "err -> ", err.Error())
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to send project application request."}
 	}
 	return nil
 }
 
-func (db *GormDB) ViewPostApplications(user *model.User, uid string) error {
-	if err := db.DB.Preload("RecPostReq.FromUser").Preload("SentPostReq.ToUser").Where("id = ?", uid).First(user).Error; err != nil {
+func (db *GormDB) ViewProjectApplications(user *model.User, uid string) error {
+	if err := db.DB.Preload("RecProjectReq.FromUser").Preload("SentProjectReq.ToUser").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
 		} else {
-			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch user post applications."}
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch user project applications."}
 		}
 	}
 	return nil
 }
 
-func (db *GormDB) FetchPostApplication(req *model.PostReq, rid string) error {
-	if err := db.DB.Preload("FromUser").Preload("ToUser").Preload("Post.Chat").Where("id = ?", rid).First(req).Error; err != nil {
+func (db *GormDB) FetchProjectApplication(req *model.ProjectReq, rid string) error {
+	if err := db.DB.Preload("FromUser").Preload("ToUser").Preload("Project.Chat").Where("id = ?", rid).First(req).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &CustomMessage{Code: http.StatusNotFound, Message: "Post request not found."}
+			return &CustomMessage{Code: http.StatusNotFound, Message: "Project request not found."}
 		} else {
-			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch post request."}
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch project request."}
 		}
 	}
 	return nil
 }
 
-func (db *GormDB) UpdatePostAppliationReject(req *model.PostReq) error {
+func (db *GormDB) UpdateProjectAppliationReject(req *model.ProjectReq) error {
 	if err := db.DB.Delete(req).Error; err != nil {
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to update post application status."}
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to update project application status."}
 	}
 	return nil
 }
 
-func (db *GormDB) UpdatePostApplicationAccept(req *model.PostReq, user *model.User, chat *model.Chat) error {
+func (db *GormDB) UpdateProjectApplicationAccept(req *model.ProjectReq, user *model.User, chat *model.Chat) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Unscoped().Delete(req).Error; err != nil {
 			return err
@@ -611,12 +611,12 @@ func (db *GormDB) UpdatePostApplicationAccept(req *model.PostReq, user *model.Us
 
 		return nil
 	}); err != nil {
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to update post application status."}
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to update project application status."}
 	}
 	return nil
 }
 
-func (db *GormDB) UpdatePostApplicationAcceptF(req *model.PostReq, user1, user2 *model.User, post *model.Post, chat *model.Chat) error {
+func (db *GormDB) UpdateProjectApplicationAcceptF(req *model.ProjectReq, user1, user2 *model.User, project *model.Project, chat *model.Chat) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Unscoped().Delete(req).Error; err != nil {
 			return err
@@ -626,7 +626,7 @@ func (db *GormDB) UpdatePostApplicationAcceptF(req *model.PostReq, user1, user2 
 			return err
 		}
 
-		if err := tx.Model(post).Update("ChatID", &chat.ID).Error; err != nil {
+		if err := tx.Model(project).Update("ChatID", &chat.ID).Error; err != nil {
 			return err
 		}
 
@@ -640,43 +640,43 @@ func (db *GormDB) UpdatePostApplicationAcceptF(req *model.PostReq, user1, user2 
 		return nil
 	}); err != nil {
 		log.Println(err)
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to update post application status."}
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to update project application status."}
 	}
 	return nil
 }
 
-func (db *GormDB) FetchPostAppPreloadFU(req *model.PostReq, rid string) error {
+func (db *GormDB) FetchProjectAppPreloadFU(req *model.ProjectReq, rid string) error {
 	if err := db.DB.Preload("FromUser").Where("id = ?", rid).First(req).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &CustomMessage{Code: http.StatusNotFound, Message: "Post application request not found."}
+			return &CustomMessage{Code: http.StatusNotFound, Message: "Project application request not found."}
 		} else {
-			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch post application request."}
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch project application request."}
 		}
 	}
 	return nil
 }
 
-func (db *GormDB) DeletePostApplicationReq(req *model.PostReq) error {
+func (db *GormDB) DeleteProjectApplicationReq(req *model.ProjectReq) error {
 	if err := db.DB.Unscoped().Delete(req).Error; err != nil {
-		log.Println("Failed to delete post application req with id -> ", req.ID, "err -> ", err.Error())
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to delete post application request."}
+		log.Println("Failed to delete project application req with id -> ", req.ID, "err -> ", err.Error())
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to delete project application request."}
 	}
 	return nil
 }
 
-func (db *GormDB) ClearPostApplication(req []*model.PostReq) error {
+func (db *GormDB) ClearProjectApplication(req []*model.ProjectReq) error {
 	if err := db.DB.Unscoped().Delete(req).Error; err != nil {
-		log.Println("Failed to clear post applications for post with id -> ", req[0].PostID, "err -> ", err.Error())
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to clear post applications."}
+		log.Println("Failed to clear project applications for project with id -> ", req[0].ProjectID, "err -> ", err.Error())
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to clear project applications."}
 	}
 	return nil
 }
 
-func (db *GormDB) DeletePost(post *model.Post) error {
-	if err := db.DB.Delete(post).Error; err != nil {
-		log.Println("Failed to delete post with id -> ", post.ID, "err -> ", err.Error())
+func (db *GormDB) DeleteProject(project *model.Project) error {
+	if err := db.DB.Delete(project).Error; err != nil {
+		log.Println("Failed to delete project with id -> ", project.ID, "err -> ", err.Error())
 
-		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to delete post."}
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to delete project."}
 	}
 	return nil
 }

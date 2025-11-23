@@ -29,14 +29,14 @@ func Connect() *gorm.DB {
 	err = db.AutoMigrate(
 		&model.User{},
 		&model.Skill{},
-		&model.Post{},
-		&model.PostReq{},
-		&model.PostSkill{},
+		&model.Project{},
+		&model.ProjectReq{},
+		&model.ProjectSkill{},
 		&model.UserSkill{},
 		&model.UserFriend{},
 		&model.FriendReq{},
 		&model.UserMessage{},
-		&model.UserSavedPost{},
+		&model.UserSavedProject{},
 		&model.Chat{},
 		&model.ChatUser{},
 	)
@@ -44,7 +44,7 @@ func Connect() *gorm.DB {
 		log.Fatalf("[ERROR] [DB] Failed to create tables -> %s", err.Error())
 	}
 
-	err = db.SetupJoinTable(&model.Post{}, "Tags", &model.PostSkill{})
+	err = db.SetupJoinTable(&model.Project{}, "Tags", &model.ProjectSkill{})
 	if err != nil {
 		log.Fatalf("[ERROR] [DB] Failed to create join table on post and skills -> %s", err.Error())
 	}
@@ -64,7 +64,7 @@ func Connect() *gorm.DB {
 		log.Fatalf("[ERROR] [DB] Failed to create join table on user and chats -> %s", err.Error())
 	}
 
-	err = db.SetupJoinTable(&model.User{}, "SavedPosts", &model.UserSavedPost{})
+	err = db.SetupJoinTable(&model.User{}, "SavedProjects", &model.UserSavedProject{})
 	if err != nil {
 		log.Fatalf("[ERROR] [DB] Failed to create join table on user and saved posts -> %s", err.Error())
 	}

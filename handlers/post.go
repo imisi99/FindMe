@@ -14,16 +14,16 @@ import (
 )
 
 // DONE:
-// Should there also be a applications on a post for easy tracking ? (This can also be used to check for existing req to a post)
-// Possibly a chat group to be associated to the post nah (This can be used instead of enforcing a friendship)
-// Remove user's post in the search for post tags ?
-// An Endpoint to clear all applications on a post or rejected one ?
+// Should there also be a applications on a project for easy tracking ? (This can also be used to check for existing req to a project)
+// Possibly a chat group to be associated to the project nah (This can be used instead of enforcing a friendship)
+// Remove user's project in the search for project tags ?
+// An Endpoint to clear all applications on a project or rejected one ?
 // Remodel requests to delete after ignored or rejected
 // An endpoint to link the project to a github project?
-// Add a better way to check for already applied post in
+// Add a better way to check for already applied project in
 
-// GetPosts -> Endpoint for getting all user posts
-func (s *Service) GetPosts(ctx *gin.Context) {
+// GetProjects -> Endpoint for getting all user projects
+func (s *Service) GetProjects(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -31,34 +31,34 @@ func (s *Service) GetPosts(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := s.DB.FetchUserPosts(&user, uid); err != nil {
+	if err := s.DB.FetchUserProjects(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	var reuslt []schema.PostResponse
-	for _, post := range user.Posts {
+	var reuslt []schema.ProjectResponse
+	for _, project := range user.Projects {
 		var tags []string
-		for _, tag := range post.Tags {
+		for _, tag := range project.Tags {
 			tags = append(tags, tag.Name)
 		}
-		reuslt = append(reuslt, schema.PostResponse{
-			ID:          post.ID,
-			Description: post.Description,
+		reuslt = append(reuslt, schema.ProjectResponse{
+			ID:          project.ID,
+			Description: project.Description,
 			Tags:        tags,
-			CreatedAt:   post.CreatedAt,
-			UpdatedAt:   post.UpdatedAt,
-			Views:       post.Views,
-			Available:   post.Availability,
+			CreatedAt:   project.CreatedAt,
+			UpdatedAt:   project.UpdatedAt,
+			Views:       project.Views,
+			Available:   project.Availability,
 		})
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"post": reuslt})
+	ctx.JSON(http.StatusOK, gin.H{"project": reuslt})
 }
 
-// ViewPost -> Endpoint for viewing a single post
-func (s *Service) ViewPost(ctx *gin.Context) {
+// ViewProject -> Endpoint for viewing a single project
+func (s *Service) ViewProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -67,41 +67,41 @@ func (s *Service) ViewPost(ctx *gin.Context) {
 
 	pid := ctx.Query("id")
 	if pid == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid post id."})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
 
-	var post model.Post
-	if err := s.DB.FetchPostPreloadTU(&post, pid); err != nil {
+	var project model.Project
+	if err := s.DB.FetchProjectPreloadTU(&project, pid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	var tags []string
-	for _, tag := range post.Tags {
+	for _, tag := range project.Tags {
 		tags = append(tags, tag.Name)
 	}
-	result := schema.DetailedPostResponse{
-		PostResponse: schema.PostResponse{
-			ID:          post.ID,
-			Description: post.Description,
+	result := schema.DetailedProjectResponse{
+		ProjectResponse: schema.ProjectResponse{
+			ID:          project.ID,
+			Description: project.Description,
 			Tags:        tags,
-			CreatedAt:   post.CreatedAt,
-			UpdatedAt:   post.UpdatedAt,
-			Views:       post.Views,
-			Available:   post.Availability,
+			CreatedAt:   project.CreatedAt,
+			UpdatedAt:   project.UpdatedAt,
+			Views:       project.Views,
+			Available:   project.Availability,
 		},
-		Username:   post.User.UserName,
-		GitProject: post.GitProject,
-		GitLink:    post.GitLink,
+		Username:   project.User.UserName,
+		GitProject: project.GitProject,
+		GitLink:    project.GitLink,
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"post": result})
+	ctx.JSON(http.StatusOK, gin.H{"project": result})
 }
 
-// ViewSinglePostApplication -> Endpoint for viewing a post applications
-func (s *Service) ViewSinglePostApplication(ctx *gin.Context) {
+// ViewSingleProjectApplication -> Endpoint for viewing a project applications
+func (s *Service) ViewSingleProjectApplication(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -110,47 +110,47 @@ func (s *Service) ViewSinglePostApplication(ctx *gin.Context) {
 
 	id := ctx.Query("id")
 	if id == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid post id."})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
 
-	var post model.Post
-	if err := s.DB.FetchPostPreloadA(&post, id); err != nil {
+	var project model.Project
+	if err := s.DB.FetchProjectPreloadA(&project, id); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if post.UserID != uid {
-		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You don't have permission to view the applicants on this post."})
+	if project.UserID != uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You don't have permission to view the applicants on this project."})
 		return
 	}
 
-	var applications []schema.ViewPostApplication
-	for _, req := range post.Applications {
-		applications = append(applications, schema.ViewPostApplication{
+	var applications []schema.ViewProjectApplication
+	for _, req := range project.Applications {
+		applications = append(applications, schema.ViewProjectApplication{
 			ReqID:    req.ID,
 			Status:   req.Status,
 			Message:  req.Message,
 			Username: req.FromUser.UserName,
 		})
 	}
-	result := schema.ApplicationPostResponse{
+	result := schema.ApplicationProjectResponse{
 		Applications: applications,
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"req": result})
 }
 
-// SearchPost -> Endpoint for searching post with tags
-func (s *Service) SearchPost(ctx *gin.Context) {
+// SearchProject -> Endpoint for searching project with tags
+func (s *Service) SearchProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
-	var payload schema.SearchPostWithTags
+	var payload schema.SearchProjectWithTags
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
 		return
@@ -160,42 +160,42 @@ func (s *Service) SearchPost(ctx *gin.Context) {
 		payload.Tags[i] = strings.ToLower(payload.Tags[i])
 	}
 
-	var posts []model.Post
-	if err := s.DB.SearchPostsBySKills(&posts, payload.Tags, uid); err != nil {
+	var projects []model.Project
+	if err := s.DB.SearchProjectsBySKills(&projects, payload.Tags, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	var postResponse []schema.PostResponse
-	for _, post := range posts {
+	var projectResponse []schema.ProjectResponse
+	for _, project := range projects {
 		var tags []string
-		for _, tag := range post.Tags {
+		for _, tag := range project.Tags {
 			tags = append(tags, tag.Name)
 		}
-		postResponse = append(postResponse, schema.PostResponse{
-			ID:          post.ID,
-			Description: post.Description,
-			CreatedAt:   post.CreatedAt,
-			UpdatedAt:   post.UpdatedAt,
-			Available:   post.Availability,
-			Views:       post.Views,
+		projectResponse = append(projectResponse, schema.ProjectResponse{
+			ID:          project.ID,
+			Description: project.Description,
+			CreatedAt:   project.CreatedAt,
+			UpdatedAt:   project.UpdatedAt,
+			Available:   project.Availability,
+			Views:       project.Views,
 			Tags:        tags,
 		})
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"post": postResponse})
+	ctx.JSON(http.StatusOK, gin.H{"project": projectResponse})
 }
 
-// CreatePost -> Endpoint for creating post
-func (s *Service) CreatePost(ctx *gin.Context) {
+// CreateProject -> Endpoint for creating project
+func (s *Service) CreateProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
-	var payload schema.NewPostRequest
+	var payload schema.NewProjectRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
 		return
@@ -208,11 +208,11 @@ func (s *Service) CreatePost(ctx *gin.Context) {
 	allskills, err := s.CheckAndUpdateSkills(payload.Tags)
 	if err != nil {
 		log.Printf("An error occured while trying to add a new skill to db -> %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to create new post."})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to create new project."})
 		return
 	}
 
-	post := model.Post{
+	project := model.Project{
 		Description:  payload.Description,
 		Tags:         allskills,
 		UserID:       uid,
@@ -221,30 +221,30 @@ func (s *Service) CreatePost(ctx *gin.Context) {
 	}
 
 	if payload.Git {
-		post.GitProject = true
-		post.GitLink = payload.GitLink
+		project.GitProject = true
+		project.GitLink = payload.GitLink
 	}
 
-	if err := s.DB.AddPost(&post); err != nil {
+	if err := s.DB.AddProject(&project); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	result := schema.PostResponse{
-		ID:          post.ID,
-		Description: post.Description,
+	result := schema.ProjectResponse{
+		ID:          project.ID,
+		Description: project.Description,
 		Tags:        payload.Tags,
-		CreatedAt:   post.CreatedAt,
-		UpdatedAt:   post.UpdatedAt,
-		Views:       post.Views,
+		CreatedAt:   project.CreatedAt,
+		UpdatedAt:   project.UpdatedAt,
+		Views:       project.Views,
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"post": result})
+	ctx.JSON(http.StatusCreated, gin.H{"project": result})
 }
 
-// EditPost -> Endpoint for editing post
-func (s *Service) EditPost(ctx *gin.Context) {
+// EditProject -> Endpoint for editing project
+func (s *Service) EditProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -252,21 +252,21 @@ func (s *Service) EditPost(ctx *gin.Context) {
 	}
 
 	pid := ctx.Query("id")
-	var payload schema.NewPostRequest
+	var payload schema.NewProjectRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
 		return
 	}
 
-	var post model.Post
-	if err := s.DB.FetchPostPreloadT(&post, pid); err != nil {
+	var project model.Project
+	if err := s.DB.FetchProjectPreloadT(&project, pid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if post.UserID != uid {
-		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You aren't authorized to edit this post."})
+	if project.UserID != uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You aren't authorized to edit this project."})
 		return
 	}
 
@@ -277,37 +277,37 @@ func (s *Service) EditPost(ctx *gin.Context) {
 	allskills, err := s.CheckAndUpdateSkills(payload.Tags)
 	if err != nil {
 		log.Printf("An error occured while trying to add a new skill to db %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to update post."})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to update project."})
 		return
 	}
 
-	post.Description = payload.Description
+	project.Description = payload.Description
 
 	if payload.Git {
-		post.GitProject = true
-		post.GitLink = payload.GitLink
+		project.GitProject = true
+		project.GitLink = payload.GitLink
 	}
 
-	if err := s.DB.EditPost(&post, allskills); err != nil {
+	if err := s.DB.EditProject(&project, allskills); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	result := schema.PostResponse{
-		ID:          post.ID,
-		Description: post.Description,
+	result := schema.ProjectResponse{
+		ID:          project.ID,
+		Description: project.Description,
 		Tags:        payload.Tags,
-		CreatedAt:   post.CreatedAt,
-		UpdatedAt:   post.UpdatedAt,
-		Views:       post.Views,
+		CreatedAt:   project.CreatedAt,
+		UpdatedAt:   project.UpdatedAt,
+		Views:       project.Views,
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"post": result})
+	ctx.JSON(http.StatusAccepted, gin.H{"project": result})
 }
 
-// EditPostView -> Endpoint for updating a post view
-func (s *Service) EditPostView(ctx *gin.Context) {
+// EditProjectView -> Endpoint for updating a project view
+func (s *Service) EditProjectView(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -316,20 +316,20 @@ func (s *Service) EditPostView(ctx *gin.Context) {
 
 	id := ctx.Query("id")
 	if id == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid post id."})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
 
-	var post model.Post
-	if err := s.DB.FetchPostPreloadT(&post, id); err != nil {
+	var project model.Project
+	if err := s.DB.FetchProjectPreloadT(&project, id); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if post.UserID != uid {
-		post.Views++
-		if err := s.DB.SavePost(&post); err != nil {
+	if project.UserID != uid {
+		project.Views++
+		if err := s.DB.SaveProject(&project); err != nil {
 			cm := err.(*core.CustomMessage)
 			ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 			return
@@ -337,23 +337,23 @@ func (s *Service) EditPostView(ctx *gin.Context) {
 	}
 
 	var tags []string
-	for _, tag := range post.Tags {
+	for _, tag := range project.Tags {
 		tags = append(tags, tag.Name)
 	}
-	result := schema.PostResponse{
-		ID:          post.ID,
-		Description: post.Description,
+	result := schema.ProjectResponse{
+		ID:          project.ID,
+		Description: project.Description,
 		Tags:        tags,
-		CreatedAt:   post.CreatedAt,
-		UpdatedAt:   post.UpdatedAt,
-		Views:       post.Views,
+		CreatedAt:   project.CreatedAt,
+		UpdatedAt:   project.UpdatedAt,
+		Views:       project.Views,
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"post": result})
+	ctx.JSON(http.StatusAccepted, gin.H{"project": result})
 }
 
-// EditPostAvailability -> Endpoint for updating the post availability status
-func (s *Service) EditPostAvailability(ctx *gin.Context) {
+// EditProjectAvailability -> Endpoint for updating the project availability status
+func (s *Service) EditProjectAvailability(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -362,7 +362,7 @@ func (s *Service) EditPostAvailability(ctx *gin.Context) {
 
 	pid, status := ctx.Query("id"), ctx.Query("status")
 	if pid == "" {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Invalid post id."})
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Invalid project id."})
 		return
 	}
 
@@ -372,44 +372,44 @@ func (s *Service) EditPostAvailability(ctx *gin.Context) {
 		return
 	}
 
-	var post model.Post
-	if err := s.DB.FetchPost(&post, pid); err != nil {
+	var project model.Project
+	if err := s.DB.FetchProject(&project, pid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if post.UserID != uid {
-		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You aren't authorized to edit this post."})
+	if project.UserID != uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You aren't authorized to edit this project."})
 		return
 	}
 
-	post.Availability = stat
-	if err := s.DB.SavePost(&post); err != nil {
+	project.Availability = stat
+	if err := s.DB.SaveProject(&project); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	var tags []string
-	for _, tag := range post.Tags {
+	for _, tag := range project.Tags {
 		tags = append(tags, tag.Name)
 	}
-	result := schema.PostResponse{
-		ID:          post.ID,
-		Description: post.Description,
+	result := schema.ProjectResponse{
+		ID:          project.ID,
+		Description: project.Description,
 		Tags:        tags,
-		Views:       post.Views,
-		CreatedAt:   post.CreatedAt,
-		UpdatedAt:   post.UpdatedAt,
-		Available:   post.Availability,
+		Views:       project.Views,
+		CreatedAt:   project.CreatedAt,
+		UpdatedAt:   project.UpdatedAt,
+		Available:   project.Availability,
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"post": result})
+	ctx.JSON(http.StatusAccepted, gin.H{"project": result})
 }
 
-// SavePost -> Endpoint for saving a post
-func (s *Service) SavePost(ctx *gin.Context) {
+// SaveProject -> Endpoint for saving a project
+func (s *Service) SaveProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -418,7 +418,7 @@ func (s *Service) SavePost(ctx *gin.Context) {
 
 	pid := ctx.Query("id")
 	if pid == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid post id."})
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid project id."})
 		return
 	}
 
@@ -429,43 +429,43 @@ func (s *Service) SavePost(ctx *gin.Context) {
 		return
 	}
 
-	var post model.Post
-	if err := s.DB.FetchPost(&post, pid); err != nil {
+	var project model.Project
+	if err := s.DB.FetchProject(&project, pid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if post.UserID == user.ID {
-		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can't save a post created by you."})
+	if project.UserID == user.ID {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can't save a project created by you."})
 		return
 	}
 
-	if err := s.DB.BookmarkPost(&user, &post); err != nil {
+	if err := s.DB.BookmarkProject(&user, &project); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
 	var tags []string
-	for _, tag := range post.Tags {
+	for _, tag := range project.Tags {
 		tags = append(tags, tag.Name)
 	}
 
-	postRes := schema.PostResponse{
-		ID:          post.ID,
-		Description: post.Description,
-		Available:   post.Availability,
+	projectRes := schema.ProjectResponse{
+		ID:          project.ID,
+		Description: project.Description,
+		Available:   project.Availability,
 		Tags:        tags,
-		CreatedAt:   post.CreatedAt,
-		UpdatedAt:   post.UpdatedAt,
-		Views:       post.Views,
+		CreatedAt:   project.CreatedAt,
+		UpdatedAt:   project.UpdatedAt,
+		Views:       project.Views,
 	}
-	ctx.JSON(http.StatusAccepted, gin.H{"post": postRes})
+	ctx.JSON(http.StatusAccepted, gin.H{"project": projectRes})
 }
 
-// ViewSavedPost -> Endpoint for viewing saved post
-func (s *Service) ViewSavedPost(ctx *gin.Context) {
+// ViewSavedProject -> Endpoint for viewing saved project
+func (s *Service) ViewSavedProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -479,25 +479,25 @@ func (s *Service) ViewSavedPost(ctx *gin.Context) {
 		return
 	}
 
-	var savedPosts []schema.PostResponse
-	for _, post := range user.SavedPosts {
+	var savedProjects []schema.ProjectResponse
+	for _, project := range user.SavedProjects {
 		var tags []string
-		for _, tag := range post.Tags {
+		for _, tag := range project.Tags {
 			tags = append(tags, tag.Name)
 		}
-		savedPosts = append(savedPosts, schema.PostResponse{
-			ID:          post.ID,
-			Description: post.Description,
+		savedProjects = append(savedProjects, schema.ProjectResponse{
+			ID:          project.ID,
+			Description: project.Description,
 			Tags:        tags,
-			CreatedAt:   post.CreatedAt,
-			UpdatedAt:   post.UpdatedAt,
+			CreatedAt:   project.CreatedAt,
+			UpdatedAt:   project.UpdatedAt,
 		})
 	}
-	ctx.JSON(http.StatusOK, gin.H{"post": savedPosts})
+	ctx.JSON(http.StatusOK, gin.H{"project": savedProjects})
 }
 
-// RemoveSavedPost -> Endpoint for removing saved post
-func (s *Service) RemoveSavedPost(ctx *gin.Context) {
+// RemoveSavedProject -> Endpoint for removing saved project
+func (s *Service) RemoveSavedProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -506,7 +506,7 @@ func (s *Service) RemoveSavedPost(ctx *gin.Context) {
 
 	pid := ctx.Query("id")
 	if pid == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid post id."})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
 
@@ -517,14 +517,14 @@ func (s *Service) RemoveSavedPost(ctx *gin.Context) {
 		return
 	}
 
-	var post model.Post
-	if err := s.DB.FetchPost(&post, pid); err != nil {
+	var project model.Project
+	if err := s.DB.FetchProject(&project, pid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if err := s.DB.RemoveBookmarkedPost(&user, &post); err != nil {
+	if err := s.DB.RemoveBookmarkedProject(&user, &project); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -533,8 +533,8 @@ func (s *Service) RemoveSavedPost(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// ApplyForPost -> Endpoint for applying for a post
-func (s *Service) ApplyForPost(ctx *gin.Context) {
+// ApplyForProject -> Endpoint for applying for a project
+func (s *Service) ApplyForProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -543,18 +543,18 @@ func (s *Service) ApplyForPost(ctx *gin.Context) {
 
 	pid := ctx.Query("id")
 	if pid == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid post id."})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
 
-	var payload schema.PostApplication
+	var payload schema.ProjectApplication
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload"})
 		return
 	}
 
-	var post model.Post
-	if err := s.DB.FetchPostPreloadU(&post, pid); err != nil {
+	var project model.Project
+	if err := s.DB.FetchProjectPreloadU(&project, pid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -567,8 +567,8 @@ func (s *Service) ApplyForPost(ctx *gin.Context) {
 		return
 	}
 
-	if !post.Availability {
-		ctx.JSON(http.StatusForbidden, gin.H{"msg": "The owner of the post is no longer accepting applications."})
+	if !project.Availability {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "The owner of the project is no longer accepting applications."})
 		return
 	}
 
@@ -578,40 +578,40 @@ func (s *Service) ApplyForPost(ctx *gin.Context) {
 		return
 	}
 
-	if post.UserID == uid {
-		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can't apply for your own post."})
+	if project.UserID == uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can't apply for your own project."})
 		return
 	}
 
-	req := model.PostReq{
-		PostID: post.ID,
-		FromID: user.ID,
-		ToID:   post.User.ID,
+	req := model.ProjectReq{
+		ProjectID: project.ID,
+		FromID:    user.ID,
+		ToID:      project.User.ID,
 	}
 
 	if len(payload.Message) > 0 {
 		req.Message = payload.Message
 	}
 
-	if err := s.DB.AddPostApplicationReq(&req); err != nil {
+	if err := s.DB.AddProjectApplicationReq(&req); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	application := schema.ViewPostApplication{
+	application := schema.ViewProjectApplication{
 		ReqID:    req.ID,
 		Status:   req.Status,
 		Message:  req.Message,
-		Username: post.User.UserName,
+		Username: project.User.UserName,
 	}
-	_ = s.Email.SendPostApplicationEmail(post.User.Email, user.UserName, post.User.UserName, post.Description, "nil")
+	_ = s.Email.SendProjectApplicationEmail(project.User.Email, user.UserName, project.User.UserName, project.Description, "nil")
 
-	ctx.JSON(http.StatusOK, gin.H{"post_req": application})
+	ctx.JSON(http.StatusOK, gin.H{"project_req": application})
 }
 
-// ViewPostApplications -> Endpoint for Viewing post applications
-func (s *Service) ViewPostApplications(ctx *gin.Context) {
+// ViewProjectApplications -> Endpoint for Viewing project applications
+func (s *Service) ViewProjectApplications(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -619,15 +619,15 @@ func (s *Service) ViewPostApplications(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := s.DB.ViewPostApplications(&user, uid); err != nil {
+	if err := s.DB.ViewProjectApplications(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	var recReq, sentReq []schema.ViewPostApplication
-	for _, rq := range user.SentPostReq {
-		sentReq = append(sentReq, schema.ViewPostApplication{
+	var recReq, sentReq []schema.ViewProjectApplication
+	for _, rq := range user.SentProjectReq {
+		sentReq = append(sentReq, schema.ViewProjectApplication{
 			ReqID:    rq.ID,
 			Username: rq.ToUser.UserName,
 			Message:  rq.Message,
@@ -636,8 +636,8 @@ func (s *Service) ViewPostApplications(ctx *gin.Context) {
 		})
 	}
 
-	for _, rq := range user.RecPostReq {
-		recReq = append(recReq, schema.ViewPostApplication{
+	for _, rq := range user.RecProjectReq {
+		recReq = append(recReq, schema.ViewProjectApplication{
 			ReqID:    rq.ID,
 			Username: rq.FromUser.UserName,
 			Message:  rq.Message,
@@ -646,11 +646,11 @@ func (s *Service) ViewPostApplications(ctx *gin.Context) {
 		})
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"post": gin.H{"rec_req": recReq, "sent_req": sentReq}})
+	ctx.JSON(http.StatusOK, gin.H{"project": gin.H{"rec_req": recReq, "sent_req": sentReq}})
 }
 
-// UpdatePostApplication -> Endpoint for Updating post applications
-func (s *Service) UpdatePostApplication(ctx *gin.Context) {
+// UpdateProjectApplication -> Endpoint for Updating project applications
+func (s *Service) UpdateProjectApplication(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -672,8 +672,8 @@ func (s *Service) UpdatePostApplication(ctx *gin.Context) {
 		payload.Reason = "The author of the project didn't add a reason."
 	}
 
-	var req model.PostReq
-	if err := s.DB.FetchPostApplication(&req, rid); err != nil {
+	var req model.ProjectReq
+	if err := s.DB.FetchProjectApplication(&req, rid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -686,22 +686,22 @@ func (s *Service) UpdatePostApplication(ctx *gin.Context) {
 
 	switch status {
 	case model.StatusRejected:
-		if err := s.DB.UpdatePostAppliationReject(&req); err != nil {
+		if err := s.DB.UpdateProjectAppliationReject(&req); err != nil {
 			cm := err.(*core.CustomMessage)
 			ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 			return
 		}
-		_ = s.Email.SendPostApplicationReject(req.FromUser.Email, req.ToUser.UserName, req.FromUser.UserName, req.Post.Description, payload.Reason)
+		_ = s.Email.SendProjectApplicationReject(req.FromUser.Email, req.ToUser.UserName, req.FromUser.UserName, req.Project.Description, payload.Reason)
 	case model.StatusAccepted:
 		var err error
 
-		if req.Post.ChatID == nil {
+		if req.Project.ChatID == nil {
 			var chat model.Chat
 			chat.Group = true
 			chat.OwnerID = &uid
-			err = s.DB.UpdatePostApplicationAcceptF(&req, req.ToUser, req.FromUser, req.Post, &chat)
+			err = s.DB.UpdateProjectApplicationAcceptF(&req, req.ToUser, req.FromUser, req.Project, &chat)
 		} else {
-			err = s.DB.UpdatePostApplicationAccept(&req, req.FromUser, req.Post.Chat)
+			err = s.DB.UpdateProjectApplicationAccept(&req, req.FromUser, req.Project.Chat)
 		}
 
 		if err != nil {
@@ -710,7 +710,7 @@ func (s *Service) UpdatePostApplication(ctx *gin.Context) {
 			return
 		}
 
-		_ = s.Email.SendPostApplicationAccept(req.FromUser.Email, req.ToUser.UserName, req.FromUser.UserName, req.Post.Description, "")
+		_ = s.Email.SendProjectApplicationAccept(req.FromUser.Email, req.ToUser.UserName, req.FromUser.UserName, req.Project.Description, "")
 	default:
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid status."})
 		return
@@ -719,8 +719,8 @@ func (s *Service) UpdatePostApplication(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Application status updated successfully."})
 }
 
-// DeletePostApplication -> Endpoint for deleting sent post application
-func (s *Service) DeletePostApplication(ctx *gin.Context) {
+// DeleteProjectApplication -> Endpoint for deleting sent project application
+func (s *Service) DeleteProjectApplication(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -740,8 +740,8 @@ func (s *Service) DeletePostApplication(ctx *gin.Context) {
 		return
 	}
 
-	var req model.PostReq
-	if err := s.DB.FetchPostAppPreloadFU(&req, rid); err != nil {
+	var req model.ProjectReq
+	if err := s.DB.FetchProjectAppPreloadFU(&req, rid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -752,7 +752,7 @@ func (s *Service) DeletePostApplication(ctx *gin.Context) {
 		return
 	}
 
-	if err := s.DB.DeletePostApplicationReq(&req); err != nil {
+	if err := s.DB.DeleteProjectApplicationReq(&req); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -761,8 +761,8 @@ func (s *Service) DeletePostApplication(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// ClearPostApplication -> Endpoint for clearing a post applications
-func (s *Service) ClearPostApplication(ctx *gin.Context) {
+// ClearProjectApplication -> Endpoint for clearing a project applications
+func (s *Service) ClearProjectApplication(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -771,18 +771,18 @@ func (s *Service) ClearPostApplication(ctx *gin.Context) {
 
 	pid := ctx.Query("id")
 	if pid == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid post id."})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
 
-	var post model.Post
-	if err := s.DB.FetchPostPreloadA(&post, pid); err != nil {
+	var project model.Project
+	if err := s.DB.FetchProjectPreloadA(&project, pid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if err := s.DB.ClearPostApplication(post.Applications); err != nil {
+	if err := s.DB.ClearProjectApplication(project.Applications); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -791,8 +791,8 @@ func (s *Service) ClearPostApplication(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// DeletePost -> Endpoint for deleting a post
-func (s *Service) DeletePost(ctx *gin.Context) {
+// DeleteProject -> Endpoint for deleting a project
+func (s *Service) DeleteProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
@@ -801,23 +801,23 @@ func (s *Service) DeletePost(ctx *gin.Context) {
 
 	pid := ctx.Query("id")
 	if pid == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid post id."})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
 
-	var post model.Post
-	if err := s.DB.FetchPost(&post, pid); err != nil {
+	var project model.Project
+	if err := s.DB.FetchProject(&project, pid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	if post.UserID != uid {
-		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You don't have permission to delete this post."})
+	if project.UserID != uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You don't have permission to delete this project."})
 		return
 	}
 
-	if err := s.DB.DeletePost(&post); err != nil {
+	if err := s.DB.DeleteProject(&project); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return

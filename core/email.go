@@ -10,9 +10,9 @@ import (
 type Email interface {
 	SendForgotPassEmail(email, username, token string) error
 	SendFriendReqEmail(email, fromUsername, toUsername, message, viewURL string) error
-	SendPostApplicationEmail(email, fromUsername, toUsername, message, viewURL string) error
-	SendPostApplicationAccept(email, fromUsername, toUsername, message, chatURL string) error
-	SendPostApplicationReject(email, fromusername, toUsername, message, reason string) error
+	SendProjectApplicationEmail(email, fromUsername, toUsername, message, viewURL string) error
+	SendProjectApplicationAccept(email, fromUsername, toUsername, message, chatURL string) error
+	SendProjectApplicationReject(email, fromusername, toUsername, message, reason string) error
 }
 
 type MyEmail struct {
@@ -172,14 +172,14 @@ func (e *MyEmail) SendFriendReqEmail(email, fromUsername, toUsername, message, v
 	return nil
 }
 
-// SendPostApplicationEmail -> Sends a notification about a new application to post
-func (e *MyEmail) SendPostApplicationEmail(email, fromUsername, toUsername, message, viewURL string) error {
+// SendProjectApplicationEmail -> Sends a notification about a new application to post
+func (e *MyEmail) SendProjectApplicationEmail(email, fromUsername, toUsername, message, viewURL string) error {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
 	<head>
 	<meta charset="UTF-8">
-	<title>New Post Application Request</title>
+	<title>New Project Application Request</title>
 	</head>
 	<body style="margin:0; padding:0; background:#f9fafb; font-family:Arial, sans-serif;">
 
@@ -189,7 +189,7 @@ func (e *MyEmail) SendPostApplicationEmail(email, fromUsername, toUsername, mess
 			<table width="600" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
 			<tr>
 				<td style="background:#4f46e5; padding:20px; text-align:center; border-top-left-radius:8px; border-top-right-radius:8px;">
-					<h1 style="margin:0; font-size:22px; color:#ffffff;">New Post Application Request</h1>
+					<h1 style="margin:0; font-size:22px; color:#ffffff;">New Project Application Request</h1>
 				</td>
 			</tr>
 			<tr>
@@ -199,7 +199,7 @@ func (e *MyEmail) SendPostApplicationEmail(email, fromUsername, toUsername, mess
 						<b>%s</b> has applied for a post created by you.
 					</p>
 					<p style="font-size:14px; color:#374151; margin:20px 0;">
-						<span style="font-weight:bold;">Post Description:</span>
+						<span style="font-weight:bold;">Project Description:</span>
 					</p>
 					<blockquote style="margin:0; padding:15px; background:#f3f4f6; border-left:4px solid #758f19ff; font-style:italic; font-size:14px; color:#1f2937;">
 						%s
@@ -235,7 +235,7 @@ func (e *MyEmail) SendPostApplicationEmail(email, fromUsername, toUsername, mess
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "New Post Application Request")
+	msg.SetHeader("Subject", "New Project Application Request")
 	msg.SetBody("text/html", htmlBody)
 
 	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
@@ -247,8 +247,8 @@ func (e *MyEmail) SendPostApplicationEmail(email, fromUsername, toUsername, mess
 	return nil
 }
 
-// SendPostApplicationAccept -> Sends notification about accepted post application
-func (e *MyEmail) SendPostApplicationAccept(email, fromUsername, toUsername, message, chatURL string) error {
+// SendProjectApplicationAccept -> Sends notification about accepted post application
+func (e *MyEmail) SendProjectApplicationAccept(email, fromUsername, toUsername, message, chatURL string) error {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -310,7 +310,7 @@ func (e *MyEmail) SendPostApplicationAccept(email, fromUsername, toUsername, mes
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "Post Application Update")
+	msg.SetHeader("Subject", "Project Application Update")
 	msg.SetBody("text/html", htmlBody)
 
 	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
@@ -322,8 +322,8 @@ func (e *MyEmail) SendPostApplicationAccept(email, fromUsername, toUsername, mes
 	return nil
 }
 
-// SendPostApplicationReject -> Sends notification about rejected post application
-func (e *MyEmail) SendPostApplicationReject(email, fromUsername, toUsername, message, reason string) error {
+// SendProjectApplicationReject -> Sends notification about rejected post application
+func (e *MyEmail) SendProjectApplicationReject(email, fromUsername, toUsername, message, reason string) error {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -385,7 +385,7 @@ func (e *MyEmail) SendPostApplicationReject(email, fromUsername, toUsername, mes
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", e.Addr)
 	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "Post Application Update")
+	msg.SetHeader("Subject", "Project Application Update")
 	msg.SetBody("text/html", htmlBody)
 
 	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)

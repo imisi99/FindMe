@@ -63,11 +63,11 @@ func NewCacheMock() *CacheMock {
 
 type EmailMock struct{}
 
-func (mock *EmailMock) SendForgotPassEmail(_, _, _ string) error             { return nil }
-func (mock *EmailMock) SendFriendReqEmail(_, _, _, _, _ string) error        { return nil }
-func (mock *EmailMock) SendPostApplicationEmail(_, _, _, _, _ string) error  { return nil }
-func (mock *EmailMock) SendPostApplicationAccept(_, _, _, _, _ string) error { return nil }
-func (mock *EmailMock) SendPostApplicationReject(_, _, _, _, _ string) error { return nil }
+func (mock *EmailMock) SendForgotPassEmail(_, _, _ string) error                { return nil }
+func (mock *EmailMock) SendFriendReqEmail(_, _, _, _, _ string) error           { return nil }
+func (mock *EmailMock) SendProjectApplicationEmail(_, _, _, _, _ string) error  { return nil }
+func (mock *EmailMock) SendProjectApplicationAccept(_, _, _, _, _ string) error { return nil }
+func (mock *EmailMock) SendProjectApplicationReject(_, _, _, _, _ string) error { return nil }
 func NewEmailMock() *EmailMock {
 	return &EmailMock{}
 }

@@ -13,20 +13,20 @@ import (
 )
 
 var (
-	postPayload = schema.NewPostRequest{
-		Description: "Testing the post creation endpoint.",
+	projectPayload = schema.NewProjectRequest{
+		Description: "Testing the project creation endpoint.",
 		Tags:        []string{"ml", "backend"},
 		Git:         true,
 	}
-	defPostDescription = "Working on a platform for finding developers for contributive project"
-	reqPayload         = map[string]string{
+	defProjectDescription = "Working on a platform for finding developers for contributive project"
+	reqPayload            = map[string]string{
 		"msg": "hey I'm interested in this project",
 	}
-	post    PostResponse
-	postReq PostApplicationResponse
+	project    ProjectResponse
+	projectReq ProjectApplicationResponse
 )
 
-func TestGetPost(t *testing.T) {
+func TestGetProject(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/post/view?id="+pid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -34,11 +34,11 @@ func TestGetPost(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), defPostDescription)
+	assert.Contains(t, w.Body.String(), defProjectDescription)
 }
 
-func TestCreatePost(t *testing.T) {
-	payload := postPayload
+func TestCreateProject(t *testing.T) {
+	payload := projectPayload
 
 	body, _ := json.Marshal(payload)
 
@@ -50,17 +50,17 @@ func TestCreatePost(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusCreated, w.Code)
-	assert.Contains(t, w.Body.String(), postPayload.Description)
-	_ = json.Unmarshal(w.Body.Bytes(), &post)
+	assert.Contains(t, w.Body.String(), projectPayload.Description)
+	_ = json.Unmarshal(w.Body.Bytes(), &project)
 }
 
-func TestEditPost(t *testing.T) {
-	payload := postPayload
-	payload.Description = "Testing the edit post endpoint"
+func TestEditProject(t *testing.T) {
+	payload := projectPayload
+	payload.Description = "Testing the edit project endpoint"
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPut, "/api/post/edit?id="+post.ID, bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPut, "/api/post/edit?id="+project.ID, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -71,7 +71,7 @@ func TestEditPost(t *testing.T) {
 	assert.Contains(t, w.Body.String(), payload.Description)
 }
 
-func TestGetPosts(t *testing.T) {
+func TestGetProjects(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/post/posts/all", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -79,11 +79,11 @@ func TestGetPosts(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Testing the edit post endpoint")
-	assert.Contains(t, w.Body.String(), defPostDescription)
+	assert.Contains(t, w.Body.String(), "Testing the edit project endpoint")
+	assert.Contains(t, w.Body.String(), defProjectDescription)
 }
 
-func TestSearchPostTags(t *testing.T) {
+func TestSearchProjectTags(t *testing.T) {
 	payload := map[string][]string{"tags": {"backend"}}
 	body, _ := json.Marshal(payload)
 
@@ -94,11 +94,11 @@ func TestSearchPostTags(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), defPostDescription)
-	assert.Contains(t, w.Body.String(), "Testing the edit post endpoint")
+	assert.Contains(t, w.Body.String(), defProjectDescription)
+	assert.Contains(t, w.Body.String(), "Testing the edit project endpoint")
 }
 
-func TestEditPostView(t *testing.T) {
+func TestEditProjectView(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-view?id="+pid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -109,7 +109,7 @@ func TestEditPostView(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "5")
 }
 
-func TestEditPostAvailability(t *testing.T) {
+func TestEditProjectAvailability(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-status?id="+pid+"&status=false", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -120,7 +120,7 @@ func TestEditPostAvailability(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "false")
 }
 
-func TestSavePostFailed(t *testing.T) {
+func TestSaveProjectFailed(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPut, "/api/post/save-post?id="+pid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -128,10 +128,10 @@ func TestSavePostFailed(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
-	assert.Contains(t, w.Body.String(), "You can't save a post created by you.")
+	assert.Contains(t, w.Body.String(), "You can't save a project created by you.")
 }
 
-func TestSavePost(t *testing.T) {
+func TestSaveProject(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPut, "/api/post/save-post?id="+pid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
@@ -141,7 +141,7 @@ func TestSavePost(t *testing.T) {
 	assert.Equal(t, http.StatusAccepted, w.Code)
 }
 
-func TestViewSavedPost(t *testing.T) {
+func TestViewSavedProject(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/post/view/saved-post", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
@@ -149,10 +149,10 @@ func TestViewSavedPost(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), defPostDescription)
+	assert.Contains(t, w.Body.String(), defProjectDescription)
 }
 
-func TestRemoveSavedPost(t *testing.T) {
+func TestRemoveSavedProject(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodDelete, "/api/post/remove-post?id="+pid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
@@ -162,7 +162,7 @@ func TestRemoveSavedPost(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }
 
-func TestApplyForPostFailed(t *testing.T) {
+func TestApplyForProjectFailed(t *testing.T) {
 	body, _ := json.Marshal(reqPayload)
 
 	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id="+pid, bytes.NewBuffer(body))
@@ -172,10 +172,10 @@ func TestApplyForPostFailed(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
-	assert.Contains(t, w.Body.String(), "The owner of the post is no longer accepting applications.")
+	assert.Contains(t, w.Body.String(), "The owner of the project is no longer accepting applications.")
 }
 
-func TestEditPostAvailabilityTrue(t *testing.T) {
+func TestEditProjectAvailabilityTrue(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodPatch, "/api/post/edit-status?id="+pid+"&status=true", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -186,7 +186,7 @@ func TestEditPostAvailabilityTrue(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "true")
 }
 
-func TestApplyForPost(t *testing.T) {
+func TestApplyForProject(t *testing.T) {
 	body, _ := json.Marshal(reqPayload)
 
 	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id="+pid, bytes.NewBuffer(body))
@@ -198,10 +198,10 @@ func TestApplyForPost(t *testing.T) {
 	assert.Equal(t, w.Code, http.StatusOK)
 	assert.Contains(t, w.Body.String(), reqPayload["msg"])
 
-	_ = json.Unmarshal(w.Body.Bytes(), &postReq)
+	_ = json.Unmarshal(w.Body.Bytes(), &projectReq)
 }
 
-func TestViewPostApplications(t *testing.T) {
+func TestViewProjectApplications(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/post/view-applications", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
@@ -213,7 +213,7 @@ func TestViewPostApplications(t *testing.T) {
 	assert.Contains(t, w.Body.String(), superUserName)
 }
 
-func TestViewSinglePostApplications(t *testing.T) {
+func TestViewSingleProjectApplications(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/post/view-application?id="+pid, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
@@ -223,11 +223,11 @@ func TestViewSinglePostApplications(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), reqPayload["msg"])
 	assert.Contains(t, w.Body.String(), superUserName1)
-	assert.Contains(t, w.Body.String(), postReq.ReqID)
+	assert.Contains(t, w.Body.String(), projectReq.ReqID)
 }
 
-func TestUpdatePostApplicationInvalidStatus(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+postReq.ReqID+"&status=invalidstatus", bytes.NewBufferString(`{}`))
+func TestUpdateProjectApplicationInvalidStatus(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+projectReq.ReqID+"&status=invalidstatus", bytes.NewBufferString(`{}`))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -237,8 +237,8 @@ func TestUpdatePostApplicationInvalidStatus(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Invalid status.")
 }
 
-func TestUpdatePostApplicationReject(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+postReq.ReqID+"&status=rejected", bytes.NewBufferString(`{}`))
+func TestUpdateProjectApplicationReject(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+projectReq.ReqID+"&status=rejected", bytes.NewBufferString(`{}`))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -248,7 +248,7 @@ func TestUpdatePostApplicationReject(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Application status updated successfully.")
 }
 
-func TestCreatePostApplicationToAccept(t *testing.T) {
+func TestCreateProjectApplicationToAccept(t *testing.T) {
 	body, _ := json.Marshal(defPayload)
 
 	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id="+pid, bytes.NewBuffer(body))
@@ -258,11 +258,11 @@ func TestCreatePostApplicationToAccept(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	_ = json.Unmarshal(w.Body.Bytes(), &postReq)
+	_ = json.Unmarshal(w.Body.Bytes(), &projectReq)
 }
 
-func TestUpdatePostApplicationAccept(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+postReq.ReqID+"&status=accepted", bytes.NewBufferString(`{}`))
+func TestUpdateProjectApplicationAccept(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPatch, "/api/post/update-application?id="+projectReq.ReqID+"&status=accepted", bytes.NewBufferString(`{}`))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -272,21 +272,21 @@ func TestUpdatePostApplicationAccept(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Application status updated successfully.")
 }
 
-func TestCreatePostApplicationToDelete(t *testing.T) {
+func TestCreateProjectApplicationToDelete(t *testing.T) {
 	body, _ := json.Marshal(defPayload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id="+post.ID, bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id="+project.ID, bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	_ = json.Unmarshal(w.Body.Bytes(), &postReq)
+	_ = json.Unmarshal(w.Body.Bytes(), &projectReq)
 }
 
-func TestDeletePostApplication(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/post/delete-application?id="+postReq.ReqID, nil)
+func TestDeleteProjectApplication(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodDelete, "/api/post/delete-application?id="+projectReq.ReqID, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
@@ -295,21 +295,21 @@ func TestDeletePostApplication(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }
 
-func TestCreatePostApplicationToClear(t *testing.T) {
+func TestCreateProjectApplicationToClear(t *testing.T) {
 	body, _ := json.Marshal(defPayload)
 
-	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id="+post.ID, bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/post/apply?id="+project.ID, bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	_ = json.Unmarshal(w.Body.Bytes(), &postReq)
+	_ = json.Unmarshal(w.Body.Bytes(), &projectReq)
 }
 
-func TestClearPostApplication(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/post/clear-application?id="+post.ID, nil)
+func TestClearProjectApplication(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodDelete, "/api/post/clear-application?id="+project.ID, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -318,8 +318,8 @@ func TestClearPostApplication(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }
 
-func TestDeletePost(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodDelete, "/api/post/delete?id="+post.ID, nil)
+func TestDeleteProject(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodDelete, "/api/post/delete?id="+project.ID, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()

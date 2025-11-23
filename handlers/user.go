@@ -149,13 +149,13 @@ func (s *Service) GetUser(ctx *gin.Context) {
 		Skills:       skills,
 	}
 
-	var posts []schema.PostResponse
-	for _, post := range user.Posts {
+	var posts []schema.ProjectResponse
+	for _, post := range user.Projects {
 		var tags []string
 		for _, tag := range post.Tags {
 			tags = append(tags, tag.Name)
 		}
-		posts = append(posts, schema.PostResponse{
+		posts = append(posts, schema.ProjectResponse{
 			ID:          post.ID,
 			Description: post.Description,
 			Tags:        tags,
@@ -239,13 +239,13 @@ func (s *Service) ViewUser(ctx *gin.Context) {
 		Availability: user.Availability,
 	}
 
-	var posts []schema.PostResponse
-	for _, post := range user.Posts {
+	var posts []schema.ProjectResponse
+	for _, post := range user.Projects {
 		var tags []string
 		for _, tag := range post.Tags {
 			tags = append(tags, tag.Name)
 		}
-		posts = append(posts, schema.PostResponse{
+		posts = append(posts, schema.ProjectResponse{
 			ID:          post.ID,
 			Description: post.Description,
 			Tags:        tags,
@@ -295,13 +295,13 @@ func (s *Service) ViewGitUser(ctx *gin.Context) {
 		Availability: user.Availability,
 	}
 
-	var posts []schema.PostResponse
-	for _, post := range user.Posts {
+	var posts []schema.ProjectResponse
+	for _, post := range user.Projects {
 		var tags []string
 		for _, tag := range post.Tags {
 			tags = append(tags, tag.Name)
 		}
-		posts = append(posts, schema.PostResponse{
+		posts = append(posts, schema.ProjectResponse{
 			ID:          post.ID,
 			Description: post.Description,
 			Tags:        tags,

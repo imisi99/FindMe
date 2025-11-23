@@ -35,16 +35,16 @@ func getTestDB() *core.GormDB {
 	db.AutoMigrate(
 		&model.Skill{},
 		&model.User{},
-		&model.Post{},
-		&model.PostSkill{},
+		&model.Project{},
+		&model.ProjectSkill{},
 		&model.UserSkill{},
 		&model.UserFriend{},
 		&model.FriendReq{},
 		&model.UserMessage{},
-		&model.PostReq{},
+		&model.ProjectReq{},
 	)
 
-	db.SetupJoinTable(&model.Post{}, "Tags", &model.PostSkill{})
+	db.SetupJoinTable(&model.Project{}, "Tags", &model.ProjectSkill{})
 	db.SetupJoinTable(&model.User{}, "Skills", &model.UserSkill{})
 	db.SetupJoinTable(&model.User{}, "Friends", &model.UserFriend{})
 	db.SetupJoinTable(&model.User{}, "Chats", &model.ChatUser{})
@@ -96,7 +96,7 @@ func superUser(db *core.GormDB) {
 	users := []*model.User{&super, &super1}
 	db.DB.Create(users)
 
-	post := model.Post{
+	post := model.Project{
 		Description:  "Working on a platform for finding developers for contributive project",
 		UserID:       super.ID,
 		Views:        4,

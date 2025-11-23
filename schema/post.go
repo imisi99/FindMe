@@ -2,14 +2,14 @@ package schema
 
 import "time"
 
-type NewPostRequest struct {
+type NewProjectRequest struct {
 	Description string   `json:"description" binding:"required"`
 	Tags        []string `json:"tags" binding:"required"`
 	Git         bool     `json:"git" binding:"omitempty"`
 	GitLink     string   `json:"git_link" binding:"omitempty"`
 }
 
-type PostResponse struct {
+type ProjectResponse struct {
 	ID          string
 	Description string
 	Available   bool
@@ -19,30 +19,30 @@ type PostResponse struct {
 	Views       uint
 }
 
-type DetailedPostResponse struct {
-	PostResponse
+type DetailedProjectResponse struct {
+	ProjectResponse
 	Username   string
 	GitProject bool
 	GitLink    string
 }
 
-type ApplicationPostResponse struct {
-	Applications []ViewPostApplication
+type ApplicationProjectResponse struct {
+	Applications []ViewProjectApplication
 }
 
 type RejectApplication struct {
 	Reason string `json:"msg" binding:"omitempty"`
 }
 
-type PostApplication struct {
+type ProjectApplication struct {
 	Message string `json:"msg" binding:"omitempty,max=50"`
 }
 
-type SearchPostWithTags struct {
+type SearchProjectWithTags struct {
 	Tags []string `json:"tags" binding:"required"`
 }
 
-type ViewPostApplication struct {
+type ViewProjectApplication struct {
 	ReqID    string
 	Status   string
 	Message  string

@@ -2,13 +2,13 @@ package unit
 
 import "findme/schema"
 
-type PostResponse struct {
-	Message             string `json:"msg"`
-	schema.PostResponse `json:"post"`
+type ProjectResponse struct {
+	Message                string `json:"msg"`
+	schema.ProjectResponse `json:"project"`
 }
 
-type PostApplicationResponse struct {
-	schema.ViewPostApplication `json:"post_req"`
+type ProjectApplicationResponse struct {
+	schema.ViewProjectApplication `json:"project_req"`
 }
 
 type ViewMsg struct {

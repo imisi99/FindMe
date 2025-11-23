@@ -147,7 +147,7 @@ func TestViewGitUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), superUserName)
-	assert.Contains(t, w.Body.String(), defPostDescription)
+	assert.Contains(t, w.Body.String(), defProjectDescription)
 }
 
 func TestSearchUserbySkills(t *testing.T) {
@@ -176,7 +176,7 @@ func TestViewUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "isongrichard234@gmail.com")
-	assert.Contains(t, w.Body.String(), defPostDescription)
+	assert.Contains(t, w.Body.String(), defProjectDescription)
 }
 
 func TestGetUser(t *testing.T) {
@@ -188,7 +188,7 @@ func TestGetUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), superUserName)
-	assert.Contains(t, w.Body.String(), defPostDescription)
+	assert.Contains(t, w.Body.String(), defProjectDescription)
 }
 
 func TestSendFriendReq(t *testing.T) {
