@@ -29,8 +29,7 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	router.POST("/login", service.VerifyUser)
 
 	router.GET("/github-signup", service.Git.GitHubAddUser)
-	router.GET("/api/v1/auth/github/callback", service.Git.GitHubAddUserCallback)
-	router.GET("/api/v1/auth/connect-github/callback", service.Git.ConnectGitHubCallback)
+	router.GET("/api/v1/auth/github/callback", service.Git.SelectCallback)
 
 	router.GET("/forgot-password", service.ForgotPassword)
 	router.GET("/verify-otp", service.VerifyOTP)

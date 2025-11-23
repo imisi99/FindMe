@@ -16,9 +16,10 @@ import (
 
 type Git interface {
 	GitHubAddUser(ctx *gin.Context)
-	GitHubAddUserCallback(ctx *gin.Context)
+	SelectCallback(ctx *gin.Context)
 	ConnectGitHub(ctx *gin.Context)
-	ConnectGitHubCallback(ctx *gin.Context)
+	ConnectGitHubCallback(uid, code, state, storedState string) (string, error)
+	GitHubAddUserCallback(token, code, state, storedState string) (string, string, error)
 	ViewRepo(ctx *gin.Context)
 }
 
@@ -52,22 +53,74 @@ func (g *GitService) GitHubAddUser(ctx *gin.Context) {
 	}
 
 	ctx.SetCookie("state", state, 150, "/", "", false, true)
+	ctx.SetCookie("auth", "login", 150, "/", "", false, true)
 
 	redirectURL := fmt.Sprintf("https://github.com/login/oauth/authorize?client_id=%s&state=%s&scope=read:user user:email", g.ClientID, state)
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
-// GitHubAddUserCallback -> for the github signup endpoint
-func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
-	var token string
-	token, err := ctx.Cookie("git-access-token")
-	if err != nil {
-		code := ctx.Query("code")
-		state := ctx.Query("state")
+// ConnectGitHub -> Connect user using github
+func (g *GitService) ConnectGitHub(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if uid == "" || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
 
-		if storedState, err := ctx.Cookie("state"); err != nil || state != storedState {
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid or expired state"})
+	state, err := core.GenerateState()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to generate state for github session."})
+		return
+	}
+
+	ctx.SetCookie("state", state, 150, "/", "", false, true)
+	ctx.SetCookie("auth", "connect", 150, "/", "", false, true)
+	ctx.SetCookie("uid", uid, 150, "/", "", false, true)
+
+	redirectURL := fmt.Sprintf("https://github.com/login/oauth/authorize?client_id=%s&state=%s&scope=read:user user:email", g.ClientID, state)
+	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
+}
+
+// SelectCallback -> Select the callback for login, connect github endpoint
+func (g *GitService) SelectCallback(ctx *gin.Context) {
+	auth, _ := ctx.Cookie("auth")
+	token, _ := ctx.Cookie("git-access-token")
+	storedState, _ := ctx.Cookie("state")
+	uid, _ := ctx.Cookie("uid")
+
+	state := ctx.Query("state")
+	code := ctx.Query("code")
+	switch auth {
+	case "login":
+		jwtToken, gitToken, err := g.GitHubAddUserCallback(token, code, state, storedState)
+		if err != nil {
+			cm := err.(*core.CustomMessage)
+			ctx.AbortWithStatusJSON(cm.Code, gin.H{"msg": cm.Message})
 			return
+		}
+		ctx.SetCookie("git-access-token", gitToken, 60*60*24, "/", "", false, true)
+		ctx.JSON(http.StatusOK, gin.H{"token": jwtToken, "msg": "Logged in successfully."})
+		return
+	case "auth":
+		gitToken, err := g.ConnectGitHubCallback(uid, code, state, storedState)
+		if err != nil {
+			cm := err.(*core.CustomMessage)
+			ctx.AbortWithStatusJSON(cm.Code, gin.H{"msg": cm.Message})
+			return
+		}
+		ctx.SetCookie("git-access-token", gitToken, 60*60*24, "/", "", false, true)
+		ctx.JSON(http.StatusAccepted, gin.H{"msg": "Github account connected successfully."})
+		return
+	default:
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid auth mode."})
+	}
+}
+
+// GitHubAddUserCallback -> callback for the github sign-up/sign-in endpoint
+func (g *GitService) GitHubAddUserCallback(token, code, state, storedState string) (string, string, error) {
+	if token != "" {
+		if state != storedState {
+			return "", "", &core.CustomMessage{Code: http.StatusBadRequest, Message: "Invalid or expired state."}
 		}
 
 		data := url.Values{}
@@ -81,8 +134,7 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 
 		resp, err := g.Client.Do(req)
 		if err != nil || resp.StatusCode != http.StatusOK {
-			ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to signup with github."})
-			return
+			return "", "", &core.CustomMessage{Code: http.StatusBadGateway, Message: "Failed to signup with github."}
 		}
 
 		defer resp.Body.Close()
@@ -90,40 +142,33 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 		var gitToken schema.GitToken
 
 		if err := json.NewDecoder(resp.Body).Decode(&gitToken); err != nil {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse access token."})
-			return
+			return "", "", &core.CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to parse access token."}
 		}
 		token = gitToken.AccessToken
 	}
-
-	ctx.SetCookie("git-access-token", token, 60*60*3, "/", "", false, true)
 
 	userReq, _ := http.NewRequest(http.MethodGet, "https://api.github.com/user", nil)
 	userReq.Header.Set("Authorization", "Bearer "+token)
 
 	userResp, err := g.Client.Do(userReq)
 	if err != nil || userResp.StatusCode != http.StatusOK {
-		ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to signup with github."})
-		return
+		return "", "", &core.CustomMessage{Code: http.StatusBadGateway, Message: "Failed to signup with github."}
 	}
 
 	defer userResp.Body.Close()
 
 	var user schema.GitHubUser
 	if err := json.NewDecoder(userResp.Body).Decode(&user); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse user info."})
-		return
+		return "", "", &core.CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to parse user info."}
 	}
 
 	var existingUser model.User
 	if err := g.DB.FindExistingGitID(&existingUser, user.ID); err == nil {
 		userToken, err := GenerateJWT(existingUser.ID, "login", JWTExpiry)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
-			return
+			return "", "", &core.CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to generate jwt token for user."}
 		}
-		ctx.JSON(http.StatusOK, gin.H{"token": userToken, "message": "Logged in successfully."})
-		return
+		return userToken, token, nil
 	}
 
 	if user.Email == "" {
@@ -133,8 +178,7 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 		emailResp, err := g.Client.Do(emailReq)
 
 		if err != nil || emailResp.StatusCode != http.StatusOK {
-			ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to fetch user email."})
-			return
+			return "", "", &core.CustomMessage{Code: http.StatusBadGateway, Message: "Failed to fetch user email."}
 		}
 
 		defer emailResp.Body.Close()
@@ -145,8 +189,7 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 		}
 
 		if err := json.NewDecoder(emailResp.Body).Decode(&email); err != nil {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse user github emails."})
-			return
+			return "", "", &core.CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to parse user github emails."}
 		}
 
 		for _, e := range email {
@@ -157,15 +200,13 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 		}
 
 		if user.Email == "" {
-			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Unable to signup with github no github email."})
-			return
+			return "", "", &core.CustomMessage{Code: http.StatusBadRequest, Message: "No email available on github."}
 		}
 
 	}
 
 	if err := g.DB.CheckExistingEmail(user.Email); err == nil {
-		ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{"msg": "There's an account associated with that email already!"})
-		return
+		return "", "", &core.CustomMessage{Code: http.StatusConflict, Message: "There's an account associated with that email already!"}
 	}
 
 	newUsername := user.UserName
@@ -185,51 +226,25 @@ func (g *GitService) GitHubAddUserCallback(ctx *gin.Context) {
 	}
 
 	if err := g.DB.AddUser(&newUser); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to signup with github."})
-		return
+		return "", "", err
 	}
 
 	userToken, err := GenerateJWT(newUser.ID, "login", JWTExpiry)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate jwt token for user."})
-		return
+		return "", "", &core.CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to generate jwt token for user."}
 	}
-	ctx.JSON(http.StatusOK, gin.H{"token": userToken, "message": "Logged in successfully."})
+
+	return userToken, token, nil
 }
 
-func (g *GitService) ConnectGitHub(ctx *gin.Context) {
-	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
-		return
+// ConnectGitHubCallback -> callback for the github connect endpoint
+func (g *GitService) ConnectGitHubCallback(uid, code, state, storedState string) (string, error) {
+	if uid == "" {
+		return "", &core.CustomMessage{Code: http.StatusUnauthorized, Message: "Unauthorized user."}
 	}
 
-	state, err := core.GenerateState()
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to generate state for github session."})
-		return
-	}
-
-	ctx.SetCookie("state", state, 150, "/", "", false, true)
-	ctx.SetCookie("state", uid, 150, "/", "", false, true)
-
-	redirectURL := fmt.Sprintf("https://github.com/login/oauth/authorize?client_id=%s&state=%s&scope=read:user user:email", g.ClientID, state)
-	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
-}
-
-func (g *GitService) ConnectGitHubCallback(ctx *gin.Context) {
-	uid, err := ctx.Cookie("uid")
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
-		return
-	}
-
-	code := ctx.Query("code")
-	state := ctx.Query("state")
-
-	if storedState, err := ctx.Cookie("state"); err != nil || storedState != state {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid or Expired state."})
-		return
+	if storedState != state {
+		return "", &core.CustomMessage{Code: http.StatusBadRequest, Message: "Invalid or Expired state."}
 	}
 
 	data := url.Values{}
@@ -243,8 +258,7 @@ func (g *GitService) ConnectGitHubCallback(ctx *gin.Context) {
 
 	resp, err := g.Client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
-		ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to connect with github."})
-		return
+		return "", &core.CustomMessage{Code: http.StatusBadGateway, Message: "Failed to connect with github."}
 	}
 
 	defer resp.Body.Close()
@@ -252,34 +266,27 @@ func (g *GitService) ConnectGitHubCallback(ctx *gin.Context) {
 	var gitToken schema.GitToken
 
 	if err := json.NewDecoder(resp.Body).Decode(&gitToken); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse access token."})
-		return
+		return "", &core.CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to parse access token."}
 	}
-
-	ctx.SetCookie("git-access-token", gitToken.AccessToken, 60*60*3, "/", "", false, true)
 
 	userReq, _ := http.NewRequest(http.MethodGet, "https://api.github.com/user", nil)
 	userReq.Header.Set("Authorization", "Bearer "+gitToken.AccessToken)
 
 	userResp, err := g.Client.Do(userReq)
 	if err != nil || userResp.StatusCode != http.StatusOK {
-		ctx.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Failed to signup with github."})
-		return
+		return "", &core.CustomMessage{Code: http.StatusBadGateway, Message: "Failed to signup with github."}
 	}
 
 	defer userResp.Body.Close()
 
 	var gitUser schema.GitHubUser
 	if err := json.NewDecoder(userReq.Body).Decode(&gitUser); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to parse user info."})
-		return
+		return "", &core.CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to parse user info."}
 	}
 
 	var user model.User
 	if err := g.DB.FetchUser(&user, uid); err != nil {
-		cm := err.(*core.CustomMessage)
-		ctx.AbortWithStatusJSON(cm.Code, gin.H{"msg": cm.Message})
-		return
+		return "", err
 	}
 
 	user.GitID = &gitUser.ID
@@ -287,12 +294,10 @@ func (g *GitService) ConnectGitHubCallback(ctx *gin.Context) {
 	user.GitUserName = &gitUser.UserName
 
 	if err := g.DB.SaveUser(&user); err != nil {
-		cm := err.(*core.CustomMessage)
-		ctx.AbortWithStatusJSON(cm.Code, gin.H{"msg": cm.Message})
-		return
+		return "", err
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Github account connected successfully."})
+	return gitToken.AccessToken, nil
 }
 
 // ViewRepo -> Endpoint for viewing the user public repo to tag to a project.

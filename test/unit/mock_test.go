@@ -76,13 +76,16 @@ type GitMock struct{}
 
 func (mock *GitMock) GitHubAddUser(_ *gin.Context) {}
 func (mock *GitMock) ConnectGitHub(_ *gin.Context) {}
-
-func (mock *GitMock) GitHubAddUserCallback(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, gin.H{"token": "1234", "message": "Logged in successfully."})
+func (mock *GitMock) SelectCallback(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, gin.H{"token": "1234", "msg": "Logged in successfully."})
 }
 
-func (mock *GitMock) ConnectGitHubCallback(ctx *gin.Context) {
-	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Github account connected successfully."})
+func (mock *GitMock) GitHubAddUserCallback(_, _, _, _ string) (string, string, error) {
+	return "", "", nil
+}
+
+func (mock *GitMock) ConnectGitHubCallback(_, _, _, _ string) (string, error) {
+	return "", nil
 }
 
 func (mock *GitMock) ViewRepo(ctx *gin.Context) {

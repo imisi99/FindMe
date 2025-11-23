@@ -3,6 +3,7 @@ package unit
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -62,11 +63,12 @@ func TestSignupDuplicate(t *testing.T) {
 
 // Git Mock Test
 func TestGitSignup(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/auth/github/callback", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/github-signup", nil)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
+	log.Println(w.Code, w.Body.String())
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
@@ -77,6 +79,7 @@ func TestGitConnect(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
+	log.Println(w.Code, w.Body.String())
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
@@ -88,6 +91,7 @@ func TestGitViewRepo(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "imisi99/FindMe")
 }
 
 func TestLogin(t *testing.T) {
