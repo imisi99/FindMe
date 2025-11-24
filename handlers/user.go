@@ -13,6 +13,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO:
+// Maybe a search available user endpoint
+// Add more search Param for users
+
 // DONE:
 // Return user IDs across all places
 // Don't include the user in the search user with tags endpoint
@@ -23,6 +27,7 @@ import (
 // Return User Ids in profile and stuff.
 // Add a sent tag with the view friend req endpoint
 // Should there be a fetch user by id like for searching ?
+// Modify the pasword endpoint for github user for updating password.
 
 // AddUser -> Sign up endpoint for user
 func (s *Service) AddUser(ctx *gin.Context) {
@@ -793,9 +798,11 @@ func (s *Service) UpdateUserPassword(ctx *gin.Context) {
 		return
 	}
 
-	if err := core.VerifyHashedPassword(payload.FormerPassword, user.Password); err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Invalid Password."})
-		return
+	if user.Password != "" {
+		if err := core.VerifyHashedPassword(payload.FormerPassword, user.Password); err != nil {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Invalid Password."})
+			return
+		}
 	}
 
 	hashed, err := core.HashPassword(payload.Password)

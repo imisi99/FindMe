@@ -737,7 +737,8 @@ func (db *GormDB) AddMessage(msg *model.UserMessage) error {
 }
 
 func (db *GormDB) GetChatHistory(chatID string, chat *model.Chat) error {
-	if err := db.DB.Preload("Messages").Where("id = ?", chatID).First(&chat).Error; err != nil {
+	if err := db.DB.Preload("Messages").Preload("Users").Where("id = ?", chatID).First(chat).Error; err != nil {
+		log.Println(chatID, err)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{http.StatusNotFound, "Chat not found."}
 		} else {

@@ -13,6 +13,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO:
+// Maybe a search available post endpoint
+// Add more search Param for posts
+
 // DONE:
 // Should there also be a applications on a project for easy tracking ? (This can also be used to check for existing req to a project)
 // Possibly a chat group to be associated to the project nah (This can be used instead of enforcing a friendship)
@@ -21,6 +25,7 @@ import (
 // Remodel requests to delete after ignored or rejected
 // An endpoint to link the project to a github project?
 // Add a better way to check for already applied project in
+// On the clear post applications check the len first before making req
 
 // GetProjects -> Endpoint for getting all user projects
 func (s *Service) GetProjects(ctx *gin.Context) {
@@ -779,6 +784,11 @@ func (s *Service) ClearProjectApplication(ctx *gin.Context) {
 	if err := s.DB.FetchProjectPreloadA(&project, pid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if len(project.Applications) == 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "No request to clear!"})
 		return
 	}
 

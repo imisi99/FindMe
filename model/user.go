@@ -22,7 +22,7 @@ type User struct {
 	// Relations:
 	Skills         []*Skill      `gorm:"many2many:user_skills"`
 	Projects       []*Project    `gorm:"foreignKey:UserID"`
-	SavedProjects  []*Project    `gorm:"many2many:user_saved_posts"`
+	SavedProjects  []*Project    `gorm:"many2many:user_saved_projects"`
 	Friends        []*User       `gorm:"many2many:user_friends"`
 	FriendReq      []*FriendReq  `gorm:"foreignKey:UserID"`
 	RecFriendReq   []*FriendReq  `gorm:"foreignKey:FriendID"`

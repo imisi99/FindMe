@@ -17,7 +17,7 @@ type Project struct {
 
 	// Relations:
 	User         *User         `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Tags         []*Skill      `gorm:"many2many:post_skills"`
+	Tags         []*Skill      `gorm:"many2many:project_skills"`
 	Applications []*ProjectReq `gorm:"foreignKey:ProjectID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	Chat         *Chat         `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

@@ -46,7 +46,7 @@ func Connect() *gorm.DB {
 
 	err = db.SetupJoinTable(&model.Project{}, "Tags", &model.ProjectSkill{})
 	if err != nil {
-		log.Fatalf("[ERROR] [DB] Failed to create join table on post and skills -> %s", err.Error())
+		log.Fatalf("[ERROR] [DB] Failed to create join table on project and skills -> %s", err.Error())
 	}
 
 	err = db.SetupJoinTable(&model.User{}, "Skills", &model.UserSkill{})

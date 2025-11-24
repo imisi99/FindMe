@@ -13,6 +13,9 @@ import (
 // TODO:
 // Add a delete group chat endpoint where owners can delete the chat.
 
+// FIX:
+// The Leave Chat doesn't allow the add user to work again ?
+
 // DONE:
 // A add user to chat endpoint for a project chat ?
 // Select Friend to msg endpoint
@@ -87,6 +90,18 @@ func (s *Service) ViewMessages(ctx *gin.Context) {
 		return
 	}
 	var hist schema.ViewChat
+	hist.CID = cid
+	hist.Group = chat.Group
+	if hist.Group {
+		hist.Name = chat.Name
+	} else {
+		if chat.Users[0].ID == uid {
+			hist.Name = chat.Users[1].UserName
+		} else {
+			hist.Name = chat.Users[0].UserName
+		}
+	}
+
 	for _, msg := range chat.Messages {
 		hist.Message = append(hist.Message, schema.ViewMessage{
 			ID:      msg.ID,
@@ -352,7 +367,7 @@ func (s *Service) AddUserToChat(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := s.DB.FetchUser(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, payload.UserID); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -400,7 +415,7 @@ func (s *Service) RemoveUserChat(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := s.DB.FetchUser(&user, uid); err != nil {
+	if err := s.DB.FetchUser(&user, payload.UserID); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return

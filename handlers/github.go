@@ -44,6 +44,7 @@ func NewGitService(id, secret, callback string, db core.DB, client *http.Client)
 // GitHubAddUser -> Signing up user using github
 func (g *GitService) GitHubAddUser(ctx *gin.Context) {
 	if _, err := ctx.Cookie("git-access-token"); err == nil {
+		ctx.SetCookie("auth", "login", 150, "/", "", false, true)
 		ctx.Redirect(http.StatusTemporaryRedirect, g.CallbackURL)
 	}
 	state, err := core.GenerateState()
@@ -118,7 +119,7 @@ func (g *GitService) SelectCallback(ctx *gin.Context) {
 
 // GitHubAddUserCallback -> callback for the github sign-up/sign-in endpoint
 func (g *GitService) GitHubAddUserCallback(token, code, state, storedState string) (string, string, error) {
-	if token != "" {
+	if token == "" {
 		if state != storedState {
 			return "", "", &core.CustomMessage{Code: http.StatusBadRequest, Message: "Invalid or expired state."}
 		}
@@ -205,12 +206,12 @@ func (g *GitService) GitHubAddUserCallback(token, code, state, storedState strin
 
 	}
 
-	if err := g.DB.CheckExistingEmail(user.Email); err == nil {
+	if err := g.DB.CheckExistingEmail(user.Email); err != nil {
 		return "", "", &core.CustomMessage{Code: http.StatusConflict, Message: "There's an account associated with that email already!"}
 	}
 
 	newUsername := user.UserName
-	if err := g.DB.CheckExistingUsername(newUsername); err == nil {
+	if err := g.DB.CheckExistingUsername(newUsername); err != nil {
 		newUsername = core.GenerateUsername(existingUser.UserName)
 	}
 

@@ -94,7 +94,12 @@ func (c *RDB) SetOTP(otp string, userID string) error {
 		return &CustomMessage{http.StatusConflict, "Token already exists."}
 	}
 
-	if _, err := c.Cache.HSet(ctx, "otps", otp, userID).Result(); err != nil {
+	otps := &redis.HSetEXOptions{
+		ExpirationType: redis.HSetEXExpirationEX,
+		ExpirationVal:  600,
+	}
+
+	if _, err := c.Cache.HSetEXWithArgs(ctx, "otps", otps, otp, userID).Result(); err != nil {
 		log.Printf("An error occured while trying to set otp in redis -> %v", err)
 		return &CustomMessage{http.StatusInternalServerError, "Failed to set otp."}
 	}
