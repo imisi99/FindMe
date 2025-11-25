@@ -13,20 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO:
-// Maybe a search available post endpoint
-// Add more search Param for posts
-
-// DONE:
-// Should there also be a applications on a project for easy tracking ? (This can also be used to check for existing req to a project)
-// Possibly a chat group to be associated to the project nah (This can be used instead of enforcing a friendship)
-// Remove user's project in the search for project tags ?
-// An Endpoint to clear all applications on a project or rejected one ?
-// Remodel requests to delete after ignored or rejected
-// An endpoint to link the project to a github project?
-// Add a better way to check for already applied project in
-// On the clear post applications check the len first before making req
-
 // GetProjects -> Endpoint for getting all user projects
 func (s *Service) GetProjects(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")

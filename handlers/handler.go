@@ -13,11 +13,12 @@ type Service struct {
 	RDB    core.Cache
 	Email  core.Email
 	Git    Git
+	Hub    *core.Hub
 	Client *http.Client
 }
 
-func NewService(db core.DB, rdb core.Cache, email core.Email, git Git, client *http.Client) *Service {
-	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Client: client}
+func NewService(db core.DB, rdb core.Cache, email core.Email, git Git, client *http.Client, hub *core.Hub) *Service {
+	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Client: client, Hub: hub}
 }
 
 func SetupHandler(router *gin.Engine, service *Service) {
@@ -61,6 +62,8 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedUserRoutes.DELETE("/delete-user", service.DeleteUserAccount)
 	protectedUserRoutes.DELETE("/delete-friend-req", service.DeleteSentReq)
 	protectedUserRoutes.DELETE("/delete-user-friend", service.DeleteUserFriend)
+
+	protectedMsgRoutes.GET("/ws/chat", service.WSChat)
 
 	protectedMsgRoutes.GET("/view-hist", service.ViewMessages)
 	protectedMsgRoutes.GET("/view-chats", service.FetchUserChats)

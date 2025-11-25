@@ -10,21 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO:
-// Add a delete group chat endpoint where owners can delete the chat.
-
-// FIX:
-// The Leave Chat doesn't allow the add user to work again ?
-
-// DONE:
-// A add user to chat endpoint for a project chat ?
-// Select Friend to msg endpoint
-// Close message endpoint
-// It can just be modeled like discord where you can create and close msg so you can sort of start a chat by searching a friend ?
-// An Endpoint for renaming chat and stuff.
-// A way to name the group chats you can use before create.
-// possibly if you search for the existing chat between users you can bring up group chat ?
-
 // CreateMessage -> Add Message endpoint
 func (s *Service) CreateMessage(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")

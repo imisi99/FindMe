@@ -15,10 +15,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// DONE:
-// Use index for all ids in the ERM
-// Rewrite all searches to use DB fast lookups instead of preloading.
-
 func main() {
 	// Load environment variables from .env file
 	log.SetPrefix("[FindMe]")
@@ -35,9 +31,10 @@ func main() {
 	db := core.NewGormDB(dbClient)
 	rdb := core.NewRDB(rdbClient)
 	client := &http.Client{Timeout: 10 * time.Minute}
+	hub := core.NewHub()
 	email := core.NewEmail("smtp.gmail.com", os.Getenv("EMAIL"), os.Getenv("EMAIL_APP_PASSWORD"), 587)
 	git := handlers.NewGitService(os.Getenv("GIT_CLIENT_ID"), os.Getenv("GIT_CLIENT_SECRET"), os.Getenv("GIT_CALLBACK_URL"), db, client)
-	service := handlers.NewService(db, rdb, email, git, client)
+	service := handlers.NewService(db, rdb, email, git, client, hub)
 	var skills []model.Skill
 	if err := service.DB.FetchAllSkills(&skills); err != nil {
 		log.Fatalln("Failed to Fetch skills from DB exiting...")

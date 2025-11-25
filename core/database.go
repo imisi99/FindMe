@@ -10,9 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// DONE:
-// Let all Checks for existing records use count.
-
 type DB interface {
 	FetchAllSkills(skills *[]model.Skill) error
 	AddUser(user *model.User) error

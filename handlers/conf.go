@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/gorilla/websocket"
 )
 
 type JWTClaims struct {
@@ -25,6 +26,13 @@ var (
 	JWTExpiry  = time.Hour * 24
 	JWTRExpiry = time.Minute * 5
 	HTTPClient = &http.Client{Timeout: 10 * time.Second}
+	upgrade    = websocket.Upgrader{
+		ReadBufferSize:  2048,
+		WriteBufferSize: 2048,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
 )
 
 // GenerateJWT -> Generates JWT token

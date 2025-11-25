@@ -13,22 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO:
-// Maybe a search available user endpoint
-// Add more search Param for users
-
-// DONE:
-// Return user IDs across all places
-// Don't include the user in the search user with tags endpoint
-// Should ignored be deleted automatically also ?
-// Check that only sent friend req can be deleted but rec friend req can be ignored
-// Find users chat before deleting friend to pass as an arg.
-// Find a more efficient way to find existing friend req, and exising friend and also delete one
-// Return User Ids in profile and stuff.
-// Add a sent tag with the view friend req endpoint
-// Should there be a fetch user by id like for searching ?
-// Modify the pasword endpoint for github user for updating password.
-
 // AddUser -> Sign up endpoint for user
 func (s *Service) AddUser(ctx *gin.Context) {
 	var payload schema.SignupRequest

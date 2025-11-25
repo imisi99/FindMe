@@ -35,12 +35,6 @@ func NewGitService(id, secret, callback string, db core.DB, client *http.Client)
 	return &GitService{ClientID: id, ClientSecret: secret, CallbackURL: callback, DB: db, Client: client}
 }
 
-// DONE:
-// Add a check for already existing email when signing up and ask user to connect instead of assuming.
-// Add an endpoint for connecting to github.
-// On the signup Endpoint perform the existing userID check before the fetch for private email.
-// Add a Get user repo endpoint.
-
 // GitHubAddUser -> Signing up user using github
 func (g *GitService) GitHubAddUser(ctx *gin.Context) {
 	if _, err := ctx.Cookie("git-access-token"); err == nil {

@@ -91,6 +91,11 @@ func (u *User) BeforeDelete(tx *gorm.DB) (err error) {
 	return nil
 }
 
+func IsValidUUID(id string) bool {
+	_, err := uuid.Parse(id)
+	return err == nil
+}
+
 type GormModel struct {
 	ID        string `gorm:"type:char(36);primaryKey"`
 	CreatedAt time.Time

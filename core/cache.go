@@ -29,10 +29,6 @@ func NewRDB(rdb *redis.Client) *RDB {
 	return &RDB{Cache: rdb}
 }
 
-// TODO:
-// Remove the otp for reseting passwords after use.
-// Install redis 8.0 for HSETEX for deleting the otps after they expire and after use.
-
 // CacheSkills -> Cache skills in rdb at app startup
 func (c *RDB) CacheSkills(skills []model.Skill) {
 	skillName := make(map[string]any, 0)
@@ -111,7 +107,7 @@ func (c *RDB) GetOTP(otp string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	userID, err := c.Cache.HGet(ctx, "otps", otp).Result()
+	userID, err := c.Cache.HGetDel(ctx, "otps", otp).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			return "", &CustomMessage{http.StatusNotFound, "Invalid otp."}
@@ -119,5 +115,8 @@ func (c *RDB) GetOTP(otp string) (string, error) {
 			return "", &CustomMessage{http.StatusInternalServerError, "Failed to verify otp."}
 		}
 	}
-	return userID, nil
+	if len(userID) != 1 || userID[0] == "" {
+		return "", &CustomMessage{http.StatusNotFound, "Invalid otp."}
+	}
+	return userID[0], nil
 }

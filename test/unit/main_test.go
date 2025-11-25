@@ -133,7 +133,8 @@ func TestMain(m *testing.M) {
 	rdb := NewCacheMock()
 	email := NewEmailMock()
 	git := NewGitMock()
-	service := handlers.NewService(db, rdb, email, git, &http.Client{})
+	hub := core.NewHub()
+	service := handlers.NewService(db, rdb, email, git, &http.Client{}, hub)
 
 	var skills []model.Skill
 	service.DB.FetchAllSkills(&skills)
