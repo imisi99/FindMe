@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 
 	"findme/core"
@@ -33,8 +32,6 @@ func (s *Service) WSChat(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to create a websocket connection."})
 		return
 	}
-
-	log.Println("Made a websocket connection to addr -> ", conn.LocalAddr().String())
 
 	client := &core.Client{
 		Conn:     conn,

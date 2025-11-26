@@ -14,11 +14,11 @@ type EditMessage struct {
 }
 
 type ViewMessage struct {
-	ID      string
-	Message string
-	UserID  string
-	Sent    time.Time
-	Edited  time.Time
+	ID      string    `json:"id"`
+	Message string    `json:"msg"`
+	UserID  string    `json:"uid"`
+	Sent    time.Time `json:"sent"`
+	Edited  time.Time `json:"edited"`
 }
 
 type ViewChat struct {

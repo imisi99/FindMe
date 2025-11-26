@@ -42,5 +42,6 @@ func main() {
 	service.RDB.CacheSkills(skills)
 	router := gin.Default()
 	handlers.SetupHandler(router, service)
+	go hub.Run()
 	router.Run("localhost:8080")
 }
