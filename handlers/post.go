@@ -16,7 +16,7 @@ import (
 // GetProjects -> Endpoint for getting all user projects
 func (s *Service) GetProjects(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -51,13 +51,13 @@ func (s *Service) GetProjects(ctx *gin.Context) {
 // ViewProject -> Endpoint for viewing a single project
 func (s *Service) ViewProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	pid := ctx.Query("id")
-	if pid == "" {
+	if !model.IsValidUUID(pid) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
@@ -94,7 +94,7 @@ func (s *Service) ViewProject(ctx *gin.Context) {
 // ViewSingleProjectApplication -> Endpoint for viewing a project applications
 func (s *Service) ViewSingleProjectApplication(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -136,7 +136,7 @@ func (s *Service) ViewSingleProjectApplication(ctx *gin.Context) {
 // SearchProject -> Endpoint for searching project with tags
 func (s *Service) SearchProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -181,7 +181,7 @@ func (s *Service) SearchProject(ctx *gin.Context) {
 // CreateProject -> Endpoint for creating project
 func (s *Service) CreateProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -237,7 +237,7 @@ func (s *Service) CreateProject(ctx *gin.Context) {
 // EditProject -> Endpoint for editing project
 func (s *Service) EditProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -300,7 +300,7 @@ func (s *Service) EditProject(ctx *gin.Context) {
 // EditProjectView -> Endpoint for updating a project view
 func (s *Service) EditProjectView(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -346,13 +346,13 @@ func (s *Service) EditProjectView(ctx *gin.Context) {
 // EditProjectAvailability -> Endpoint for updating the project availability status
 func (s *Service) EditProjectAvailability(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	pid, status := ctx.Query("id"), ctx.Query("status")
-	if pid == "" {
+	if !model.IsValidUUID(pid) {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Invalid project id."})
 		return
 	}
@@ -402,13 +402,13 @@ func (s *Service) EditProjectAvailability(ctx *gin.Context) {
 // SaveProject -> Endpoint for saving a project
 func (s *Service) SaveProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	pid := ctx.Query("id")
-	if pid == "" {
+	if !model.IsValidUUID(pid) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Invalid project id."})
 		return
 	}
@@ -458,7 +458,7 @@ func (s *Service) SaveProject(ctx *gin.Context) {
 // ViewSavedProject -> Endpoint for viewing saved project
 func (s *Service) ViewSavedProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -490,13 +490,13 @@ func (s *Service) ViewSavedProject(ctx *gin.Context) {
 // RemoveSavedProject -> Endpoint for removing saved project
 func (s *Service) RemoveSavedProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	pid := ctx.Query("id")
-	if pid == "" {
+	if !model.IsValidUUID(pid) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
@@ -527,13 +527,13 @@ func (s *Service) RemoveSavedProject(ctx *gin.Context) {
 // ApplyForProject -> Endpoint for applying for a project
 func (s *Service) ApplyForProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	pid := ctx.Query("id")
-	if pid == "" {
+	if !model.IsValidUUID(pid) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
@@ -604,7 +604,7 @@ func (s *Service) ApplyForProject(ctx *gin.Context) {
 // ViewProjectApplications -> Endpoint for Viewing project applications
 func (s *Service) ViewProjectApplications(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -643,12 +643,12 @@ func (s *Service) ViewProjectApplications(ctx *gin.Context) {
 // UpdateProjectApplication -> Endpoint for Updating project applications
 func (s *Service) UpdateProjectApplication(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 	rid, status := ctx.Query("id"), ctx.Query("status")
-	if rid == "" || status == "" {
+	if !model.IsValidUUID(rid) || status == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid req id."})
 		return
 	}
@@ -713,13 +713,13 @@ func (s *Service) UpdateProjectApplication(ctx *gin.Context) {
 // DeleteProjectApplication -> Endpoint for deleting sent project application
 func (s *Service) DeleteProjectApplication(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	rid := ctx.Query("id")
-	if rid == "" {
+	if !model.IsValidUUID(rid) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid request id."})
 		return
 	}
@@ -755,13 +755,13 @@ func (s *Service) DeleteProjectApplication(ctx *gin.Context) {
 // ClearProjectApplication -> Endpoint for clearing a project applications
 func (s *Service) ClearProjectApplication(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	pid := ctx.Query("id")
-	if pid == "" {
+	if !model.IsValidUUID(pid) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
@@ -790,13 +790,13 @@ func (s *Service) ClearProjectApplication(ctx *gin.Context) {
 // DeleteProject -> Endpoint for deleting a project
 func (s *Service) DeleteProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	pid := ctx.Query("id")
-	if pid == "" {
+	if !model.IsValidUUID(pid) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}

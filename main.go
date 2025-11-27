@@ -32,6 +32,7 @@ func main() {
 	rdb := core.NewRDB(rdbClient)
 	client := &http.Client{Timeout: 10 * time.Minute}
 	hub := core.NewHub()
+	go hub.Run()
 	email := core.NewEmail("smtp.gmail.com", os.Getenv("EMAIL"), os.Getenv("EMAIL_APP_PASSWORD"), 587)
 	git := handlers.NewGitService(os.Getenv("GIT_CLIENT_ID"), os.Getenv("GIT_CLIENT_SECRET"), os.Getenv("GIT_CALLBACK_URL"), db, client)
 	service := handlers.NewService(db, rdb, email, git, client, hub)
@@ -42,6 +43,6 @@ func main() {
 	service.RDB.CacheSkills(skills)
 	router := gin.Default()
 	handlers.SetupHandler(router, service)
-	go hub.Run()
-	router.Run("localhost:8080")
+
+	router.Run("0.0.0.0:8080")
 }

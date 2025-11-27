@@ -13,7 +13,7 @@ import (
 // CreateMessage -> Add Message endpoint
 func (s *Service) CreateMessage(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -57,13 +57,13 @@ func (s *Service) CreateMessage(ctx *gin.Context) {
 // ViewMessages -> View chat history
 func (s *Service) ViewMessages(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	cid := ctx.Query("id")
-	if cid == "" {
+	if !model.IsValidUUID(cid) {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Invalid chat id."})
 		return
 	}
@@ -103,7 +103,7 @@ func (s *Service) ViewMessages(ctx *gin.Context) {
 // FetchUserChats -> Fetch all user chats.
 func (s *Service) FetchUserChats(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -160,7 +160,7 @@ func (s *Service) FetchUserChats(ctx *gin.Context) {
 // EditMessage -> Edit a message endpoint
 func (s *Service) EditMessage(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -204,13 +204,13 @@ func (s *Service) EditMessage(ctx *gin.Context) {
 // DeleteMessage -> Delete a message endpoint
 func (s *Service) DeleteMessage(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	mid := ctx.Query("id")
-	if mid == "" {
+	if !model.IsValidUUID(mid) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid message id."})
 		return
 	}
@@ -238,13 +238,13 @@ func (s *Service) DeleteMessage(ctx *gin.Context) {
 // OpenChat -> Endpoint for opening a chat between users with IDs.
 func (s *Service) OpenChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	fid := ctx.Query("id")
-	if fid == "" {
+	if !model.IsValidUUID(fid) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid friend id."})
 		return
 	}
@@ -287,7 +287,7 @@ func (s *Service) OpenChat(ctx *gin.Context) {
 // RenameChat -> Rename the group chat endpoint
 func (s *Service) RenameChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -323,7 +323,7 @@ func (s *Service) RenameChat(ctx *gin.Context) {
 // AddUserToChat -> Add a user to a chat endpoint
 func (s *Service) AddUserToChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -370,7 +370,7 @@ func (s *Service) AddUserToChat(ctx *gin.Context) {
 // RemoveUserChat -> Remove a user from the chat
 func (s *Service) RemoveUserChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -418,13 +418,13 @@ func (s *Service) RemoveUserChat(ctx *gin.Context) {
 // LeaveChat -> Leave a chat endpoint
 func (s *Service) LeaveChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	cid := ctx.Query("id")
-	if cid == "" {
+	if !model.IsValidUUID(cid) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid chat id."})
 		return
 	}
@@ -455,13 +455,13 @@ func (s *Service) LeaveChat(ctx *gin.Context) {
 // DeleteChat -> Delete a group chat endpoint.
 func (s *Service) DeleteChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	cid := ctx.Query("id")
-	if cid == "" {
+	if !model.IsValidUUID(cid) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid chat id."})
 		return
 	}

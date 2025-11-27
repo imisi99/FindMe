@@ -57,7 +57,7 @@ func (g *GitService) GitHubAddUser(ctx *gin.Context) {
 // ConnectGitHub -> Connect user using github
 func (g *GitService) ConnectGitHub(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}

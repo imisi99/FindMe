@@ -16,7 +16,7 @@ import (
 // WSChat -> Endpoint for websocket realtime chatting.
 func (s *Service) WSChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}

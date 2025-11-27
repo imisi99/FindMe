@@ -75,7 +75,7 @@ func (c *Client) WritePump() {
 }
 
 func (h *Hub) Run() {
-	log.Println("[HUB] THe Hug is up and running")
+	log.Println("[HUB] THe Message HUB is up and running")
 	for {
 		select {
 		case c := <-h.Register:

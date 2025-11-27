@@ -103,14 +103,14 @@ func (s *Service) VerifyUser(ctx *gin.Context) {
 // GetUser -> Fetch User by ID endpoint
 func (s *Service) GetUser(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	userID := ctx.Query("id")
-	if userID == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "User id not in query."})
+	if !model.IsValidUUID(userID) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid user id."})
 		return
 	}
 
@@ -160,7 +160,7 @@ func (s *Service) GetUser(ctx *gin.Context) {
 func (s *Service) GetUserInfo(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -195,7 +195,7 @@ func (s *Service) GetUserInfo(ctx *gin.Context) {
 // ViewUser -> search for user with username endpoint
 func (s *Service) ViewUser(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -249,7 +249,7 @@ func (s *Service) ViewUser(ctx *gin.Context) {
 // ViewGitUser -> Search for user with github username endpoint
 func (s *Service) ViewGitUser(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -305,7 +305,7 @@ func (s *Service) ViewGitUser(ctx *gin.Context) {
 // ViewUserbySkills -> Search for user by skills endpoint
 func (s *Service) ViewUserbySkills(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -346,7 +346,7 @@ func (s *Service) ViewUserbySkills(ctx *gin.Context) {
 // SendFriendReq -> friend request endpoint
 func (s *Service) SendFriendReq(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -414,7 +414,7 @@ func (s *Service) SendFriendReq(ctx *gin.Context) {
 // ViewFriendReq -> friend requests endpoint
 func (s *Service) ViewFriendReq(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -453,7 +453,7 @@ func (s *Service) ViewFriendReq(ctx *gin.Context) {
 // UpdateFriendReqStatus -> friend request endpoint
 func (s *Service) UpdateFriendReqStatus(ctx *gin.Context) {
 	uid, tp, reqID, status := ctx.GetString("userID"), ctx.GetString("purpose"), ctx.Query("id"), ctx.Query("status")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -509,7 +509,7 @@ func (s *Service) UpdateFriendReqStatus(ctx *gin.Context) {
 // DeleteSentReq -> sent request endpoint
 func (s *Service) DeleteSentReq(ctx *gin.Context) {
 	uid, tp, reqID := ctx.GetString("userID"), ctx.GetString("purpose"), ctx.Query("id")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -545,7 +545,7 @@ func (s *Service) DeleteSentReq(ctx *gin.Context) {
 // ViewUserFriends -> view all user friend endpoint
 func (s *Service) ViewUserFriends(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -572,18 +572,18 @@ func (s *Service) ViewUserFriends(ctx *gin.Context) {
 // DeleteUserFriend -> Remove friend endpoint
 func (s *Service) DeleteUserFriend(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
 
 	id, cid := ctx.Query("id"), ctx.Query("chat_id")
-	if id == "" {
+	if !model.IsValidUUID(id) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Friend ID not in query."})
 		return
 	}
 
-	if cid == "" {
+	if !model.IsValidUUID(cid) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Chat ID not in query."})
 		return
 	}
@@ -674,7 +674,7 @@ func (s *Service) VerifyOTP(ctx *gin.Context) {
 // ResetPassword -> Actual reset password endpoint
 func (s *Service) ResetPassword(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "reset" {
+	if !model.IsValidUUID(uid) || tp != "reset" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -712,7 +712,7 @@ func (s *Service) ResetPassword(ctx *gin.Context) {
 // UpdateUserInfo -> user info endpoint
 func (s *Service) UpdateUserInfo(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -764,7 +764,7 @@ func (s *Service) UpdateUserInfo(ctx *gin.Context) {
 // UpdateUserPassword -> user password endpoint
 func (s *Service) UpdateUserPassword(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -808,7 +808,7 @@ func (s *Service) UpdateUserPassword(ctx *gin.Context) {
 // UpdateUserAvaibilityStatus -> user avaibility status endpoint
 func (s *Service) UpdateUserAvaibilityStatus(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -840,7 +840,7 @@ func (s *Service) UpdateUserAvaibilityStatus(ctx *gin.Context) {
 // UpdateUserSkills -> user skills endpoint
 func (s *Service) UpdateUserSkills(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -880,7 +880,7 @@ func (s *Service) UpdateUserSkills(ctx *gin.Context) {
 // DeleteUserSkills -> user skills endpoint
 func (s *Service) DeleteUserSkills(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
@@ -922,7 +922,7 @@ func (s *Service) DeleteUserSkills(ctx *gin.Context) {
 // DeleteUserAccount -> user account endpoint using soft deleting
 func (s *Service) DeleteUserAccount(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if uid == "" || tp != "login" {
+	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 		return
 	}
