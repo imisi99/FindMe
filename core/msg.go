@@ -20,7 +20,7 @@ type BroadcastMessage struct {
 	Data   *schema.ViewMessage
 }
 
-type Hub struct {
+type ChatHub struct {
 	Room       map[string]map[*Client]bool
 	Register   chan *Client
 	UnRegister chan *Client
@@ -36,16 +36,16 @@ func NewClient(conn *websocket.Conn, uid, cid string, data chan *schema.ViewMess
 	}
 }
 
-func NewHub() *Hub {
-	return &Hub{
+func NewChatHub(buffersize int) *ChatHub {
+	return &ChatHub{
 		Room:       make(map[string]map[*Client]bool),
 		Register:   make(chan *Client),
 		UnRegister: make(chan *Client),
-		Broadcast:  make(chan *BroadcastMessage, 5),
+		Broadcast:  make(chan *BroadcastMessage, buffersize),
 	}
 }
 
-func (c *Client) ReadPump(hub *Hub) {
+func (c *Client) ReadPump(hub *ChatHub) {
 	defer func() {
 		hub.UnRegister <- c
 		_ = c.Conn.Close()
@@ -74,8 +74,8 @@ func (c *Client) WritePump() {
 	}
 }
 
-func (h *Hub) Run() {
-	log.Println("[HUB] THe Message HUB is up and running")
+func (h *ChatHub) Run() {
+	log.Println("[Chat HUB] THe Chat HUB is up and running")
 	for {
 		select {
 		case c := <-h.Register:

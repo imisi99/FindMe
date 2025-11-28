@@ -399,7 +399,13 @@ func (s *Service) SendFriendReq(ctx *gin.Context) {
 		return
 	}
 
-	_ = s.Email.SendFriendReqEmail(friend.Email, user.UserName, friend.UserName, req.Message, "")
+	body, subject := s.Email.SendFriendReqEmail(user.UserName, friend.UserName, req.Message, "")
+	s.EmailHUB.Jobs <- &core.EmailJob{
+		To:          friend.Email,
+		Subject:     subject,
+		Body:        body,
+		MaxAttempts: 1,
+	}
 
 	friendReq := schema.FriendReqStatus{
 		ID:       req.ID,
@@ -638,9 +644,12 @@ func (s *Service) ForgotPassword(ctx *gin.Context) {
 		return
 	}
 
-	if err := s.Email.SendForgotPassEmail(user.Email, user.UserName, token); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to send email."})
-		return
+	body, subject := s.Email.SendForgotPassEmail(user.UserName, token)
+	s.EmailHUB.Jobs <- &core.EmailJob{
+		To:          user.Email,
+		Subject:     subject,
+		Body:        body,
+		MaxAttempts: 3,
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"msg": "Email sent successfully."})

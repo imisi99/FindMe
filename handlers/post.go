@@ -596,7 +596,15 @@ func (s *Service) ApplyForProject(ctx *gin.Context) {
 		Message:  req.Message,
 		Username: project.User.UserName,
 	}
-	_ = s.Email.SendProjectApplicationEmail(project.User.Email, user.UserName, project.User.UserName, project.Description, "nil")
+
+	body, subject := s.Email.SendProjectApplicationEmail(user.UserName, project.User.UserName, project.Description, "nil")
+
+	s.EmailHUB.Jobs <- &core.EmailJob{
+		To:          project.User.Email,
+		Subject:     subject,
+		Body:        body,
+		MaxAttempts: 1,
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{"project_req": application})
 }
@@ -682,7 +690,14 @@ func (s *Service) UpdateProjectApplication(ctx *gin.Context) {
 			ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 			return
 		}
-		_ = s.Email.SendProjectApplicationReject(req.FromUser.Email, req.ToUser.UserName, req.FromUser.UserName, req.Project.Description, payload.Reason)
+		body, subject := s.Email.SendProjectApplicationReject(req.ToUser.UserName, req.FromUser.UserName, req.Project.Description, payload.Reason)
+		s.EmailHUB.Jobs <- &core.EmailJob{
+			To:          req.FromUser.Email,
+			Subject:     subject,
+			Body:        body,
+			MaxAttempts: 1,
+		}
+
 	case model.StatusAccepted:
 		var err error
 
@@ -701,7 +716,14 @@ func (s *Service) UpdateProjectApplication(ctx *gin.Context) {
 			return
 		}
 
-		_ = s.Email.SendProjectApplicationAccept(req.FromUser.Email, req.ToUser.UserName, req.FromUser.UserName, req.Project.Description, "")
+		body, subject := s.Email.SendProjectApplicationAccept(req.ToUser.UserName, req.FromUser.UserName, req.Project.Description, "")
+		s.EmailHUB.Jobs <- &core.EmailJob{
+			To:          req.FromUser.Email,
+			Subject:     subject,
+			Body:        body,
+			MaxAttempts: 1,
+		}
+
 	default:
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid status."})
 		return

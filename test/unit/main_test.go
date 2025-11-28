@@ -32,7 +32,7 @@ func getTestDB() *core.GormDB {
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 
-	db.AutoMigrate(
+	_ = db.AutoMigrate(
 		&model.Skill{},
 		&model.User{},
 		&model.Project{},
@@ -44,10 +44,10 @@ func getTestDB() *core.GormDB {
 		&model.ProjectReq{},
 	)
 
-	db.SetupJoinTable(&model.Project{}, "Tags", &model.ProjectSkill{})
-	db.SetupJoinTable(&model.User{}, "Skills", &model.UserSkill{})
-	db.SetupJoinTable(&model.User{}, "Friends", &model.UserFriend{})
-	db.SetupJoinTable(&model.User{}, "Chats", &model.ChatUser{})
+	_ = db.SetupJoinTable(&model.Project{}, "Tags", &model.ProjectSkill{})
+	_ = db.SetupJoinTable(&model.User{}, "Skills", &model.UserSkill{})
+	_ = db.SetupJoinTable(&model.User{}, "Friends", &model.UserFriend{})
+	_ = db.SetupJoinTable(&model.User{}, "Chats", &model.ChatUser{})
 
 	gdb := core.NewGormDB(db)
 	superUser(gdb)
@@ -117,9 +117,9 @@ func superUser(db *core.GormDB) {
 	db.DB.Create(&chat)
 	db.DB.Create(&groupchat)
 
-	db.DB.Model(&super).Association("Chats").Append(&chat)
-	db.DB.Model(&super1).Association("Chats").Append(&chat)
-	db.DB.Model(&super).Association("Chats").Append(&groupchat)
+	_ = db.DB.Model(&super).Association("Chats").Append(&chat)
+	_ = db.DB.Model(&super1).Association("Chats").Append(&chat)
+	_ = db.DB.Model(&super).Association("Chats").Append(&groupchat)
 
 	id1 = super.ID
 	id2 = super1.ID
@@ -133,11 +133,14 @@ func TestMain(m *testing.M) {
 	rdb := NewCacheMock()
 	email := NewEmailMock()
 	git := NewGitMock()
-	hub := core.NewHub()
-	service := handlers.NewService(db, rdb, email, git, &http.Client{}, hub)
+	chathub := core.NewChatHub(20)
+	emailHub := core.NewEmailHub(2, 2)
+	go chathub.Run()
+	go emailHub.Run(email)
+	service := handlers.NewService(db, rdb, email, git, &http.Client{}, chathub, emailHub)
 
 	var skills []model.Skill
-	service.DB.FetchAllSkills(&skills)
+	_ = service.DB.FetchAllSkills(&skills)
 	service.RDB.CacheSkills(skills)
 	router = getTestRouter(service)
 	tokenString, _ = handlers.GenerateJWT(id1, "login", handlers.JWTExpiry)  // Initially the logged in user is the super user me for the post test

@@ -3,16 +3,18 @@ package core
 import (
 	"fmt"
 	"log"
+	"time"
 
-	"gopkg.in/gomail.v2"
+	"github.com/go-mail/mail/v2"
 )
 
 type Email interface {
-	SendForgotPassEmail(email, username, token string) error
-	SendFriendReqEmail(email, fromUsername, toUsername, message, viewURL string) error
-	SendProjectApplicationEmail(email, fromUsername, toUsername, message, viewURL string) error
-	SendProjectApplicationAccept(email, fromUsername, toUsername, message, chatURL string) error
-	SendProjectApplicationReject(email, fromusername, toUsername, message, reason string) error
+	SendForgotPassEmail(username, token string) (string, string)
+	SendFriendReqEmail(fromUsername, toUsername, message, viewURL string) (string, string)
+	SendProjectApplicationEmail(fromUsername, toUsername, message, viewURL string) (string, string)
+	SendProjectApplicationAccept(fromUsername, toUsername, message, chatURL string) (string, string)
+	SendProjectApplicationReject(fromusername, toUsername, message, reason string) (string, string)
+	SendEmail(to, subject, body string) error
 }
 
 type MyEmail struct {
@@ -22,12 +24,70 @@ type MyEmail struct {
 	Password string
 }
 
+type EmailJob struct {
+	To          string
+	Subject     string
+	Body        string
+	Attempts    int
+	MaxAttempts int
+}
+
+type EmailHub struct {
+	Jobs       chan *EmailJob
+	Quit       chan bool
+	WorkerPool int
+}
+
 func NewEmail(server, addr, pass string, port int) *MyEmail {
 	return &MyEmail{Server: server, MailPort: port, Addr: addr, Password: pass}
 }
 
+func NewEmailHub(queueSize, workers int) *EmailHub {
+	return &EmailHub{
+		Jobs:       make(chan *EmailJob, queueSize),
+		Quit:       make(chan bool),
+		WorkerPool: workers,
+	}
+}
+
+func (h *EmailHub) Run(emailService Email) {
+	for range h.WorkerPool {
+		go h.Worker(emailService)
+	}
+	log.Println("[EMAIL HUB] The Email hub is up and running")
+}
+
+func (h *EmailHub) Stop() {
+	for range h.WorkerPool {
+		h.Quit <- true
+	}
+}
+
+func (h *EmailHub) Worker(emailService Email) {
+	for {
+		select {
+		case job := <-h.Jobs:
+			err := emailService.SendEmail(job.To, job.Subject, job.Body)
+			if err != nil {
+				job.Attempts++
+				if job.Attempts <= job.MaxAttempts {
+					waitTime := time.Duration(job.Attempts*3) * time.Second
+					log.Printf("[EmailJob] Retrying in %v", waitTime)
+
+					go func(j *EmailJob, delay time.Duration) {
+						time.Sleep(delay)
+						h.Jobs <- j
+					}(job, waitTime)
+				}
+			}
+		case <-h.Quit:
+			return
+		}
+	}
+}
+
 // SendForgotPassEmail -> Sends an OTP for reseting Password
-func (e *MyEmail) SendForgotPassEmail(email, username, token string) error {
+func (e *MyEmail) SendForgotPassEmail(username, token string) (string, string) {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -78,23 +138,11 @@ func (e *MyEmail) SendForgotPassEmail(email, username, token string) error {
 	</body>
 	</html>`, username, token)
 
-	msg := gomail.NewMessage()
-	msg.SetHeader("From", e.Addr)
-	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "Password reset OTP")
-	msg.SetBody("text/html", htmlBody)
-
-	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
-
-	if err := mail.DialAndSend(msg); err != nil {
-		log.Println("An error occured while trying to send a forgot password email -> ", err.Error())
-		return err
-	}
-	return nil
+	return htmlBody, "Password reset OTP"
 }
 
 // SendFriendReqEmail -> Sends a notification about a new friend request
-func (e *MyEmail) SendFriendReqEmail(email, fromUsername, toUsername, message, viewURL string) error {
+func (e *MyEmail) SendFriendReqEmail(fromUsername, toUsername, message, viewURL string) (string, string) {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -153,22 +201,11 @@ func (e *MyEmail) SendFriendReqEmail(email, fromUsername, toUsername, message, v
 		viewURL,
 	)
 
-	msg := gomail.NewMessage()
-	msg.SetHeader("From", e.Addr)
-	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "New Friend Request")
-	msg.SetBody("text/html", htmlBody)
-
-	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
-
-	if err := mail.DialAndSend(msg); err != nil {
-		return err
-	}
-	return nil
+	return htmlBody, "New Friend Request"
 }
 
 // SendProjectApplicationEmail -> Sends a notification about a new application to post
-func (e *MyEmail) SendProjectApplicationEmail(email, fromUsername, toUsername, message, viewURL string) error {
+func (e *MyEmail) SendProjectApplicationEmail(fromUsername, toUsername, message, viewURL string) (string, string) {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -227,23 +264,11 @@ func (e *MyEmail) SendProjectApplicationEmail(email, fromUsername, toUsername, m
 		viewURL,
 	)
 
-	msg := gomail.NewMessage()
-	msg.SetHeader("From", e.Addr)
-	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "New Project Application Request")
-	msg.SetBody("text/html", htmlBody)
-
-	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
-
-	if err := mail.DialAndSend(msg); err != nil {
-		return err
-	}
-
-	return nil
+	return htmlBody, "New Project Application Request"
 }
 
 // SendProjectApplicationAccept -> Sends notification about accepted post application
-func (e *MyEmail) SendProjectApplicationAccept(email, fromUsername, toUsername, message, chatURL string) error {
+func (e *MyEmail) SendProjectApplicationAccept(fromUsername, toUsername, message, chatURL string) (string, string) {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -302,23 +327,11 @@ func (e *MyEmail) SendProjectApplicationAccept(email, fromUsername, toUsername, 
 		chatURL,
 	)
 
-	msg := gomail.NewMessage()
-	msg.SetHeader("From", e.Addr)
-	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "Project Application Update")
-	msg.SetBody("text/html", htmlBody)
-
-	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
-
-	if err := mail.DialAndSend(msg); err != nil {
-		return err
-	}
-
-	return nil
+	return htmlBody, "Project Application Update"
 }
 
 // SendProjectApplicationReject -> Sends notification about rejected post application
-func (e *MyEmail) SendProjectApplicationReject(email, fromUsername, toUsername, message, reason string) error {
+func (e *MyEmail) SendProjectApplicationReject(fromUsername, toUsername, message, reason string) (string, string) {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -377,13 +390,17 @@ func (e *MyEmail) SendProjectApplicationReject(email, fromUsername, toUsername, 
 		reason,
 	)
 
-	msg := gomail.NewMessage()
-	msg.SetHeader("From", e.Addr)
-	msg.SetHeader("To", email)
-	msg.SetHeader("Subject", "Project Application Update")
-	msg.SetBody("text/html", htmlBody)
+	return htmlBody, "Project Application Update"
+}
 
-	mail := gomail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
+func (e *MyEmail) SendEmail(to, subject, body string) error {
+	msg := mail.NewMessage()
+	msg.SetAddressHeader("From", e.Addr, "FindMe Team")
+	msg.SetHeader("To", to)
+	msg.SetHeader("Subject", subject)
+	msg.SetBody("text/html", body)
+
+	mail := mail.NewDialer(e.Server, e.MailPort, e.Addr, e.Password)
 
 	if err := mail.DialAndSend(msg); err != nil {
 		return err
