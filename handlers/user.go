@@ -13,7 +13,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AddUser -> Sign up endpoint for user
+// AddUser godoc
+// @Summary			Register a new user
+// @Description  Sign up endpoint for new users
+// @Tags User
+// @Accept  json
+// @Produce json
+// @Param payload body schema.SignupRequest true "User signup payload"
+// @Success 201 {object} schema.DocTokenReponse "jwt token generated"
+// @Failure 409 {object} schema.DocNormalResponse "Existing email or username"
+// @Failure 422 {object} schema.DocNormalResponse "Failed to parse payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /signup
 func (s *Service) AddUser(ctx *gin.Context) {
 	var payload schema.SignupRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -68,14 +79,26 @@ func (s *Service) AddUser(ctx *gin.Context) {
 
 	jwtToken, err := GenerateJWT(user.ID, "login", JWTExpiry)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to generate jwt token.", "detail": err.Error()})
+		log.Println("[APP] Failed to generate jwt token -> ", err.Error())
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to generate jwt token."})
 		return
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{"token": jwtToken})
 }
 
-// VerifyUser -> Log in endpoint for user
+// VerifyUser godoc
+// @Summary			Log in a user
+// @Description  Log in endpoint for existing users
+// @Tags 		User
+// @Accept  json
+// @Produce json
+// @Param payload body schema.LoginRequest true "User login payload"
+// @Success 200 {object} schema.DocTokenReponse "jwt token generated"
+// @Failure 422 {object} schema.DocNormalResponse "Failed to parse payload"
+// @Failure 404 {object} schema.DocNormalResponse "User not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /login
 func (s *Service) VerifyUser(ctx *gin.Context) {
 	var payload schema.LoginRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -100,7 +123,19 @@ func (s *Service) VerifyUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"token": jwtToken})
 }
 
-// GetUser -> Fetch User by ID endpoint
+// GetUser godoc
+// @Summary			 Get a user by their ID
+// @Description  An endpoint for fetching a user by their ID
+// @Tags 		User
+// @Accept  json
+// @Produce json
+// @Param payload query id true "User ID"
+// @Success 200 {object} schema.DocProjectUserResponse "user and projects fetched"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid user id"
+// @Failure 404 {object} schema.DocNormalResponse "User not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /get-user
 func (s *Service) GetUser(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -153,10 +188,20 @@ func (s *Service) GetUser(ctx *gin.Context) {
 		})
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"user": profile, "post": posts})
+	ctx.JSON(http.StatusOK, gin.H{"user": profile, "posts": posts})
 }
 
-// GetUserInfo ->  user info enpoint
+// GetUserInfo godoc
+// @Summary			 Get the logged in user info
+// @Description  An endpoint for fetching the currently logged in user profile details
+// @Tags 		User
+// @Accept  json
+// @Produce json
+// @Success 200 {object} schema.DocUserResponse "user fetched"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
+// @Failure 404 {object} schema.DocNormalResponse "User not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /profile
 func (s *Service) GetUserInfo(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 
@@ -192,7 +237,19 @@ func (s *Service) GetUserInfo(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"user": profile})
 }
 
-// ViewUser -> search for user with username endpoint
+// ViewUser godoc
+// @Summary			 Search for user with their username
+// @Description  An endpoint for searching for a user with their username to show their projects and profile
+// @Tags 		User
+// @Accept  json
+// @Produce json
+// @Param payload query id true "Username"
+// @Success 200 {object} schema.DocProjectUserResponse "user and projects fetched"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid username"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
+// @Failure 404 {object} schema.DocNormalResponse "User not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /view
 func (s *Service) ViewUser(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -246,7 +303,19 @@ func (s *Service) ViewUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"user": userprofile, "posts": posts})
 }
 
-// ViewGitUser -> Search for user with github username endpoint
+// ViewGitUser godoc
+// @Summary			 Search for user with their git username
+// @Description  An endpoint for searching for a user with their git username to show their projects and profile
+// @Tags 		User
+// @Accept  json
+// @Produce json
+// @Param payload query id true "Git Username"
+// @Success 200 {object} schema.DocProjectUserResponse "user and projects fetched"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid git username"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
+// @Failure 404 {object} schema.DocNormalResponse "User not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /view-git
 func (s *Service) ViewGitUser(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -302,7 +371,18 @@ func (s *Service) ViewGitUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"user": profile, "posts": posts})
 }
 
-// ViewUserbySkills -> Search for user by skills endpoint
+// ViewUserbySkills godoc
+// @Summary			 Search for users by skills/tags
+// @Description  An endpoint for searching for users with their skills to show their profiles
+// @Tags 		User
+// @Accept  json
+// @Produce json
+// @Param payload body schema.SearchUserbySkills true "Skills"
+// @Success 200 {object} schema.DocUsersSearch "users fetched"
+// @Failure 422 {object} schema.DocNormalResponse "Failed to parse payload"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /search
 func (s *Service) ViewUserbySkills(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -343,7 +423,20 @@ func (s *Service) ViewUserbySkills(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"users": profiles})
 }
 
-// SendFriendReq -> friend request endpoint
+// SendFriendReq godoc
+// @Summary			 Send a Friend req to a user
+// @Description  An endpoint for sending friend requests to users for connecting
+// @Tags 		User
+// @Accept  json
+// @Produce json
+// @Param payload body schema.SendFriendReq true "Request"
+// @Success 200 {object} schema.DocFriendReqStatus "Request sent"
+// @Failure 422 {object} schema.DocNormalResponse "Failed to parse payload"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
+// @Failure 404 {object} schema.DocNormalResponse "User not found"
+// @Failure 409 {object} schema.DocNormalResponse "Existing Friend Req / Friend"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /search
 func (s *Service) SendFriendReq(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -417,7 +510,17 @@ func (s *Service) SendFriendReq(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"req": friendReq})
 }
 
-// ViewFriendReq -> friend requests endpoint
+// ViewFriendReq godoc
+// @Summary			 View All friend reqs
+// @Description  An endpoint for viewing all the looged in users friend reqs (sent and received)
+// @Tags 		User
+// @Accept  json
+// @Produce json
+// @Success 200 {object} schema.DocViewFriendReqs "Fetched requests"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
+// @Failure 404 {object} schema.DocNormalResponse "User not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /search
 func (s *Service) ViewFriendReq(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -456,7 +559,17 @@ func (s *Service) ViewFriendReq(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"sent_req": sentRec, "rec_req": recReq})
 }
 
-// UpdateFriendReqStatus -> friend request endpoint
+// UpdateFriendReqStatus godoc
+// @Summary			 Update a friend req status
+// @Description  An endpoint for updating the status of received friend req to rejected / accepted
+// @Tags 		User
+// @Accept  json
+// @Produce json
+// @Success 200 {object} schema.DocViewFriendReqs "Fetched requests"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
+// @Failure 404 {object} schema.DocNormalResponse "User not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /search
 func (s *Service) UpdateFriendReqStatus(ctx *gin.Context) {
 	uid, tp, reqID, status := ctx.GetString("userID"), ctx.GetString("purpose"), ctx.Query("id"), ctx.Query("status")
 	if !model.IsValidUUID(uid) || tp != "login" {
