@@ -29,3 +29,16 @@ type DocViewFriendReqs struct {
 	SentReq []FriendReqStatus `json:"sent_req"`
 	RecReq  []FriendReqStatus `json:"rec_req"`
 }
+
+type DocFriendReqAccept struct {
+	Msg    string `json:"msg"`
+	ChatID string `json:"chat_id"`
+}
+
+type DocViewFriends struct {
+	Friends []ViewFriends `json:"friends"`
+}
+
+type DocSkillsResponse struct {
+	Skills []string `json:"skills"`
+}
