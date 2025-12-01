@@ -13,7 +13,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetProjects -> Endpoint for getting all user projects
+// GetProjects godoc
+// @Summary    Retreive all current user projects
+// @Description An endpoint for retreiving all current user projects
+// @Tags  Project
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} schema.DocAllProjectResponse "Fetched all projects"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/posts/all [get]
 func (s *Service) GetProjects(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -48,7 +59,20 @@ func (s *Service) GetProjects(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"project": reuslt})
 }
 
-// ViewProject -> Endpoint for viewing a single project
+// ViewProject godoc
+// @Summary     View a single project with ID
+// @Description An endpoint for viewing a single project in details by using the project ID
+// @Tags   Project
+// @Accept json
+// @Produce json
+// @Param id query string true "Project ID"
+// @Security BearerAuth
+// @Success 200 {object} schema.DocDetailedProjectResponse "Fetched project"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/view [get]
 func (s *Service) ViewProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -91,7 +115,21 @@ func (s *Service) ViewProject(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"project": result})
 }
 
-// ViewSingleProjectApplication -> Endpoint for viewing a project applications
+// ViewSingleProjectApplication godoc
+// @Summary   View all applications on a project
+// @Description An endpoint for viewing all the applications on a single project
+// @Tags   Project
+// @Accept json
+// @Produce json
+// @Param id query string true "Project ID"
+// @Security BearerAuth
+// @Success 200 {object} schema.DocViewProjectApplications "Project applications"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/view-application [get]
 func (s *Service) ViewSingleProjectApplication(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -100,7 +138,7 @@ func (s *Service) ViewSingleProjectApplication(ctx *gin.Context) {
 	}
 
 	id := ctx.Query("id")
-	if id == "" {
+	if !model.IsValidUUID(id) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
@@ -133,7 +171,19 @@ func (s *Service) ViewSingleProjectApplication(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"req": result})
 }
 
-// SearchProject -> Endpoint for searching project with tags
+// SearchProject godoc
+// @Summary   Search for a project with tags/skills
+// @Description An endpoint for searching for project with tags associated with the project
+// @Tags Project
+// @Accept json
+// @Produce json
+// @Param payload body schema.SearchProjectWithTags true "Tags"
+// @Security BearerAuth
+// @Success 200 {object} schema.DocAllProjectResponse "Projects"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/tags [get]
 func (s *Service) SearchProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -178,7 +228,19 @@ func (s *Service) SearchProject(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"project": projectResponse})
 }
 
-// CreateProject -> Endpoint for creating project
+// CreateProject godoc
+// @Summary     Create a new project
+// @Description  An endpoint for creating a new project for the current user
+// @Tags   Project
+// @Accept json
+// @Produce json
+// @Param payload body schema.NewProjectRequest "Project payload"
+// @Security BearerAuth
+// @Success 201 {object} schema.DocProjectResponse "Project created"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/create [post]
 func (s *Service) CreateProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -234,7 +296,23 @@ func (s *Service) CreateProject(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"project": result})
 }
 
-// EditProject -> Endpoint for editing project
+// EditProject godoc
+// @Summary    Editing details of a project
+// @Description An endpoint for editing major details of a project
+// @Tags Project
+// @Accept json
+// @Produce json
+// @Param id query string true "Project ID"
+// @Param payload body schema.NewProjectRequest "Project payload"
+// @Security BearerAuth
+// @Success 202 {object} schema.DocProjectResponse "Project Edited"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/edit [put]
 func (s *Service) EditProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -243,6 +321,11 @@ func (s *Service) EditProject(ctx *gin.Context) {
 	}
 
 	pid := ctx.Query("id")
+	if !model.IsValidUUID(pid) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
+		return
+	}
+
 	var payload schema.NewProjectRequest
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
@@ -297,7 +380,20 @@ func (s *Service) EditProject(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"project": result})
 }
 
-// EditProjectView -> Endpoint for updating a project view
+// EditProjectView godoc
+// @Summary    Editing the number of views on a project
+// @Description An endpoint for editing the number of views on a project
+// @Tags Project
+// @Accept json
+// @Produce json
+// @Param id query string true "Project ID"
+// @Security BearerAuth
+// @Success 202 {object} schema.DocProjectResponse "Project view edited"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/edit-view [patch]
 func (s *Service) EditProjectView(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -306,7 +402,7 @@ func (s *Service) EditProjectView(ctx *gin.Context) {
 	}
 
 	id := ctx.Query("id")
-	if id == "" {
+	if !model.IsValidUUID(id) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
@@ -343,7 +439,22 @@ func (s *Service) EditProjectView(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"project": result})
 }
 
-// EditProjectAvailability -> Endpoint for updating the project availability status
+// EditProjectAvailability godoc
+// @Summary     Editing the availability of a project
+// @Description An endpoint for editing the availability status of a project
+// @Tags Project
+// @Accept json
+// @Produce json
+// @Param id query string true "Project ID"
+// @Param staus query string true "Status"
+// @Security BearerAuth
+// @Success 202 {object} schema.DocProjectResponse "Project edited"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/edit-status [patch]
 func (s *Service) EditProjectAvailability(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -353,7 +464,7 @@ func (s *Service) EditProjectAvailability(ctx *gin.Context) {
 
 	pid, status := ctx.Query("id"), ctx.Query("status")
 	if !model.IsValidUUID(pid) {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Invalid project id."})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
 		return
 	}
 
@@ -399,7 +510,21 @@ func (s *Service) EditProjectAvailability(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"project": result})
 }
 
-// SaveProject -> Endpoint for saving a project
+// SaveProject godoc
+// @Summary     Bookmark a project
+// @Description An endpoint for adding a project to the current user bookmarks
+// @Tags Project
+// @Accept json
+// @Produce json
+// @Param id query string true "Project ID"
+// @Security BearerAuth
+// @Success 202 {object} schema.DocProjectResponse "Bookmarked project"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/save-post [put]
 func (s *Service) SaveProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -455,7 +580,18 @@ func (s *Service) SaveProject(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"project": projectRes})
 }
 
-// ViewSavedProject -> Endpoint for viewing saved project
+// ViewSavedProject godoc
+// @Summary    View all current user bookmarked projects
+// @Description An endpoint to view all of the bookmarked projects of the current user
+// @Tags Project
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} schema.DocAllProjectResponse "Bookmarked projects"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/view/saved-post [get]
 func (s *Service) ViewSavedProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -487,7 +623,19 @@ func (s *Service) ViewSavedProject(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"project": savedProjects})
 }
 
-// RemoveSavedProject -> Endpoint for removing saved project
+// RemoveSavedProject godoc
+// @Summary    Remove a project from bookmarked
+// @Description An endpoint for removing a project from the current user bookmarked
+// @Tags Project
+// @Accept json
+// @Produce json
+// @Param id query string true "Project ID"
+// @Security BearerAuth
+// @Success 204 {object} nil "Project removed"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
 func (s *Service) RemoveSavedProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -524,7 +672,24 @@ func (s *Service) RemoveSavedProject(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// ApplyForProject -> Endpoint for applying for a project
+// ApplyForProject godoc
+// @Summary   Apply for a project to work on
+// @Description An endpoint for applying to a project to work on
+// @Tags Project
+// @Accept json
+// @Produce json
+// @Param id query string true "Project ID"
+// @Param payload body schema.ProjectApplication "Application payload"
+// @Security BearerAuth
+// @Success 200 {object} schema.DocProjectApplication "Applied successfully"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 409 {object} schema.DocNormalResponse "Existing record"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/apply [post]
 func (s *Service) ApplyForProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -609,7 +774,18 @@ func (s *Service) ApplyForProject(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"project_req": application})
 }
 
-// ViewProjectApplications -> Endpoint for Viewing project applications
+// ViewProjectApplications godoc
+// @Summary    View all project applications sent and received
+// @Description An endpoint for viewing all sent and received project applications
+// @Tags Project
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} schema.DocViewAllProjectApplication "Fetched applications"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/view-applications [get]
 func (s *Service) ViewProjectApplications(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -648,7 +824,24 @@ func (s *Service) ViewProjectApplications(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"project": gin.H{"rec_req": recReq, "sent_req": sentReq}})
 }
 
-// UpdateProjectApplication -> Endpoint for Updating project applications
+// UpdateProjectApplication godoc
+// @Summary     Updating a project application status
+// @Description An endpoint for updating a project application status to accepted or rejected
+// @Tags Project
+// @Accept json
+// @Produce json
+// @Param id query string true "Request ID"
+// @Param status query string true "Request status"
+// @Param payload body schema.RejectApplication "Payload"
+// @Security BearerAuth
+// @Success 202 {object} schema.DocNormalResponse "Status Updated"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/update-application [patch]
 func (s *Service) UpdateProjectApplication(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -732,7 +925,21 @@ func (s *Service) UpdateProjectApplication(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Application status updated successfully."})
 }
 
-// DeleteProjectApplication -> Endpoint for deleting sent project application
+// DeleteProjectApplication godoc
+// @Summary    Delete a send project application
+// @Description An endpoint for deleting a sent project application for the current user
+// @Tags Project
+// @Accept json
+// @Produce json
+// @Param id query string true "Request ID"
+// @Security BearerAuth
+// @Success 204 {object} nil "Request deleted"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/delete-application [delete]
 func (s *Service) DeleteProjectApplication(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -774,7 +981,21 @@ func (s *Service) DeleteProjectApplication(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// ClearProjectApplication -> Endpoint for clearing a project applications
+// ClearProjectApplication godoc
+// @Summary     Clear all applications on a project
+// @Description An endpoint for clearing all applications on a project
+// @Tags  Project
+// @Accept json
+// @Produce json
+// @Param id query string true "Project ID"
+// @Security BearerAuth
+// @Success 204 {object} nil "Applications cleared"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/clear-application [delete]
 func (s *Service) ClearProjectApplication(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -795,6 +1016,11 @@ func (s *Service) ClearProjectApplication(ctx *gin.Context) {
 		return
 	}
 
+	if project.UserID != uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You don't have permission to clear this project applications"})
+		return
+	}
+
 	if len(project.Applications) == 0 {
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "No request to clear!"})
 		return
@@ -809,7 +1035,19 @@ func (s *Service) ClearProjectApplication(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// DeleteProject -> Endpoint for deleting a project
+// DeleteProject godoc
+// @Summary    Delete a project
+// @Description An endpoint for deleting the current user project
+// @Tags   Project
+// @Accept json
+// @Produce json
+// @Param id query string true "Project ID"
+// @Success 204 {object} nil {Project deleted} "Project deleted"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
 func (s *Service) DeleteProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {

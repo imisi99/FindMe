@@ -702,7 +702,7 @@ func (s *Service) DeleteSentReq(ctx *gin.Context) {
 }
 
 // ViewUserFriends godoc
-// @Summary			 View all users for the logged in user
+// @Summary			 View all friends for the logged in user
 // @Description  An endpoint for viewing all the friends for the currently logged in user
 // @Tags 		User
 // @Accept  json
@@ -722,6 +722,51 @@ func (s *Service) ViewUserFriends(ctx *gin.Context) {
 
 	var user model.User
 	if err := s.DB.FetchUserPreloadF(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	var friends []schema.ViewFriends
+	for _, fr := range user.Friends {
+		friends = append(friends, schema.ViewFriends{
+			ID:       fr.ID,
+			Username: fr.UserName,
+			Bio:      fr.Bio,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"friends": friends})
+}
+
+// ViewUserFriendsByID godoc
+// @Summary			 View all friends of a friend
+// @Description  An endpoint for viewing all the friends of a friend
+// @Tags 		User
+// @Accept  json
+// @Produce json
+// @Param id query string true "User ID"
+// @Security BearerAuth
+// @Success 202 {object} schema.DocViewFriends "User friends fetched"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+func (s *Service) ViewUserFriendsByID(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if !model.IsValidUUID(uid) || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	id := ctx.Query("id")
+	if !model.IsValidUUID(id) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid user id."})
+		return
+	}
+
+	var user model.User
+	if err := s.DB.FetchUserPreloadF(&user, id); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return

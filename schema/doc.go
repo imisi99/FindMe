@@ -42,3 +42,27 @@ type DocViewFriends struct {
 type DocSkillsResponse struct {
 	Skills []string `json:"skills"`
 }
+
+type DocProjectResponse struct {
+	Project ProjectResponse `json:"project"`
+}
+
+type DocAllProjectResponse struct {
+	Project []ProjectResponse `json:"project"`
+}
+
+type DocDetailedProjectResponse struct {
+	Project DetailedProjectResponse `json:"project"`
+}
+
+type DocViewProjectApplications struct {
+	Req ApplicationProjectResponse `json:"req"`
+}
+
+type DocProjectApplication struct {
+	ProjectReq ViewProjectApplication `json:"project_req"`
+}
+
+type DocViewAllProjectApplication struct {
+	Project map[string]any `json:"project"`
+}

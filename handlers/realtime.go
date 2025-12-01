@@ -17,6 +17,7 @@ import (
 // @Accept json
 // @Produce json
 // @Param id query string true "Chat ID"
+// @Security BearerAuth
 // @Success
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
 // @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
