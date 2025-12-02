@@ -29,7 +29,7 @@ func TestCreateMessage(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusAccepted, w.Code)
+	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Contains(t, w.Body.String(), payload["msg"])
 
 	_ = json.Unmarshal(w.Body.Bytes(), &msg)

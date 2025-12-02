@@ -1,3 +1,11 @@
+// @title FindMe API
+// @version 1.0
+// @description API documentation for FindMe application.
+// @BasePath /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 package main
 
 import (
@@ -8,11 +16,15 @@ import (
 
 	"findme/core"
 	"findme/database"
+	_ "findme/docs"
 	"findme/handlers"
 	"findme/model"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+
+	swagFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
@@ -47,6 +59,10 @@ func main() {
 	}
 	service.RDB.CacheSkills(skills)
 	router := gin.Default()
+
+	// Swagger UI
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swagFiles.Handler))
+
 	handlers.SetupHandler(router, service)
 
 	err = router.Run("0.0.0.0:8080")

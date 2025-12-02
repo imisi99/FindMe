@@ -35,7 +35,15 @@ func NewGitService(id, secret, callback string, db core.DB, client *http.Client)
 	return &GitService{ClientID: id, ClientSecret: secret, CallbackURL: callback, DB: db, Client: client}
 }
 
-// GitHubAddUser -> Signing up user using github
+// GitHubAddUser godoc
+// @Summary Signing up user using github
+// @Description A redirecting endpoint for sign-in / sign-up with github
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Success 307 {string} string "Redirecting"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /github-signup [get]
 func (g *GitService) GitHubAddUser(ctx *gin.Context) {
 	if _, err := ctx.Cookie("git-access-token"); err == nil {
 		ctx.SetCookie("auth", "login", 150, "/", "", false, true)
@@ -54,7 +62,17 @@ func (g *GitService) GitHubAddUser(ctx *gin.Context) {
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
-// ConnectGitHub -> Connect user using github
+// ConnectGitHub godoc
+// @Summary Connecting github account to user account
+// @Description An redirecting endpoint for connecting a github account to the current user account
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 307 {string} string "Redirecting"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/user/connect-github [post]
 func (g *GitService) ConnectGitHub(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -76,7 +94,20 @@ func (g *GitService) ConnectGitHub(ctx *gin.Context) {
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
-// SelectCallback -> Select the callback for login, connect github endpoint
+// SelectCallback godoc
+// @Summary  Callback for the github sign-in / connect
+// @Description An endpoint for selecting the callback for login, connect github endpoint
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} schema.DocTokenResponse "Token generated"
+// @Success 202 {object} schema.DocNormalResponse "Github Connected"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 409 {object} schema.DocNormalResponse "Existing record"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Failure 502 {object} schema.DocNormalResponse "Bad Gateway"
+// @Router /api/v1/auth/github/callback [get]
 func (g *GitService) SelectCallback(ctx *gin.Context) {
 	auth, _ := ctx.Cookie("auth")
 	token, _ := ctx.Cookie("git-access-token")
@@ -94,7 +125,7 @@ func (g *GitService) SelectCallback(ctx *gin.Context) {
 			return
 		}
 		ctx.SetCookie("git-access-token", gitToken, 60*60*24, "/", "", false, true)
-		ctx.JSON(http.StatusOK, gin.H{"token": jwtToken, "msg": "Logged in successfully."})
+		ctx.JSON(http.StatusOK, gin.H{"token": jwtToken})
 		return
 	case "auth":
 		gitToken, err := g.ConnectGitHubCallback(uid, code, state, storedState)
@@ -295,7 +326,20 @@ func (g *GitService) ConnectGitHubCallback(uid, code, state, storedState string)
 	return gitToken.AccessToken, nil
 }
 
-// ViewRepo -> Endpoint for viewing the user public repo to tag to a project.
+// ViewRepo godoc
+// @Summary View Github public repo for current user
+// @Description An endpoint for viewing the user public repo to tag to a project.
+// @Tags Git
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} schema.DocViewRepos "Repo fetched"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Failure 502 {object} schema.DocNormalResponse "Bad Gateway"
+// @Router /api/user/view-repo [get]
 func (g *GitService) ViewRepo(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if uid == "" || tp != "login" {

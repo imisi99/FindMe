@@ -234,7 +234,7 @@ func (s *Service) SearchProject(ctx *gin.Context) {
 // @Tags   Project
 // @Accept json
 // @Produce json
-// @Param payload body schema.NewProjectRequest "Project payload"
+// @Param payload body schema.NewProjectRequest true "Project payload"
 // @Security BearerAuth
 // @Success 201 {object} schema.DocProjectResponse "Project created"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
@@ -303,7 +303,7 @@ func (s *Service) CreateProject(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id query string true "Project ID"
-// @Param payload body schema.NewProjectRequest "Project payload"
+// @Param payload body schema.NewProjectRequest true "Project payload"
 // @Security BearerAuth
 // @Success 202 {object} schema.DocProjectResponse "Project Edited"
 // @Failure 400 {object} schema.DocNormalResponse "Invalid id"
@@ -679,7 +679,7 @@ func (s *Service) RemoveSavedProject(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id query string true "Project ID"
-// @Param payload body schema.ProjectApplication "Application payload"
+// @Param payload body schema.ProjectApplication true "Application payload"
 // @Security BearerAuth
 // @Success 200 {object} schema.DocProjectApplication "Applied successfully"
 // @Failure 400 {object} schema.DocNormalResponse "Invalid id"
@@ -832,7 +832,7 @@ func (s *Service) ViewProjectApplications(ctx *gin.Context) {
 // @Produce json
 // @Param id query string true "Request ID"
 // @Param status query string true "Request status"
-// @Param payload body schema.RejectApplication "Payload"
+// @Param payload body schema.RejectApplication true "Payload"
 // @Security BearerAuth
 // @Success 202 {object} schema.DocNormalResponse "Status Updated"
 // @Failure 400 {object} schema.DocNormalResponse "Invalid id"
@@ -1042,7 +1042,7 @@ func (s *Service) ClearProjectApplication(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id query string true "Project ID"
-// @Success 204 {object} nil {Project deleted} "Project deleted"
+// @Success 204 {object} nil "Project deleted"
 // @Failure 400 {object} schema.DocNormalResponse "Invalid id"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
 // @Failure 403 {object} schema.DocNormalResponse "Permission denied"

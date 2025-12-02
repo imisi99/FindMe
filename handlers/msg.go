@@ -10,7 +10,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CreateMessage -> Add Message endpoint
+// FIX:
+// The Leave chat doesn't account for a chat owner leaving the chat
+
+// CreateMessage godoc
+// @Summary     Sending of message to a chat
+// @Description An endpoint for sending a message to a chat
+// @Tags Msg
+// @Accept json
+// @Produce json
+// @Param payload body schema.NewMessage true "Message payload"
+// @Security BearerAuth
+// @Success 201 {object} schema.DocMsgResponse "Message Sent"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/msg/send-message [post]
 func (s *Service) CreateMessage(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -51,10 +67,23 @@ func (s *Service) CreateMessage(ctx *gin.Context) {
 		Edited:  msg.UpdatedAt,
 	}
 
-	ctx.JSON(http.StatusAccepted, gin.H{"msg": mesRes})
+	ctx.JSON(http.StatusCreated, gin.H{"msg": mesRes})
 }
 
-// ViewMessages -> View chat history
+// ViewMessages godoc
+// @Summary    View All messages in a chat
+// @Description An endpoint to view all messages in a chat (the chat history)
+// @Tags Msg
+// @Accept json
+// @Produce json
+// @Param id query string true "Chat ID"
+// @Security BearerAuth
+// @Success 200 {object} schema.DocViewChatHistory "Chat history"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/msg/view-hist [get]
 func (s *Service) ViewMessages(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -64,7 +93,7 @@ func (s *Service) ViewMessages(ctx *gin.Context) {
 
 	cid := ctx.Query("id")
 	if !model.IsValidUUID(cid) {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Invalid chat id."})
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid chat id."})
 		return
 	}
 
@@ -100,7 +129,18 @@ func (s *Service) ViewMessages(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"msg": hist})
 }
 
-// FetchUserChats -> Fetch all user chats.
+// FetchUserChats godoc
+// @Summary    Fetch the current user chats
+// @Description An endpoint for fetching all chats of the current user
+// @Tags Msg
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} schema.DocViewAllChats "User chats"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/msg/view-chats [get]
 func (s *Service) FetchUserChats(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -157,7 +197,21 @@ func (s *Service) FetchUserChats(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"msg": chats})
 }
 
-// EditMessage -> Edit a message endpoint
+// EditMessage godoc
+// @Summary    Editing a sent message
+// @Description An endpoint for editing a sent message
+// @Tags Msg
+// @Accept json
+// @Produce json
+// @Param payload body schema.EditMessage true "Message payload"
+// @Security BearerAuth
+// @Success 202 {object} schema.DocMsgResponse "Message edited"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/msg/edit-message [patch]
 func (s *Service) EditMessage(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -201,7 +255,21 @@ func (s *Service) EditMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"msg": msgRes})
 }
 
-// DeleteMessage -> Delete a message endpoint
+// DeleteMessage godoc
+// @Summary     Delete a sent message
+// @Description An endpoint for deleting a sent message of the current user
+// @Tags Msg
+// @Accept json
+// @Produce json
+// @Param id query string true "Msg ID"
+// @Security BearerAuth
+// @Success 204 {object} nil "Message deleted"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/msg/delete-message [delete]
 func (s *Service) DeleteMessage(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -235,7 +303,20 @@ func (s *Service) DeleteMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// OpenChat -> Endpoint for opening a chat between users with IDs.
+// OpenChat godoc
+// @Summary     Open a chat between users
+// @Description An endpoint for opening a chat between users with IDs.
+// @Tags Msg
+// @Accept json
+// @Produce json
+// @Param id query string true "User ID"
+// @Security BearerAuth
+// @Success 200 {object} schema.DocViewChatHistory "Chat opened"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/msg/open-chat [get]
 func (s *Service) OpenChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -284,7 +365,21 @@ func (s *Service) OpenChat(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"msg": result})
 }
 
-// RenameChat -> Rename the group chat endpoint
+// RenameChat godoc
+// @Summary   Renaming a group chat
+// @Description An endpoint for renaming a group chat
+// @Tags Msg
+// @Accept json
+// @Produce json
+// @Param payload body schema.RenameChat true "Chat payload"
+// @Security BearerAuth
+// @Success 202 {object} schema.DocNormalResponse "Chat Updated"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/msg/rename-chat [patch]
 func (s *Service) RenameChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -320,7 +415,21 @@ func (s *Service) RenameChat(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Chat name updated successfully."})
 }
 
-// AddUserToChat -> Add a user to a chat endpoint
+// AddUserToChat godoc
+// @Summary Add a user to a group chat
+// @Description An endpoint for adding users to a group chat
+// @Tags Msg
+// @Accept json
+// @Produce json
+// @Param payload body schema.AddUserChat true "Chat payload"
+// @Security BearerAuth
+// @Success 202 {object} schema.DocNormalResponse "User Added"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/msg/add-user [put]
 func (s *Service) AddUserToChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -367,7 +476,21 @@ func (s *Service) AddUserToChat(ctx *gin.Context) {
 	ctx.JSON(http.StatusAccepted, gin.H{"msg": "User added to Chat."})
 }
 
-// RemoveUserChat -> Remove a user from the chat
+// RemoveUserChat godoc
+// @Summary Remove a user from a group
+// @Description An endpoint for removing a user from a group chat
+// @Tags Msg
+// @Accept json
+// @Produce json
+// @Param payload body schema.AddUserChat true "Chat payload"
+// @Security BearerAuth
+// @Success 204 {object} nil "User removed"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/msg/remove-user [delete]
 func (s *Service) RemoveUserChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -415,7 +538,20 @@ func (s *Service) RemoveUserChat(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// LeaveChat -> Leave a chat endpoint
+// LeaveChat godoc
+// @Summary Leave a group chat
+// @Description An endpoint for leaving a group chat
+// @Tags Msg
+// @Accept json
+// @Produce json
+// @Param id query string true "Chat ID"
+// @Security BearerAuth
+// @Success 204 {object} nil "Chat removed"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/msg/leave-chat [delete]
 func (s *Service) LeaveChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -452,7 +588,21 @@ func (s *Service) LeaveChat(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
-// DeleteChat -> Delete a group chat endpoint.
+// DeleteChat godoc
+// @Summary Delete a group chat
+// @Description An endpoint for deleting a group chat owned by the current user
+// @Tags Msg
+// @Accept json
+// @Produce json
+// @Param id query string true "chat ID"
+// @Security BearerAuth
+// @Success 204 {object} nil "Chat deleted"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/msg/delete-chat [delete]
 func (s *Service) DeleteChat(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {

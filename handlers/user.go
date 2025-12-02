@@ -15,15 +15,16 @@ import (
 
 // TODO:
 // An endpoint for viewing a user friends with the ID ?
+// Add test for the new endpoint user friends
 
 // AddUser godoc
 // @Summary			Register a new user
 // @Description  Sign up endpoint for new users
-// @Tags User
+// @Tags	Auth
 // @Accept  json
 // @Produce json
 // @Param payload body schema.SignupRequest true "User signup payload"
-// @Success 201 {object} schema.DocTokenReponse "jwt token generated"
+// @Success 201 {object} schema.DocTokenResponse "jwt token generated"
 // @Failure 409 {object} schema.DocNormalResponse "Existing email or username"
 // @Failure 422 {object} schema.DocNormalResponse "Failed to parse payload"
 // @Failure 500 {object} schema.DocNormalResponse "Server error"
@@ -93,11 +94,11 @@ func (s *Service) AddUser(ctx *gin.Context) {
 // VerifyUser godoc
 // @Summary			Log in a user
 // @Description  Log in endpoint for existing users
-// @Tags 		User
+// @Tags 	Auth
 // @Accept  json
 // @Produce json
 // @Param payload body schema.LoginRequest true "User login payload"
-// @Success 200 {object} schema.DocTokenReponse "jwt token generated"
+// @Success 200 {object} schema.DocTokenResponse "jwt token generated"
 // @Failure 422 {object} schema.DocNormalResponse "Failed to parse payload"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
 // @Failure 500 {object} schema.DocNormalResponse "Server error"
@@ -708,7 +709,7 @@ func (s *Service) DeleteSentReq(ctx *gin.Context) {
 // @Accept  json
 // @Produce json
 // @Security BearerAuth
-// @Success 202 {object} schema.DocViewFriends "User friends fetched"
+// @Success 200 {object} schema.DocViewFriends "User friends fetched"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
 // @Failure 500 {object} schema.DocNormalResponse "Server error"
@@ -740,14 +741,14 @@ func (s *Service) ViewUserFriends(ctx *gin.Context) {
 }
 
 // ViewUserFriendsByID godoc
-// @Summary			 View all friends of a friend
-// @Description  An endpoint for viewing all the friends of a friend
+// @Summary			 View all friends of a user
+// @Description  An endpoint for viewing all the friends of a user
 // @Tags 		User
 // @Accept  json
 // @Produce json
 // @Param id query string true "User ID"
 // @Security BearerAuth
-// @Success 202 {object} schema.DocViewFriends "User friends fetched"
+// @Success 200 {object} schema.DocViewFriends "User friends fetched"
 // @Failure 400 {object} schema.DocNormalResponse "Invalid id"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
@@ -847,7 +848,7 @@ func (s *Service) DeleteUserFriend(ctx *gin.Context) {
 // @Tags  User
 // @Accept json
 // @Produce json
-// @Param payload body schema.ForgotPasswordEmail "User email"
+// @Param payload body schema.ForgotPasswordEmail true "User email"
 // @Success 200 {object} schema.DocNormalResponse "Email sent to user"
 // @Failure 422 {object} schema.DocNormalResponse "Invalid Email"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
@@ -892,7 +893,7 @@ func (s *Service) ForgotPassword(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param payload body schema.VerifyOTP true "otp"
-// @Success 200 {object} schema.DocTokenReponse "reset token"
+// @Success 200 {object} schema.DocTokenResponse "reset token"
 // @Failure 404 {object} schema.DocNormalResponse "invalid otp"
 // @Failure 422 {object} schema.DocNormalResponse "invalid otp format"
 // @Failure 500 {object} schema.DocNormalResponse "server error"

@@ -1,0 +1,2542 @@
+basePath: /
+definitions:
+  schema.AddUserChat:
+    properties:
+      chat_id:
+        type: string
+      user_id:
+        type: string
+    required:
+    - chat_id
+    - user_id
+    type: object
+  schema.ApplicationProjectResponse:
+    properties:
+      applications:
+        items:
+          $ref: '#/definitions/schema.ViewProjectApplication'
+        type: array
+    type: object
+  schema.DeleteUserSkillsRequest:
+    properties:
+      skills:
+        items:
+          type: string
+        type: array
+    required:
+    - skills
+    type: object
+  schema.DetailedProjectResponse:
+    properties:
+      available:
+        type: boolean
+      createdAt:
+        type: string
+      description:
+        type: string
+      gitLink:
+        type: string
+      gitProject:
+        type: boolean
+      id:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      updatedAt:
+        type: string
+      username:
+        type: string
+      views:
+        type: integer
+    type: object
+  schema.DocAllProjectResponse:
+    properties:
+      project:
+        items:
+          $ref: '#/definitions/schema.ProjectResponse'
+        type: array
+    type: object
+  schema.DocDetailedProjectResponse:
+    properties:
+      project:
+        $ref: '#/definitions/schema.DetailedProjectResponse'
+    type: object
+  schema.DocFriendReqAccept:
+    properties:
+      chat_id:
+        type: string
+      msg:
+        type: string
+    type: object
+  schema.DocFriendReqStatus:
+    properties:
+      req:
+        $ref: '#/definitions/schema.FriendReqStatus'
+    type: object
+  schema.DocMsgResponse:
+    properties:
+      msg:
+        $ref: '#/definitions/schema.ViewMessage'
+    type: object
+  schema.DocNormalResponse:
+    properties:
+      msg:
+        type: string
+    type: object
+  schema.DocProjectApplication:
+    properties:
+      project_req:
+        $ref: '#/definitions/schema.ViewProjectApplication'
+    type: object
+  schema.DocProjectResponse:
+    properties:
+      project:
+        $ref: '#/definitions/schema.ProjectResponse'
+    type: object
+  schema.DocProjectUserResponse:
+    properties:
+      posts:
+        items:
+          $ref: '#/definitions/schema.ProjectResponse'
+        type: array
+      user:
+        $ref: '#/definitions/schema.UserProfileResponse'
+    type: object
+  schema.DocSkillsResponse:
+    properties:
+      skills:
+        items:
+          type: string
+        type: array
+    type: object
+  schema.DocTokenResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  schema.DocUserResponse:
+    properties:
+      user:
+        $ref: '#/definitions/schema.UserProfileResponse'
+    type: object
+  schema.DocUsersSearch:
+    properties:
+      users:
+        items:
+          $ref: '#/definitions/schema.SearchUser'
+        type: array
+    type: object
+  schema.DocViewAllChats:
+    properties:
+      msg:
+        items:
+          $ref: '#/definitions/schema.ViewChat'
+        type: array
+    type: object
+  schema.DocViewAllProjectApplication:
+    properties:
+      project:
+        additionalProperties: {}
+        type: object
+    type: object
+  schema.DocViewChatHistory:
+    properties:
+      msg:
+        $ref: '#/definitions/schema.ViewChat'
+    type: object
+  schema.DocViewFriendReqs:
+    properties:
+      rec_req:
+        items:
+          $ref: '#/definitions/schema.FriendReqStatus'
+        type: array
+      sent_req:
+        items:
+          $ref: '#/definitions/schema.FriendReqStatus'
+        type: array
+    type: object
+  schema.DocViewFriends:
+    properties:
+      friends:
+        items:
+          $ref: '#/definitions/schema.ViewFriends'
+        type: array
+    type: object
+  schema.DocViewProjectApplications:
+    properties:
+      req:
+        $ref: '#/definitions/schema.ApplicationProjectResponse'
+    type: object
+  schema.DocViewRepos:
+    properties:
+      repos:
+        items:
+          $ref: '#/definitions/schema.ViewRepo'
+        type: array
+    type: object
+  schema.EditMessage:
+    properties:
+      msg:
+        type: string
+      msg_id:
+        type: string
+    required:
+    - msg
+    - msg_id
+    type: object
+  schema.ForgotPasswordEmail:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  schema.FriendReqStatus:
+    properties:
+      id:
+        type: string
+      message:
+        type: string
+      sent:
+        type: string
+      status:
+        type: string
+      username:
+        type: string
+    type: object
+  schema.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  schema.NewMessage:
+    properties:
+      chat_id:
+        type: string
+      msg:
+        type: string
+    required:
+    - chat_id
+    - msg
+    type: object
+  schema.NewProjectRequest:
+    properties:
+      description:
+        type: string
+      git:
+        type: boolean
+      git_link:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+    required:
+    - description
+    - tags
+    type: object
+  schema.ProjectApplication:
+    properties:
+      msg:
+        maxLength: 50
+        type: string
+    type: object
+  schema.ProjectResponse:
+    properties:
+      available:
+        type: boolean
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      updatedAt:
+        type: string
+      views:
+        type: integer
+    type: object
+  schema.RejectApplication:
+    properties:
+      msg:
+        type: string
+    type: object
+  schema.RenameChat:
+    properties:
+      chat_id:
+        type: string
+      name:
+        type: string
+    required:
+    - chat_id
+    - name
+    type: object
+  schema.ResetPassword:
+    properties:
+      password:
+        minLength: 8
+        type: string
+    required:
+    - password
+    type: object
+  schema.SearchProjectWithTags:
+    properties:
+      tags:
+        items:
+          type: string
+        type: array
+    required:
+    - tags
+    type: object
+  schema.SearchUser:
+    properties:
+      availability:
+        type: boolean
+      bio:
+        type: string
+      gitUser:
+        type: boolean
+      gitUserName:
+        type: string
+      id:
+        type: string
+      skills:
+        items:
+          type: string
+        type: array
+      userName:
+        type: string
+    type: object
+  schema.SearchUserbySkills:
+    properties:
+      skills:
+        items:
+          type: string
+        type: array
+    required:
+    - skills
+    type: object
+  schema.SendFriendReq:
+    properties:
+      msg:
+        maxLength: 50
+        type: string
+      uid:
+        type: string
+    required:
+    - uid
+    type: object
+  schema.SignupRequest:
+    properties:
+      bio:
+        maxLength: 50
+        type: string
+      email:
+        type: string
+      fullname:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      skills:
+        items:
+          type: string
+        type: array
+      username:
+        type: string
+    required:
+    - email
+    - fullname
+    - password
+    - username
+    type: object
+  schema.UpdatePassword:
+    properties:
+      new_password:
+        minLength: 8
+        type: string
+      password:
+        type: string
+    required:
+    - new_password
+    - password
+    type: object
+  schema.UpdateUserSkillsRequest:
+    properties:
+      skills:
+        items:
+          type: string
+        type: array
+    required:
+    - skills
+    type: object
+  schema.UserProfileRequest:
+    properties:
+      bio:
+        maxLength: 50
+        type: string
+      email:
+        type: string
+      fullname:
+        type: string
+      gitusername:
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - fullname
+    - username
+    type: object
+  schema.UserProfileResponse:
+    properties:
+      availability:
+        type: boolean
+      bio:
+        type: string
+      email:
+        type: string
+      fullName:
+        type: string
+      gitUserName:
+        type: string
+      gituser:
+        type: boolean
+      id:
+        type: string
+      skills:
+        items:
+          type: string
+        type: array
+      userName:
+        type: string
+    type: object
+  schema.VerifyOTP:
+    properties:
+      otp:
+        type: string
+    required:
+    - otp
+    type: object
+  schema.ViewChat:
+    properties:
+      cid:
+        type: string
+      group:
+        type: boolean
+      message:
+        items:
+          $ref: '#/definitions/schema.ViewMessage'
+        type: array
+      name:
+        type: string
+    type: object
+  schema.ViewFriends:
+    properties:
+      bio:
+        type: string
+      id:
+        type: string
+      username:
+        type: string
+    type: object
+  schema.ViewMessage:
+    properties:
+      edited:
+        type: string
+      id:
+        type: string
+      msg:
+        type: string
+      sent:
+        type: string
+      uid:
+        type: string
+    type: object
+  schema.ViewProjectApplication:
+    properties:
+      message:
+        type: string
+      reqID:
+        type: string
+      sent:
+        type: string
+      status:
+        type: string
+      username:
+        type: string
+    type: object
+  schema.ViewRepo:
+    properties:
+      html_url:
+        type: string
+      language:
+        type: string
+      name:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API documentation for FindMe application.
+  title: FindMe API
+  version: "1.0"
+paths:
+  /api/msg/add-user:
+    put:
+      consumes:
+      - application/json
+      description: An endpoint for adding users to a group chat
+      parameters:
+      - description: Chat payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.AddUserChat'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: User Added
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a user to a group chat
+      tags:
+      - Msg
+  /api/msg/delete-chat:
+    delete:
+      consumes:
+      - application/json
+      description: An endpoint for deleting a group chat owned by the current user
+      parameters:
+      - description: chat ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Chat deleted
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a group chat
+      tags:
+      - Msg
+  /api/msg/delete-message:
+    delete:
+      consumes:
+      - application/json
+      description: An endpoint for deleting a sent message of the current user
+      parameters:
+      - description: Msg ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Message deleted
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a sent message
+      tags:
+      - Msg
+  /api/msg/edit-message:
+    patch:
+      consumes:
+      - application/json
+      description: An endpoint for editing a sent message
+      parameters:
+      - description: Message payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.EditMessage'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Message edited
+          schema:
+            $ref: '#/definitions/schema.DocMsgResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Editing a sent message
+      tags:
+      - Msg
+  /api/msg/leave-chat:
+    delete:
+      consumes:
+      - application/json
+      description: An endpoint for leaving a group chat
+      parameters:
+      - description: Chat ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Chat removed
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Leave a group chat
+      tags:
+      - Msg
+  /api/msg/open-chat:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for opening a chat between users with IDs.
+      parameters:
+      - description: User ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Chat opened
+          schema:
+            $ref: '#/definitions/schema.DocViewChatHistory'
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Open a chat between users
+      tags:
+      - Msg
+  /api/msg/remove-user:
+    delete:
+      consumes:
+      - application/json
+      description: An endpoint for removing a user from a group chat
+      parameters:
+      - description: Chat payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.AddUserChat'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User removed
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove a user from a group
+      tags:
+      - Msg
+  /api/msg/rename-chat:
+    patch:
+      consumes:
+      - application/json
+      description: An endpoint for renaming a group chat
+      parameters:
+      - description: Chat payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.RenameChat'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Chat Updated
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Renaming a group chat
+      tags:
+      - Msg
+  /api/msg/send-message:
+    post:
+      consumes:
+      - application/json
+      description: An endpoint for sending a message to a chat
+      parameters:
+      - description: Message payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.NewMessage'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Message Sent
+          schema:
+            $ref: '#/definitions/schema.DocMsgResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Sending of message to a chat
+      tags:
+      - Msg
+  /api/msg/view-chats:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for fetching all chats of the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User chats
+          schema:
+            $ref: '#/definitions/schema.DocViewAllChats'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Fetch the current user chats
+      tags:
+      - Msg
+  /api/msg/view-hist:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint to view all messages in a chat (the chat history)
+      parameters:
+      - description: Chat ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Chat history
+          schema:
+            $ref: '#/definitions/schema.DocViewChatHistory'
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: View All messages in a chat
+      tags:
+      - Msg
+  /api/msg/ws/chat:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint that upgrades client to a websocket connection for
+        real-time chatting experience
+      parameters:
+      - description: Chat ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "101":
+          description: Switching Protocols
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: A websocket message hub for real-time chatting
+      tags:
+      - Msg
+  /api/post/apply:
+    post:
+      consumes:
+      - application/json
+      description: An endpoint for applying to a project to work on
+      parameters:
+      - description: Project ID
+        in: query
+        name: id
+        required: true
+        type: string
+      - description: Application payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.ProjectApplication'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Applied successfully
+          schema:
+            $ref: '#/definitions/schema.DocProjectApplication'
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "409":
+          description: Existing record
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Apply for a project to work on
+      tags:
+      - Project
+  /api/post/clear-application:
+    delete:
+      consumes:
+      - application/json
+      description: An endpoint for clearing all applications on a project
+      parameters:
+      - description: Project ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Applications cleared
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Clear all applications on a project
+      tags:
+      - Project
+  /api/post/create:
+    post:
+      consumes:
+      - application/json
+      description: An endpoint for creating a new project for the current user
+      parameters:
+      - description: Project payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.NewProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Project created
+          schema:
+            $ref: '#/definitions/schema.DocProjectResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new project
+      tags:
+      - Project
+  /api/post/delete-application:
+    delete:
+      consumes:
+      - application/json
+      description: An endpoint for deleting a sent project application for the current
+        user
+      parameters:
+      - description: Request ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Request deleted
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a send project application
+      tags:
+      - Project
+  /api/post/edit:
+    put:
+      consumes:
+      - application/json
+      description: An endpoint for editing major details of a project
+      parameters:
+      - description: Project ID
+        in: query
+        name: id
+        required: true
+        type: string
+      - description: Project payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.NewProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Project Edited
+          schema:
+            $ref: '#/definitions/schema.DocProjectResponse'
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Editing details of a project
+      tags:
+      - Project
+  /api/post/edit-status:
+    patch:
+      consumes:
+      - application/json
+      description: An endpoint for editing the availability status of a project
+      parameters:
+      - description: Project ID
+        in: query
+        name: id
+        required: true
+        type: string
+      - description: Status
+        in: query
+        name: staus
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Project edited
+          schema:
+            $ref: '#/definitions/schema.DocProjectResponse'
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Editing the availability of a project
+      tags:
+      - Project
+  /api/post/edit-view:
+    patch:
+      consumes:
+      - application/json
+      description: An endpoint for editing the number of views on a project
+      parameters:
+      - description: Project ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Project view edited
+          schema:
+            $ref: '#/definitions/schema.DocProjectResponse'
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Editing the number of views on a project
+      tags:
+      - Project
+  /api/post/posts/all:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for retreiving all current user projects
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Fetched all projects
+          schema:
+            $ref: '#/definitions/schema.DocAllProjectResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Retreive all current user projects
+      tags:
+      - Project
+  /api/post/save-post:
+    put:
+      consumes:
+      - application/json
+      description: An endpoint for adding a project to the current user bookmarks
+      parameters:
+      - description: Project ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Bookmarked project
+          schema:
+            $ref: '#/definitions/schema.DocProjectResponse'
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Bookmark a project
+      tags:
+      - Project
+  /api/post/tags:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for searching for project with tags associated with
+        the project
+      parameters:
+      - description: Tags
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.SearchProjectWithTags'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Projects
+          schema:
+            $ref: '#/definitions/schema.DocAllProjectResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Search for a project with tags/skills
+      tags:
+      - Project
+  /api/post/update-application:
+    patch:
+      consumes:
+      - application/json
+      description: An endpoint for updating a project application status to accepted
+        or rejected
+      parameters:
+      - description: Request ID
+        in: query
+        name: id
+        required: true
+        type: string
+      - description: Request status
+        in: query
+        name: status
+        required: true
+        type: string
+      - description: Payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.RejectApplication'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Status Updated
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Updating a project application status
+      tags:
+      - Project
+  /api/post/view:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for viewing a single project in details by using the
+        project ID
+      parameters:
+      - description: Project ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Fetched project
+          schema:
+            $ref: '#/definitions/schema.DocDetailedProjectResponse'
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: View a single project with ID
+      tags:
+      - Project
+  /api/post/view-application:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for viewing all the applications on a single project
+      parameters:
+      - description: Project ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Project applications
+          schema:
+            $ref: '#/definitions/schema.DocViewProjectApplications'
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: View all applications on a project
+      tags:
+      - Project
+  /api/post/view-applications:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for viewing all sent and received project applications
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Fetched applications
+          schema:
+            $ref: '#/definitions/schema.DocViewAllProjectApplication'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: View all project applications sent and received
+      tags:
+      - Project
+  /api/post/view/saved-post:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint to view all of the bookmarked projects of the current
+        user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Bookmarked projects
+          schema:
+            $ref: '#/definitions/schema.DocAllProjectResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: View all current user bookmarked projects
+      tags:
+      - Project
+  /api/user/connect-github:
+    post:
+      consumes:
+      - application/json
+      description: An redirecting endpoint for connecting a github account to the
+        current user account
+      produces:
+      - application/json
+      responses:
+        "307":
+          description: Redirecting
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Connecting github account to user account
+      tags:
+      - Auth
+  /api/user/delete-friend-req:
+    delete:
+      consumes:
+      - application/json
+      description: An endpoint for deleting a sent friend request
+      parameters:
+      - description: Request id
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Request deleted
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized user
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission Denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a sent friend req
+      tags:
+      - User
+  /api/user/delete-skills:
+    delete:
+      consumes:
+      - application/json
+      description: An endpoint to delete some skills from the current user skills
+      parameters:
+      - description: Skills
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.DeleteUserSkillsRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Skills Deleted
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete skills from the user skills
+      tags:
+      - User
+  /api/user/delete-user:
+    delete:
+      consumes:
+      - application/json
+      description: An endpoint for deleting the current user account
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Account deleted
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a user account
+      tags:
+      - User
+  /api/user/delete-user-friend:
+    delete:
+      consumes:
+      - application/json
+      description: An endpoint for deleting a friend from the users friend list
+      parameters:
+      - description: User id
+        in: query
+        name: id
+        required: true
+        type: string
+      - description: Chat id
+        in: query
+        name: chat_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Friend deleted
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized user
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a existing friendship
+      tags:
+      - User
+  /api/user/get-user:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for fetching a user by their ID
+      parameters:
+      - description: User ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user and projects fetched
+          schema:
+            $ref: '#/definitions/schema.DocProjectUserResponse'
+        "400":
+          description: Invalid user id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized user
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a user by their ID
+      tags:
+      - User
+  /api/user/profile:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for fetching the currently logged in user profile details
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user fetched
+          schema:
+            $ref: '#/definitions/schema.DocUserResponse'
+        "401":
+          description: Unauthorized user
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the logged in user info
+      tags:
+      - User
+  /api/user/reset-password:
+    patch:
+      consumes:
+      - application/json
+      description: An endpoint for reseting the user password with a reset jwt token
+        gotten from the verify-otp route
+      parameters:
+      - description: new password
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.ResetPassword'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: reset successful
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid password
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Reset user password through forgot password route
+      tags:
+      - User
+  /api/user/search:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for searching for users with their skills to show their
+        profiles
+      parameters:
+      - description: Skills
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.SearchUserbySkills'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: users fetched
+          schema:
+            $ref: '#/definitions/schema.DocUsersSearch'
+        "401":
+          description: Unauthorized user
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Failed to parse payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Search for users by skills/tags
+      tags:
+      - User
+  /api/user/send-user-req:
+    post:
+      consumes:
+      - application/json
+      description: An endpoint for sending friend requests to users for connecting
+      parameters:
+      - description: Request
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.SendFriendReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Request sent
+          schema:
+            $ref: '#/definitions/schema.DocFriendReqStatus'
+        "401":
+          description: Unauthorized user
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "409":
+          description: Existing Friend Req / Friend
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Failed to parse payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Send a Friend req to a user
+      tags:
+      - User
+  /api/user/update-availability/{status}:
+    patch:
+      consumes:
+      - application/json
+      description: An endpoint for updating the Availability status of the current
+        user to either true or false
+      parameters:
+      - description: Availability status
+        in: path
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Status updated
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Update Availability status
+      tags:
+      - User
+  /api/user/update-password:
+    patch:
+      consumes:
+      - application/json
+      description: An endpoint for updating the logged-in user password
+      parameters:
+      - description: new password
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.UpdatePassword'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: password updated
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Update the current user password
+      tags:
+      - User
+  /api/user/update-profile:
+    put:
+      consumes:
+      - application/json
+      description: An endpoint for updating the logged-in user profile details
+      parameters:
+      - description: new details
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.UserProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: User updated
+          schema:
+            $ref: '#/definitions/schema.DocUserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "409":
+          description: Existing username / email
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Update the current user profile details
+      tags:
+      - User
+  /api/user/update-skills:
+    patch:
+      consumes:
+      - application/json
+      description: An endpoint for updating the skills of the current user
+      parameters:
+      - description: Skills
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.UpdateUserSkillsRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Skills updated
+          schema:
+            $ref: '#/definitions/schema.DocSkillsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Update User skills
+      tags:
+      - User
+  /api/user/update-user-req:
+    patch:
+      consumes:
+      - application/json
+      description: An endpoint for updating the status of received friend req to rejected
+        / accepted
+      parameters:
+      - description: Request ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Request status updated
+          schema:
+            $ref: '#/definitions/schema.DocFriendReqAccept'
+        "400":
+          description: Invalid status / id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized user
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission Denied
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a friend req status
+      tags:
+      - User
+  /api/user/view:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for searching for a user with their username to show
+        their projects and profile
+      parameters:
+      - description: Username
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user and projects fetched
+          schema:
+            $ref: '#/definitions/schema.DocProjectUserResponse'
+        "400":
+          description: Invalid username
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized user
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Search for user with their username
+      tags:
+      - User
+  /api/user/view-git:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for searching for a user with their git username to
+        show their projects and profile
+      parameters:
+      - description: Git Username
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: user and projects fetched
+          schema:
+            $ref: '#/definitions/schema.DocProjectUserResponse'
+        "400":
+          description: Invalid git username
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized user
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Search for user with their git username
+      tags:
+      - User
+  /api/user/view-repo:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for viewing the user public repo to tag to a project.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Repo fetched
+          schema:
+            $ref: '#/definitions/schema.DocViewRepos'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: View Github public repo for current user
+      tags:
+      - Git
+  /api/user/view-user-friend:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for viewing all the friends for the currently logged
+        in user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User friends fetched
+          schema:
+            $ref: '#/definitions/schema.DocViewFriends'
+        "401":
+          description: Unauthorized user
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: View all friends for the logged in user
+      tags:
+      - User
+  /api/user/view-user-req:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for viewing all the looged in users friend reqs (sent
+        and received)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Fetched requests
+          schema:
+            $ref: '#/definitions/schema.DocViewFriendReqs'
+        "401":
+          description: Unauthorized user
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: View All friend reqs
+      tags:
+      - User
+  /api/v1/auth/github/callback:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for selecting the callback for login, connect github
+        endpoint
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token generated
+          schema:
+            $ref: '#/definitions/schema.DocTokenResponse'
+        "202":
+          description: Github Connected
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "409":
+          description: Existing record
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      summary: Callback for the github sign-in / connect
+      tags:
+      - Auth
+  /forgot-password:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for getting an otp for reseting the user password
+      parameters:
+      - description: User email
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.ForgotPasswordEmail'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email sent to user
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Invalid Email
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      summary: Get a OTP for reseting user password
+      tags:
+      - User
+  /github-signup:
+    get:
+      consumes:
+      - application/json
+      description: A redirecting endpoint for sign-in / sign-up with github
+      produces:
+      - application/json
+      responses:
+        "307":
+          description: Redirecting
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      summary: Signing up user using github
+      tags:
+      - Auth
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Log in endpoint for existing users
+      parameters:
+      - description: User login payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: jwt token generated
+          schema:
+            $ref: '#/definitions/schema.DocTokenResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Failed to parse payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      summary: Log in a user
+      tags:
+      - Auth
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Sign up endpoint for new users
+      parameters:
+      - description: User signup payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.SignupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: jwt token generated
+          schema:
+            $ref: '#/definitions/schema.DocTokenResponse'
+        "409":
+          description: Existing email or username
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Failed to parse payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      summary: Register a new user
+      tags:
+      - Auth
+  /verify-otp:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint to verify sent otp to create reset jwt token for reseting
+        user password
+      parameters:
+      - description: otp
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/schema.VerifyOTP'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: reset token
+          schema:
+            $ref: '#/definitions/schema.DocTokenResponse'
+        "404":
+          description: invalid otp
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: invalid otp format
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      summary: Verify Sent otp to reset password
+      tags:
+      - User
+swagger: "2.0"

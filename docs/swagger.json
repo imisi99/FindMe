@@ -1,0 +1,3931 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API documentation for FindMe application.",
+        "title": "FindMe API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "basePath": "/",
+    "paths": {
+        "/api/msg/add-user": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for adding users to a group chat",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "Add a user to a group chat",
+                "parameters": [
+                    {
+                        "description": "Chat payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.AddUserChat"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "User Added",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/msg/delete-chat": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for deleting a group chat owned by the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "Delete a group chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "chat ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Chat deleted"
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/msg/delete-message": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for deleting a sent message of the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "Delete a sent message",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Msg ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Message deleted"
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/msg/edit-message": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for editing a sent message",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "Editing a sent message",
+                "parameters": [
+                    {
+                        "description": "Message payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.EditMessage"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Message edited",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocMsgResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/msg/leave-chat": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for leaving a group chat",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "Leave a group chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Chat removed"
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/msg/open-chat": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for opening a chat between users with IDs.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "Open a chat between users",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Chat opened",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocViewChatHistory"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/msg/remove-user": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for removing a user from a group chat",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "Remove a user from a group",
+                "parameters": [
+                    {
+                        "description": "Chat payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.AddUserChat"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "User removed"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/msg/rename-chat": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for renaming a group chat",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "Renaming a group chat",
+                "parameters": [
+                    {
+                        "description": "Chat payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.RenameChat"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Chat Updated",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/msg/send-message": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for sending a message to a chat",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "Sending of message to a chat",
+                "parameters": [
+                    {
+                        "description": "Message payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.NewMessage"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Message Sent",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocMsgResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/msg/view-chats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for fetching all chats of the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "Fetch the current user chats",
+                "responses": {
+                    "200": {
+                        "description": "User chats",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocViewAllChats"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/msg/view-hist": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint to view all messages in a chat (the chat history)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "View All messages in a chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Chat history",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocViewChatHistory"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/msg/ws/chat": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint that upgrades client to a websocket connection for real-time chatting experience",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "A websocket message hub for real-time chatting",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Chat ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "101": {
+                        "description": "Switching Protocols",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/apply": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for applying to a project to work on",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Apply for a project to work on",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Application payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.ProjectApplication"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Applied successfully",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocProjectApplication"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Existing record",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/clear-application": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for clearing all applications on a project",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Clear all applications on a project",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Applications cleared"
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/create": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for creating a new project for the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Create a new project",
+                "parameters": [
+                    {
+                        "description": "Project payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.NewProjectRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Project created",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocProjectResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/delete-application": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for deleting a sent project application for the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Delete a send project application",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Request ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Request deleted"
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/edit": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for editing major details of a project",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Editing details of a project",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Project payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.NewProjectRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Project Edited",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocProjectResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/edit-status": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for editing the availability status of a project",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Editing the availability of a project",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status",
+                        "name": "staus",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Project edited",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocProjectResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/edit-view": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for editing the number of views on a project",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Editing the number of views on a project",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Project view edited",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocProjectResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/posts/all": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for retreiving all current user projects",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Retreive all current user projects",
+                "responses": {
+                    "200": {
+                        "description": "Fetched all projects",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocAllProjectResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/save-post": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for adding a project to the current user bookmarks",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Bookmark a project",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Bookmarked project",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocProjectResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/tags": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for searching for project with tags associated with the project",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Search for a project with tags/skills",
+                "parameters": [
+                    {
+                        "description": "Tags",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.SearchProjectWithTags"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Projects",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocAllProjectResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/update-application": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for updating a project application status to accepted or rejected",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Updating a project application status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Request ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Request status",
+                        "name": "status",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.RejectApplication"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Status Updated",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/view": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for viewing a single project in details by using the project ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "View a single project with ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fetched project",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocDetailedProjectResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/view-application": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for viewing all the applications on a single project",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "View all applications on a project",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project applications",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocViewProjectApplications"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/view-applications": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for viewing all sent and received project applications",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "View all project applications sent and received",
+                "responses": {
+                    "200": {
+                        "description": "Fetched applications",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocViewAllProjectApplication"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/post/view/saved-post": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint to view all of the bookmarked projects of the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "View all current user bookmarked projects",
+                "responses": {
+                    "200": {
+                        "description": "Bookmarked projects",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocAllProjectResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/connect-github": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An redirecting endpoint for connecting a github account to the current user account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Connecting github account to user account",
+                "responses": {
+                    "307": {
+                        "description": "Redirecting",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/delete-friend-req": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for deleting a sent friend request",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Delete a sent friend req",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Request id",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Request deleted"
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission Denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/delete-skills": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint to delete some skills from the current user skills",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Delete skills from the user skills",
+                "parameters": [
+                    {
+                        "description": "Skills",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.DeleteUserSkillsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Skills Deleted"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/delete-user": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for deleting the current user account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Delete a user account",
+                "responses": {
+                    "204": {
+                        "description": "Account deleted"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/delete-user-friend": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for deleting a friend from the users friend list",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Delete a existing friendship",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User id",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Chat id",
+                        "name": "chat_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Friend deleted"
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/get-user": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for fetching a user by their ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get a user by their ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "user and projects fetched",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocProjectUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/profile": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for fetching the currently logged in user profile details",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get the logged in user info",
+                "responses": {
+                    "200": {
+                        "description": "user fetched",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocUserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/reset-password": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for reseting the user password with a reset jwt token gotten from the verify-otp route",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Reset user password through forgot password route",
+                "parameters": [
+                    {
+                        "description": "new password",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.ResetPassword"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "reset successful",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid password",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for searching for users with their skills to show their profiles",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Search for users by skills/tags",
+                "parameters": [
+                    {
+                        "description": "Skills",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.SearchUserbySkills"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "users fetched",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocUsersSearch"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Failed to parse payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/send-user-req": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for sending friend requests to users for connecting",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Send a Friend req to a user",
+                "parameters": [
+                    {
+                        "description": "Request",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.SendFriendReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Request sent",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocFriendReqStatus"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Existing Friend Req / Friend",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Failed to parse payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/update-availability/{status}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for updating the Availability status of the current user to either true or false",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update Availability status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Availability status",
+                        "name": "status",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Status updated",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/update-password": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for updating the logged-in user password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update the current user password",
+                "parameters": [
+                    {
+                        "description": "new password",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.UpdatePassword"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "password updated",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/update-profile": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for updating the logged-in user profile details",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update the current user profile details",
+                "parameters": [
+                    {
+                        "description": "new details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.UserProfileRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "User updated",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocUserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Existing username / email",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/update-skills": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for updating the skills of the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update User skills",
+                "parameters": [
+                    {
+                        "description": "Skills",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.UpdateUserSkillsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Skills updated",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocSkillsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/update-user-req": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for updating the status of received friend req to rejected / accepted",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update a friend req status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Request ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Request status updated",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocFriendReqAccept"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid status / id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission Denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/view": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for searching for a user with their username to show their projects and profile",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Search for user with their username",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "user and projects fetched",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocProjectUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid username",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/view-git": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for searching for a user with their git username to show their projects and profile",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Search for user with their git username",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Git Username",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "user and projects fetched",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocProjectUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid git username",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/view-repo": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for viewing the user public repo to tag to a project.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Git"
+                ],
+                "summary": "View Github public repo for current user",
+                "responses": {
+                    "200": {
+                        "description": "Repo fetched",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocViewRepos"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/view-user-friend": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for viewing all the friends for the currently logged in user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "View all friends for the logged in user",
+                "responses": {
+                    "200": {
+                        "description": "User friends fetched",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocViewFriends"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/view-user-req": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for viewing all the looged in users friend reqs (sent and received)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "View All friend reqs",
+                "responses": {
+                    "200": {
+                        "description": "Fetched requests",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocViewFriendReqs"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/github/callback": {
+            "get": {
+                "description": "An endpoint for selecting the callback for login, connect github endpoint",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Callback for the github sign-in / connect",
+                "responses": {
+                    "200": {
+                        "description": "Token generated",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocTokenResponse"
+                        }
+                    },
+                    "202": {
+                        "description": "Github Connected",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Existing record",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/forgot-password": {
+            "get": {
+                "description": "An endpoint for getting an otp for reseting the user password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get a OTP for reseting user password",
+                "parameters": [
+                    {
+                        "description": "User email",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.ForgotPasswordEmail"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email sent to user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid Email",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/github-signup": {
+            "get": {
+                "description": "A redirecting endpoint for sign-in / sign-up with github",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Signing up user using github",
+                "responses": {
+                    "307": {
+                        "description": "Redirecting",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "post": {
+                "description": "Log in endpoint for existing users",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Log in a user",
+                "parameters": [
+                    {
+                        "description": "User login payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "jwt token generated",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocTokenResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Failed to parse payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/signup": {
+            "post": {
+                "description": "Sign up endpoint for new users",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Register a new user",
+                "parameters": [
+                    {
+                        "description": "User signup payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.SignupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "jwt token generated",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocTokenResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Existing email or username",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Failed to parse payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/verify-otp": {
+            "get": {
+                "description": "An endpoint to verify sent otp to create reset jwt token for reseting user password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Verify Sent otp to reset password",
+                "parameters": [
+                    {
+                        "description": "otp",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.VerifyOTP"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "reset token",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocTokenResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "invalid otp",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "invalid otp format",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "schema.AddUserChat": {
+            "type": "object",
+            "required": [
+                "chat_id",
+                "user_id"
+            ],
+            "properties": {
+                "chat_id": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.ApplicationProjectResponse": {
+            "type": "object",
+            "properties": {
+                "applications": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.ViewProjectApplication"
+                    }
+                }
+            }
+        },
+        "schema.DeleteUserSkillsRequest": {
+            "type": "object",
+            "required": [
+                "skills"
+            ],
+            "properties": {
+                "skills": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "schema.DetailedProjectResponse": {
+            "type": "object",
+            "properties": {
+                "available": {
+                    "type": "boolean"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "gitLink": {
+                    "type": "string"
+                },
+                "gitProject": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "schema.DocAllProjectResponse": {
+            "type": "object",
+            "properties": {
+                "project": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.ProjectResponse"
+                    }
+                }
+            }
+        },
+        "schema.DocDetailedProjectResponse": {
+            "type": "object",
+            "properties": {
+                "project": {
+                    "$ref": "#/definitions/schema.DetailedProjectResponse"
+                }
+            }
+        },
+        "schema.DocFriendReqAccept": {
+            "type": "object",
+            "properties": {
+                "chat_id": {
+                    "type": "string"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.DocFriendReqStatus": {
+            "type": "object",
+            "properties": {
+                "req": {
+                    "$ref": "#/definitions/schema.FriendReqStatus"
+                }
+            }
+        },
+        "schema.DocMsgResponse": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "$ref": "#/definitions/schema.ViewMessage"
+                }
+            }
+        },
+        "schema.DocNormalResponse": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.DocProjectApplication": {
+            "type": "object",
+            "properties": {
+                "project_req": {
+                    "$ref": "#/definitions/schema.ViewProjectApplication"
+                }
+            }
+        },
+        "schema.DocProjectResponse": {
+            "type": "object",
+            "properties": {
+                "project": {
+                    "$ref": "#/definitions/schema.ProjectResponse"
+                }
+            }
+        },
+        "schema.DocProjectUserResponse": {
+            "type": "object",
+            "properties": {
+                "posts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.ProjectResponse"
+                    }
+                },
+                "user": {
+                    "$ref": "#/definitions/schema.UserProfileResponse"
+                }
+            }
+        },
+        "schema.DocSkillsResponse": {
+            "type": "object",
+            "properties": {
+                "skills": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "schema.DocTokenResponse": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.DocUserResponse": {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "$ref": "#/definitions/schema.UserProfileResponse"
+                }
+            }
+        },
+        "schema.DocUsersSearch": {
+            "type": "object",
+            "properties": {
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.SearchUser"
+                    }
+                }
+            }
+        },
+        "schema.DocViewAllChats": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.ViewChat"
+                    }
+                }
+            }
+        },
+        "schema.DocViewAllProjectApplication": {
+            "type": "object",
+            "properties": {
+                "project": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
+        "schema.DocViewChatHistory": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "$ref": "#/definitions/schema.ViewChat"
+                }
+            }
+        },
+        "schema.DocViewFriendReqs": {
+            "type": "object",
+            "properties": {
+                "rec_req": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.FriendReqStatus"
+                    }
+                },
+                "sent_req": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.FriendReqStatus"
+                    }
+                }
+            }
+        },
+        "schema.DocViewFriends": {
+            "type": "object",
+            "properties": {
+                "friends": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.ViewFriends"
+                    }
+                }
+            }
+        },
+        "schema.DocViewProjectApplications": {
+            "type": "object",
+            "properties": {
+                "req": {
+                    "$ref": "#/definitions/schema.ApplicationProjectResponse"
+                }
+            }
+        },
+        "schema.DocViewRepos": {
+            "type": "object",
+            "properties": {
+                "repos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.ViewRepo"
+                    }
+                }
+            }
+        },
+        "schema.EditMessage": {
+            "type": "object",
+            "required": [
+                "msg",
+                "msg_id"
+            ],
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "msg_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.ForgotPasswordEmail": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.FriendReqStatus": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "sent": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.LoginRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "username"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.NewMessage": {
+            "type": "object",
+            "required": [
+                "chat_id",
+                "msg"
+            ],
+            "properties": {
+                "chat_id": {
+                    "type": "string"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.NewProjectRequest": {
+            "type": "object",
+            "required": [
+                "description",
+                "tags"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "git": {
+                    "type": "boolean"
+                },
+                "git_link": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "schema.ProjectApplication": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            }
+        },
+        "schema.ProjectResponse": {
+            "type": "object",
+            "properties": {
+                "available": {
+                    "type": "boolean"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "schema.RejectApplication": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.RenameChat": {
+            "type": "object",
+            "required": [
+                "chat_id",
+                "name"
+            ],
+            "properties": {
+                "chat_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.ResetPassword": {
+            "type": "object",
+            "required": [
+                "password"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "minLength": 8
+                }
+            }
+        },
+        "schema.SearchProjectWithTags": {
+            "type": "object",
+            "required": [
+                "tags"
+            ],
+            "properties": {
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "schema.SearchUser": {
+            "type": "object",
+            "properties": {
+                "availability": {
+                    "type": "boolean"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "gitUser": {
+                    "type": "boolean"
+                },
+                "gitUserName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "skills": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "userName": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.SearchUserbySkills": {
+            "type": "object",
+            "required": [
+                "skills"
+            ],
+            "properties": {
+                "skills": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "schema.SendFriendReq": {
+            "type": "object",
+            "required": [
+                "uid"
+            ],
+            "properties": {
+                "msg": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.SignupRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "fullname",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "bio": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "email": {
+                    "type": "string"
+                },
+                "fullname": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 8
+                },
+                "skills": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.UpdatePassword": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "password"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 8
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.UpdateUserSkillsRequest": {
+            "type": "object",
+            "required": [
+                "skills"
+            ],
+            "properties": {
+                "skills": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "schema.UserProfileRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "fullname",
+                "username"
+            ],
+            "properties": {
+                "bio": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "email": {
+                    "type": "string"
+                },
+                "fullname": {
+                    "type": "string"
+                },
+                "gitusername": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.UserProfileResponse": {
+            "type": "object",
+            "properties": {
+                "availability": {
+                    "type": "boolean"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "fullName": {
+                    "type": "string"
+                },
+                "gitUserName": {
+                    "type": "string"
+                },
+                "gituser": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "skills": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "userName": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.VerifyOTP": {
+            "type": "object",
+            "required": [
+                "otp"
+            ],
+            "properties": {
+                "otp": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.ViewChat": {
+            "type": "object",
+            "properties": {
+                "cid": {
+                    "type": "string"
+                },
+                "group": {
+                    "type": "boolean"
+                },
+                "message": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.ViewMessage"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.ViewFriends": {
+            "type": "object",
+            "properties": {
+                "bio": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.ViewMessage": {
+            "type": "object",
+            "properties": {
+                "edited": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "sent": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.ViewProjectApplication": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "reqID": {
+                    "type": "string"
+                },
+                "sent": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.ViewRepo": {
+            "type": "object",
+            "properties": {
+                "html_url": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

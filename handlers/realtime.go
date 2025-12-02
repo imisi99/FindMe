@@ -11,14 +11,14 @@ import (
 )
 
 // WSChat godoc
-// @Summary  A websocket message hub to simulate real-time chatting
-// @Description An websocket endpoint that simulates a real-time chatting experience
+// @Summary  A websocket message hub for real-time chatting
+// @Description An endpoint that upgrades client to a websocket connection for real-time chatting experience
 // @Tags Msg
 // @Accept json
 // @Produce json
 // @Param id query string true "Chat ID"
 // @Security BearerAuth
-// @Success
+// @Success 101 {string} string "Switching Protocols"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
 // @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
 // @Failure 500 {object} schema.DocNormalResponse "server error"

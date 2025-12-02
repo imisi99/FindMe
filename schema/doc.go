@@ -66,3 +66,19 @@ type DocProjectApplication struct {
 type DocViewAllProjectApplication struct {
 	Project map[string]any `json:"project"`
 }
+
+type DocMsgResponse struct {
+	Msg ViewMessage `json:"msg"`
+}
+
+type DocViewChatHistory struct {
+	Msg ViewChat `json:"msg"`
+}
+
+type DocViewAllChats struct {
+	Msg []ViewChat `json:"msg"`
+}
+
+type DocViewRepos struct {
+	Repos []ViewRepo `json:"repos"`
+}
