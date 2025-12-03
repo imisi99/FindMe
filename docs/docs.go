@@ -324,6 +324,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/schema.DocNormalResponse"
                         }
                     },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
                     "404": {
                         "description": "Record not found",
                         "schema": {
@@ -1364,7 +1370,7 @@ const docTemplate = `{
             }
         },
         "/api/post/tags": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -2172,7 +2178,7 @@ const docTemplate = `{
             }
         },
         "/api/user/search": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -2681,6 +2687,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/user/view-friend": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for viewing all the friends for the currently logged in user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "View all friends for the logged in user",
+                "responses": {
+                    "200": {
+                        "description": "User friends fetched",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocViewFriends"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/user/view-git": {
             "get": {
                 "security": [
@@ -2807,7 +2859,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "An endpoint for viewing all the friends for the currently logged in user",
+                "description": "An endpoint for viewing all the friends of a user",
                 "consumes": [
                     "application/json"
                 ],
@@ -2817,12 +2869,27 @@ const docTemplate = `{
                 "tags": [
                     "User"
                 ],
-                "summary": "View all friends for the logged in user",
+                "summary": "View all friends of a user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "User friends fetched",
                         "schema": {
                             "$ref": "#/definitions/schema.DocViewFriends"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
                         }
                     },
                     "401": {
@@ -2952,7 +3019,7 @@ const docTemplate = `{
             }
         },
         "/forgot-password": {
-            "get": {
+            "post": {
                 "description": "An endpoint for getting an otp for reseting the user password",
                 "consumes": [
                     "application/json"
@@ -3151,13 +3218,11 @@ const docTemplate = `{
                 "summary": "Verify Sent otp to reset password",
                 "parameters": [
                     {
+                        "type": "string",
                         "description": "otp",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/schema.VerifyOTP"
-                        }
+                        "name": "id",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -3167,14 +3232,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/schema.DocTokenResponse"
                         }
                     },
-                    "404": {
+                    "400": {
                         "description": "invalid otp",
                         "schema": {
                             "$ref": "#/definitions/schema.DocNormalResponse"
                         }
                     },
-                    "422": {
-                        "description": "invalid otp format",
+                    "404": {
+                        "description": "invalid otp",
                         "schema": {
                             "$ref": "#/definitions/schema.DocNormalResponse"
                         }
@@ -3835,17 +3900,6 @@ const docTemplate = `{
                 }
             }
         },
-        "schema.VerifyOTP": {
-            "type": "object",
-            "required": [
-                "otp"
-            ],
-            "properties": {
-                "otp": {
-                    "type": "string"
-                }
-            }
-        },
         "schema.ViewChat": {
             "type": "object",
             "properties": {
@@ -3934,6 +3988,13 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
     }
 }`
 
@@ -3941,7 +4002,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "",
-	BasePath:         "/",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "FindMe API",
 	Description:      "API documentation for FindMe application.",

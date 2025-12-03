@@ -160,7 +160,7 @@ func TestSearchUserbySkills(t *testing.T) {
 	}
 	body, _ := json.Marshal(skills)
 
-	req, _ := http.NewRequest(http.MethodGet, "/api/user/search", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/user/search", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()
@@ -298,7 +298,7 @@ func TestUpdateFriendReqAccept(t *testing.T) {
 }
 
 func TestViewUserFriends(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-user-friend", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-friend", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
@@ -306,6 +306,17 @@ func TestViewUserFriends(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), superUserName)
+}
+
+func TestViewUserFriendsByID(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-user-friend?id="+id1, nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), superUserName1)
 }
 
 func TestDeleteFriend(t *testing.T) {
@@ -353,7 +364,7 @@ func TestForgotPassword(t *testing.T) {
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodGet, "/forgot-password", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/forgot-password", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
@@ -364,13 +375,10 @@ func TestForgotPassword(t *testing.T) {
 }
 
 func TestVerifyOPT(t *testing.T) {
-	payload := map[string]string{
-		"otp": "123456", // Using the default otp 123456 that is set in the mock
-	}
+	// Using the default otp 123456 that is set in the mock
+	otp := "123456"
 
-	body, _ := json.Marshal(payload)
-
-	req, _ := http.NewRequest(http.MethodGet, "/verify-otp", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodGet, "/verify-otp?id="+otp, nil)
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()

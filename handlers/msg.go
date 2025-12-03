@@ -10,8 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// FIX:
-// The Leave chat doesn't account for a chat owner leaving the chat
+// TODO:
+// Possible features
+// A way to transfer ownership of chat to someone.
 
 // CreateMessage godoc
 // @Summary     Sending of message to a chat
@@ -549,6 +550,7 @@ func (s *Service) RemoveUserChat(ctx *gin.Context) {
 // @Success 204 {object} nil "Chat removed"
 // @Failure 400 {object} schema.DocNormalResponse "Invalid id"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
 // @Failure 500 {object} schema.DocNormalResponse "Server error"
 // @Router /api/msg/leave-chat [delete]
@@ -576,6 +578,11 @@ func (s *Service) LeaveChat(ctx *gin.Context) {
 	if err := s.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if *chat.OwnerID == user.ID {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can't leave this chat you can to delete it if you must."})
 		return
 	}
 

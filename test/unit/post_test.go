@@ -87,7 +87,7 @@ func TestSearchProjectTags(t *testing.T) {
 	payload := map[string][]string{"tags": {"backend"}}
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodGet, "/api/post/tags", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "/api/post/tags", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()

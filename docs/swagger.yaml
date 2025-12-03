@@ -1,4 +1,3 @@
-basePath: /
 definitions:
   schema.AddUserChat:
     properties:
@@ -422,13 +421,6 @@ definitions:
       userName:
         type: string
     type: object
-  schema.VerifyOTP:
-    properties:
-      otp:
-        type: string
-    required:
-    - otp
-    type: object
   schema.ViewChat:
     properties:
       cid:
@@ -684,6 +676,10 @@ paths:
             $ref: '#/definitions/schema.DocNormalResponse'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "403":
+          description: Permission denied
           schema:
             $ref: '#/definitions/schema.DocNormalResponse'
         "404":
@@ -1357,7 +1353,7 @@ paths:
       tags:
       - Project
   /api/post/tags:
-    get:
+    post:
       consumes:
       - application/json
       description: An endpoint for searching for project with tags associated with
@@ -1878,7 +1874,7 @@ paths:
       tags:
       - User
   /api/user/search:
-    get:
+    post:
       consumes:
       - application/json
       description: An endpoint for searching for users with their skills to show their
@@ -2206,6 +2202,36 @@ paths:
       summary: Search for user with their username
       tags:
       - User
+  /api/user/view-friend:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for viewing all the friends for the currently logged
+        in user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User friends fetched
+          schema:
+            $ref: '#/definitions/schema.DocViewFriends'
+        "401":
+          description: Unauthorized user
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: View all friends for the logged in user
+      tags:
+      - User
   /api/user/view-git:
     get:
       consumes:
@@ -2287,8 +2313,13 @@ paths:
     get:
       consumes:
       - application/json
-      description: An endpoint for viewing all the friends for the currently logged
-        in user
+      description: An endpoint for viewing all the friends of a user
+      parameters:
+      - description: User ID
+        in: query
+        name: id
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -2296,6 +2327,10 @@ paths:
           description: User friends fetched
           schema:
             $ref: '#/definitions/schema.DocViewFriends'
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
         "401":
           description: Unauthorized user
           schema:
@@ -2310,7 +2345,7 @@ paths:
             $ref: '#/definitions/schema.DocNormalResponse'
       security:
       - BearerAuth: []
-      summary: View all friends for the logged in user
+      summary: View all friends of a user
       tags:
       - User
   /api/user/view-user-req:
@@ -2384,7 +2419,7 @@ paths:
       tags:
       - Auth
   /forgot-password:
-    get:
+    post:
       consumes:
       - application/json
       description: An endpoint for getting an otp for reseting the user password
@@ -2512,11 +2547,10 @@ paths:
         user password
       parameters:
       - description: otp
-        in: body
-        name: payload
+        in: query
+        name: id
         required: true
-        schema:
-          $ref: '#/definitions/schema.VerifyOTP'
+        type: string
       produces:
       - application/json
       responses:
@@ -2524,12 +2558,12 @@ paths:
           description: reset token
           schema:
             $ref: '#/definitions/schema.DocTokenResponse'
-        "404":
+        "400":
           description: invalid otp
           schema:
             $ref: '#/definitions/schema.DocNormalResponse'
-        "422":
-          description: invalid otp format
+        "404":
+          description: invalid otp
           schema:
             $ref: '#/definitions/schema.DocNormalResponse'
         "500":
@@ -2539,4 +2573,9 @@ paths:
       summary: Verify Sent otp to reset password
       tags:
       - User
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

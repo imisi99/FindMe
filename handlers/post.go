@@ -183,7 +183,7 @@ func (s *Service) ViewSingleProjectApplication(ctx *gin.Context) {
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
 // @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
 // @Failure 500 {object} schema.DocNormalResponse "Server error"
-// @Router /api/post/tags [get]
+// @Router /api/post/tags [post]
 func (s *Service) SearchProject(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {

@@ -33,7 +33,7 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	router.GET("/github-signup", service.Git.GitHubAddUser)
 	router.GET("/api/v1/auth/github/callback", service.Git.SelectCallback)
 
-	router.GET("/forgot-password", service.ForgotPassword)
+	router.POST("/forgot-password", service.ForgotPassword)
 	router.GET("/verify-otp", service.VerifyOTP)
 
 	protectedUserRoutes := router.Group("/api/user")
@@ -44,12 +44,13 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedMsgRoutes.Use(service.Authentication())
 
 	protectedUserRoutes.GET("/profile", service.GetUserInfo)
-	protectedUserRoutes.GET("/search", service.ViewUserbySkills)
+	protectedUserRoutes.POST("/search", service.ViewUserbySkills)
 	protectedUserRoutes.GET("/view", service.ViewUser)
 	protectedUserRoutes.GET("/get-user", service.GetUser)
 	protectedUserRoutes.GET("/view-git", service.ViewGitUser)
 	protectedUserRoutes.GET("/view-user-req", service.ViewFriendReq)
-	protectedUserRoutes.GET("/view-user-friend", service.ViewUserFriends)
+	protectedUserRoutes.GET("/view-friend", service.ViewUserFriends)
+	protectedUserRoutes.GET("/view-user-friend", service.ViewUserFriendsByID)
 	protectedUserRoutes.GET("/view-repo", service.Git.ViewRepo)
 	protectedUserRoutes.POST("/send-user-req", service.SendFriendReq)
 	protectedUserRoutes.POST("/connect-github", service.Git.ConnectGitHub)
@@ -83,7 +84,7 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedProjectRoutes.GET("/view-applications", service.ViewProjectApplications)
 	protectedProjectRoutes.GET("/view-application", service.ViewSingleProjectApplication)
 	protectedProjectRoutes.GET("/view/saved-post", service.ViewSavedProject)
-	protectedProjectRoutes.GET("/tags", service.SearchProject)
+	protectedProjectRoutes.POST("/tags", service.SearchProject)
 	protectedProjectRoutes.POST("/create", service.CreateProject)
 	protectedProjectRoutes.POST("/apply", service.ApplyForProject)
 	protectedProjectRoutes.PUT("/save-post", service.SaveProject)

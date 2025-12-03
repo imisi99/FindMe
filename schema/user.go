@@ -48,10 +48,6 @@ type ForgotPasswordEmail struct {
 	Email string `json:"email" binding:"required,email"`
 }
 
-type VerifyOTP struct {
-	Token string `json:"otp" binding:"required"`
-}
-
 type UpdatePassword struct {
 	FormerPassword string `json:"password" binding:"required"`
 	Password       string `json:"new_password" binding:"required,min=8"`

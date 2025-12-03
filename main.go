@@ -1,11 +1,10 @@
 // @title FindMe API
 // @version 1.0
 // @description API documentation for FindMe application.
-// @BasePath /
-
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
+// @BasePath /
 package main
 
 import (

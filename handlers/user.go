@@ -13,10 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO:
-// An endpoint for viewing a user friends with the ID ?
-// Add test for the new endpoint user friends
-
 // AddUser godoc
 // @Summary			Register a new user
 // @Description  Sign up endpoint for new users
@@ -391,7 +387,7 @@ func (s *Service) ViewGitUser(ctx *gin.Context) {
 // @Failure 422 {object} schema.DocNormalResponse "Failed to parse payload"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
 // @Failure 500 {object} schema.DocNormalResponse "Server error"
-// @Router /api/user/search [get]
+// @Router /api/user/search [post]
 func (s *Service) ViewUserbySkills(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -713,7 +709,7 @@ func (s *Service) DeleteSentReq(ctx *gin.Context) {
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
 // @Failure 500 {object} schema.DocNormalResponse "Server error"
-// @Router /api/user/view-user-friend [get]
+// @Router /api/user/view-friend [get]
 func (s *Service) ViewUserFriends(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -753,6 +749,7 @@ func (s *Service) ViewUserFriends(ctx *gin.Context) {
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized user"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
 // @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/user/view-user-friend [get]
 func (s *Service) ViewUserFriendsByID(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -853,7 +850,7 @@ func (s *Service) DeleteUserFriend(ctx *gin.Context) {
 // @Failure 422 {object} schema.DocNormalResponse "Invalid Email"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
 // @Failure 500 {object} schema.DocNormalResponse "Server error"
-// @Router /forgot-password [get]
+// @Router /forgot-password [post]
 func (s *Service) ForgotPassword(ctx *gin.Context) {
 	var payload schema.ForgotPasswordEmail
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
@@ -892,21 +889,20 @@ func (s *Service) ForgotPassword(ctx *gin.Context) {
 // @Tags  User
 // @Accept json
 // @Produce json
-// @Param payload body schema.VerifyOTP true "otp"
+// @Param id query string true "otp"
 // @Success 200 {object} schema.DocTokenResponse "reset token"
 // @Failure 404 {object} schema.DocNormalResponse "invalid otp"
-// @Failure 422 {object} schema.DocNormalResponse "invalid otp format"
+// @Failure 400 {object} schema.DocNormalResponse "invalid otp"
 // @Failure 500 {object} schema.DocNormalResponse "server error"
 // @Router /verify-otp [get]
 func (s *Service) VerifyOTP(ctx *gin.Context) {
-	var payload schema.VerifyOTP
-
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse the payload."})
+	id := ctx.Query("id")
+	if id == "" || len(id) != 6 {
+		ctx.JSON(http.StatusBadRequest, "Invalid otp.")
 		return
 	}
 
-	uid, err := s.RDB.GetOTP(payload.Token)
+	uid, err := s.RDB.GetOTP(id)
 	if err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
