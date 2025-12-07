@@ -189,9 +189,43 @@ func TestLeaveChat(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }
 
+func TestAddUserToTestOwnership(t *testing.T) {
+	payload := map[string]string{
+		"chat_id": gid,
+		"user_id": id2,
+	}
+
+	body, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodPut, "/api/msg/add-user", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+}
+
+func TestTransferOwner(t *testing.T) {
+	payload := map[string]string{
+		"chat_id": gid,
+		"user_id": id2,
+	}
+
+	body, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodPatch, "/api/msg/transfer-owner", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+}
+
 func TestDeleteChat(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodDelete, "/api/msg/delete-chat?id="+gid, nil)
-	req.Header.Set("Authorization", "Bearer "+tokenString)
+	req.Header.Set("Authorization", "Bearer "+tokenString1)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)

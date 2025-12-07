@@ -539,6 +539,62 @@ func (s *Service) RemoveUserChat(ctx *gin.Context) {
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
+// TransferOwner godoc
+// @Summary Transfer group chat ownership to another user
+// @Description An endpoint for transferring the ownership of a group chat to another user
+// @Tags Msg
+// @Accept json
+// @Produce json
+// @Param payload body schema.AddUserChat true "payload"
+// @Security BearerAuth
+// @Success 202 {object} schema.DocNormalResponse "Ownership Transferred"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 403 {object} schema.DocNormalResponse "Permission denied"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/msg/transfer-owner [patch]
+func (s *Service) TransferOwner(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if !model.IsValidUUID(uid) || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	var payload schema.AddUserChat
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
+		return
+	}
+
+	var chat model.Chat
+	if err := s.DB.FetchChat(payload.ChatID, &chat); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if !chat.Group {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can only transfer ownership in group chats."})
+		return
+	}
+
+	if chat.OwnerID == nil || *chat.OwnerID != uid {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You don't have permission to transfer ownership."})
+		return
+	}
+
+	ownerID := payload.UserID
+	chat.OwnerID = &ownerID
+	if err := s.DB.SaveChat(&chat); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Ownership transferred successfully."})
+}
+
 // LeaveChat godoc
 // @Summary Leave a group chat
 // @Description An endpoint for leaving a group chat
@@ -582,7 +638,7 @@ func (s *Service) LeaveChat(ctx *gin.Context) {
 	}
 
 	if *chat.OwnerID == user.ID {
-		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can't leave this chat you can to delete it if you must."})
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "You can't leave this chat you can to delete it if you must or transfer ownership."})
 		return
 	}
 

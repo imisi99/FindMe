@@ -74,6 +74,7 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedMsgRoutes.PUT("/add-user", service.AddUserToChat)
 	protectedMsgRoutes.PATCH("/edit-message", service.EditMessage)
 	protectedMsgRoutes.PATCH("/rename-chat", service.RenameChat)
+	protectedMsgRoutes.PATCH("/transfer-owner", service.TransferOwner)
 	protectedMsgRoutes.DELETE("/delete-message", service.DeleteMessage)
 	protectedMsgRoutes.DELETE("/remove-user", service.RemoveUserChat)
 	protectedMsgRoutes.DELETE("/leave-chat", service.LeaveChat)

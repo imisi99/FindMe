@@ -604,6 +604,75 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/msg/transfer-owner": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for transferring the ownership of a group chat to another user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Msg"
+                ],
+                "summary": "Transfer group chat ownership to another user",
+                "parameters": [
+                    {
+                        "description": "payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.AddUserChat"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Ownership Transferred",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/msg/view-chats": {
             "get": {
                 "security": [
