@@ -1,6 +1,4 @@
-FROM golang:1.23-alpine as builder
-
-RUN apk add --no-cache git
+FROM golang:1.23 as builder
 
 WORKDIR /app
 
@@ -12,7 +10,9 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o findme ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+  --mount=type=cache,target=/root/.cache/go-build \
+  CGO_ENABLED=0 go build -o findme .
 
 
 FROM alpine:latest
