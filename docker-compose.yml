@@ -3,31 +3,39 @@ services:
     image: postgres:15
     container_name: findMe_postgres_db
     restart: always
-    ports:
-      - 5432:5432
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_HOST=${POSTGRES_HOST}
     volumes:
       - findMe:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - findme-network
 
   redis:
     image: redis:8.2.3
     container_name: findMe_redis
     restart: always
-    ports:
-      - 6379:6379
-    environment:
-      - REDIS_ADDR=${REDIS_ADDR}
-      - REDIS_PASS=${REDIS_PASS}
     command: [
       "redis-server", "--appendonly", "yes",
       "--requirepass", "${REDIS_PASS}",
       "--maxmemory", "50mb",
       "--maxmemory-policy", "volatile-ttl"
     ]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - findme-network
 
   app:
     build:
@@ -35,15 +43,13 @@ services:
       dockerfile: Dockerfile
     container_name: findMe_app
     restart: always
-    ports:
-      - 8080:8080
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_HOST=db
       - REDIS_PASS=${REDIS_PASS}
-      - REDIS_ADDR=${REDIS_ADDR}
+      - REDIS_ADDR=redis:6379
       - JWTSECRET=${JWTSECRET}
       - GIT_CLIENT_ID=${GIT_CLIENT_ID}
       - GIT_CLIENT_SECRET=${GIT_CLIENT_SECRET}
@@ -51,7 +57,39 @@ services:
       - EMAIL=${EMAIL}
       - EMAIL_APP_PASSWORD=${EMAIL_APP_PASSWORD}
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 120s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - findme-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: findMe_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - findme-network
+
+networks:
+  findme-network:
+    driver: bridge
+
 volumes:
   findMe:
+  redis-data:
