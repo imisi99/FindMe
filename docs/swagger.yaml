@@ -2516,6 +2516,27 @@ paths:
       summary: Signing up user using github
       tags:
       - Auth
+  /health/detailed:
+    get:
+      consumes:
+      - application/json
+      description: This gives a detailed health status of the running services
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Service Healthy
+          schema:
+            additionalProperties: true
+            type: object
+        "503":
+          description: Service Degraded
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Checks the health of the services running
+      tags:
+      - Health
   /login:
     post:
       consumes:

@@ -15,6 +15,10 @@ type CacheMock struct {
 	Otp   map[string]string
 }
 
+func (mock *CacheMock) CheckHealth() error {
+	return nil
+}
+
 func (mock *CacheMock) CacheSkills(skills []model.Skill) {
 	cache := make(map[string]string, 0)
 

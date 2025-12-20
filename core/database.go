@@ -11,6 +11,7 @@ import (
 )
 
 type DB interface {
+	CheckHealth() error
 	FetchAllSkills(skills *[]model.Skill) error
 	AddUser(user *model.User) error
 	CheckExistingUser(user *model.User, email, username string) error
@@ -91,6 +92,12 @@ type GormDB struct {
 
 func NewGormDB(db *gorm.DB) *GormDB {
 	return &GormDB{DB: db}
+}
+
+func (db *GormDB) CheckHealth() error {
+	var ping string
+	err := db.DB.Raw("SELECT 1").Scan(&ping).Error
+	return err
 }
 
 func (db *GormDB) FetchAllSkills(skills *[]model.Skill) error {

@@ -1,8 +1,5 @@
 package handlers
 
-// TODO:
-// Add health endpints for the app, db, redis probably
-
 import (
 	"net/http"
 
@@ -33,6 +30,8 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	router.GET("/health", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+
+	router.GET("/health/detailed", service.DetailedHealth)
 
 	router.POST("/signup", service.AddUser)
 	router.POST("/login", service.VerifyUser)

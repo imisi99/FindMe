@@ -10,10 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO:
-// Possible features
-// A way to transfer ownership of chat to someone.
-
 // CreateMessage godoc
 // @Summary     Sending of message to a chat
 // @Description An endpoint for sending a message to a chat

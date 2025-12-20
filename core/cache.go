@@ -14,6 +14,7 @@ import (
 )
 
 type Cache interface {
+	CheckHealth() error
 	CacheSkills(skills []model.Skill)
 	RetrieveCachedSkills(skills []string) (map[string]string, error)
 	AddNewSkillToCache(skill []*model.Skill)
@@ -27,6 +28,14 @@ type RDB struct {
 
 func NewRDB(rdb *redis.Client) *RDB {
 	return &RDB{Cache: rdb}
+}
+
+func (c *RDB) CheckHealth() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := c.Cache.Ping(ctx).Result()
+	return err
 }
 
 // CacheSkills -> Cache skills in rdb at app startup

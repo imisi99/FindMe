@@ -3160,6 +3160,37 @@
                 }
             }
         },
+        "/health/detailed": {
+            "get": {
+                "description": "This gives a detailed health status of the running services",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Checks the health of the services running",
+                "responses": {
+                    "200": {
+                        "description": "Service Healthy",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "503": {
+                        "description": "Service Degraded",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "description": "Log in endpoint for existing users",

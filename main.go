@@ -27,7 +27,6 @@ import (
 )
 
 func main() {
-	// Load environment variables from .env file
 	log.SetPrefix("[FindMe]")
 	log.SetFlags(log.Lshortfile)
 
