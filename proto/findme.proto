@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package findme;
+
+option go_package = "./generated";
+
+service UserEmbeddingService {
+  rpc CreateUserEmbedding(UserEmbeddingRequest) returns (EmbeddingResponse);
+  rpc UpdateUserEmbedding(UserEmbeddingRequest) returns (EmbeddingResponse);
+  rpc DeleteUserEmbedding(DeleteEmbeddingRequest) returns (EmbeddingResponse);
+}
+
+service ProjectEmbeddingService {
+  rpc DeleteProjectEmbedding(DeleteEmbeddingRequest) returns (EmbeddingResponse);
+  rpc CreateProjectEmbedding(ProjectEmbeddingRequest) returns (EmbeddingResponse);
+  rpc UpdateProjectEmbedding(ProjectEmbeddingRequest) returns (EmbeddingResponse);
+}
+
+message UserEmbeddingRequest {
+  string user_id = 1;
+  string bio = 2;
+  repeated string skills = 3;
+  repeated string interests = 4;
+}
+
+message ProjectEmbeddingRequest {
+  string project_id = 1;
+  string title = 2;
+  string description = 3;
+  repeated string skills = 4;
+}
+
+message DeleteEmbeddingRequest {
+  string id = 1;
+}
+
+message EmbeddingResponse {
+  bool success = 1;
+  string msg = 2;
+}

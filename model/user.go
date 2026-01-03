@@ -7,6 +7,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// TODO:
+// Add an interest field
 type User struct {
 	GormModel
 	FullName     string  `gorm:"column:fullname;not null"`
