@@ -1,8 +1,14 @@
 package core
 
 import (
+	"context"
 	"log"
 	"time"
+
+	emb "findme/generated"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type EmbeddingJobType int
@@ -36,23 +42,25 @@ type EmbeddingJob struct {
 	MaxAttempts int
 
 	// User fields
-	User UserEmbedding
+	User *UserEmbedding
 
 	// Project fields
-	Project ProjectEmbedding
+	Project *ProjectEmbedding
 }
 
 type EmbeddingHub struct {
 	Jobs       chan *EmbeddingJob
 	Quit       chan bool
 	WorkerPool int
+	GRPCADDR   string
 }
 
-func NewGRPCHub(queueSize, workers int) *EmbeddingHub {
+func NewEmbeddingHub(queueSize, workers int, addr string) *EmbeddingHub {
 	return &EmbeddingHub{
 		Jobs:       make(chan *EmbeddingJob, queueSize),
 		Quit:       make(chan bool),
 		WorkerPool: workers,
+		GRPCADDR:   addr,
 	}
 }
 
@@ -64,10 +72,21 @@ func (e *EmbeddingHub) Run() {
 }
 
 func (e *EmbeddingHub) Worker() {
+	conn, err := grpc.NewClient(e.GRPCADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Printf("[EmbeddingHub] Failed to connect to ML service -> %v", err.Error())
+		return
+	}
+
+	defer conn.Close()
+
+	userClient := emb.NewUserEmbeddingServiceClient(conn)
+	projectClient := emb.NewProjectEmbeddingServiceClient(conn)
+
 	for {
 		select {
 		case job := <-e.Jobs:
-			err := e.ProocessJob()
+			err := e.ProocessJob(job, userClient, projectClient)
 			if err != nil {
 				job.Attempts++
 				if job.Attempts <= job.MaxAttempts {
@@ -86,6 +105,121 @@ func (e *EmbeddingHub) Worker() {
 	}
 }
 
-func (e *EmbeddingHub) ProocessJob() error {
-	return nil
+func (e *EmbeddingHub) ProocessJob(job *EmbeddingJob, userClient emb.UserEmbeddingServiceClient, projectClient emb.ProjectEmbeddingServiceClient) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	var err error
+
+	switch job.Type {
+	case CreateUserEmbedding:
+		_, err = userClient.CreateUserEmbedding(ctx, &emb.UserEmbeddingRequest{
+			UserId:    job.User.ID,
+			Bio:       job.User.Bio,
+			Skills:    job.User.Skills,
+			Interests: job.User.Interests,
+		})
+	case UpdateUserEmbedding:
+		_, err = userClient.UpdateUserEmbedding(ctx, &emb.UserEmbeddingRequest{
+			UserId:    job.User.ID,
+			Bio:       job.User.Bio,
+			Skills:    job.User.Skills,
+			Interests: job.User.Interests,
+		})
+	case DeleteUserEmbedding:
+		_, err = userClient.DeleteUserEmbedding(ctx, &emb.DeleteEmbeddingRequest{
+			Id: job.User.ID,
+		})
+	case CreateProjectEmbedding:
+		_, err = projectClient.CreateProjectEmbedding(ctx, &emb.ProjectEmbeddingRequest{
+			ProjectId:   job.Project.ID,
+			Title:       job.Project.Title,
+			Description: job.Project.Description,
+			Skills:      job.Project.Skills,
+		})
+	case UpdateProjectEmbedding:
+		_, err = projectClient.UpdateProjectEmbedding(ctx, &emb.ProjectEmbeddingRequest{
+			ProjectId:   job.Project.ID,
+			Title:       job.Project.Title,
+			Description: job.Project.Description,
+			Skills:      job.Project.Skills,
+		})
+	case DeleteProjectEmbedding:
+		_, err = projectClient.DeleteProjectEmbedding(ctx, &emb.DeleteEmbeddingRequest{
+			Id: job.Project.ID,
+		})
+	}
+	return err
+}
+
+func (e *EmbeddingHub) QueueUserCreate(id, bio string, skills, interests []string) {
+	e.Jobs <- &EmbeddingJob{
+		Type:        CreateUserEmbedding,
+		MaxAttempts: 3,
+		User: &UserEmbedding{
+			ID:        id,
+			Bio:       bio,
+			Skills:    skills,
+			Interests: interests,
+		},
+	}
+}
+
+func (e *EmbeddingHub) QueueUserUpdate(id, bio string, skills, interest []string) {
+	e.Jobs <- &EmbeddingJob{
+		Type:        UpdateUserEmbedding,
+		MaxAttempts: 3,
+		User: &UserEmbedding{
+			ID:        id,
+			Bio:       bio,
+			Skills:    skills,
+			Interests: interest,
+		},
+	}
+}
+
+func (e *EmbeddingHub) QueueUserDelete(id string) {
+	e.Jobs <- &EmbeddingJob{
+		Type:        DeleteUserEmbedding,
+		MaxAttempts: 3,
+		User: &UserEmbedding{
+			ID: id,
+		},
+	}
+}
+
+func (e *EmbeddingHub) QueueProjectCreate(id, title, description string, skills []string) {
+	e.Jobs <- &EmbeddingJob{
+		Type:        CreateProjectEmbedding,
+		MaxAttempts: 3,
+		Project: &ProjectEmbedding{
+			ID:          id,
+			Title:       title,
+			Description: description,
+			Skills:      skills,
+		},
+	}
+}
+
+func (e *EmbeddingHub) QueueProjectUpdate(id, title, description string, skills []string) {
+	e.Jobs <- &EmbeddingJob{
+		Type:        UpdateProjectEmbedding,
+		MaxAttempts: 3,
+		Project: &ProjectEmbedding{
+			ID:          id,
+			Title:       title,
+			Description: description,
+			Skills:      skills,
+		},
+	}
+}
+
+func (e *EmbeddingHub) QueueProjectDelete(id string) {
+	e.Jobs <- &EmbeddingJob{
+		Type:        DeleteProjectEmbedding,
+		MaxAttempts: 3,
+		Project: &ProjectEmbedding{
+			ID: id,
+		},
+	}
 }

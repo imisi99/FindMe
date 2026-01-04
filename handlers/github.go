@@ -28,11 +28,12 @@ type GitService struct {
 	ClientSecret string
 	CallbackURL  string
 	DB           core.DB
+	EmbHub       *core.EmbeddingHub
 	Client       *http.Client
 }
 
-func NewGitService(id, secret, callback string, db core.DB, client *http.Client) *GitService {
-	return &GitService{ClientID: id, ClientSecret: secret, CallbackURL: callback, DB: db, Client: client}
+func NewGitService(id, secret, callback string, db core.DB, emb *core.EmbeddingHub, client *http.Client) *GitService {
+	return &GitService{ClientID: id, ClientSecret: secret, CallbackURL: callback, DB: db, EmbHub: emb, Client: client}
 }
 
 // GitHubAddUser godoc
@@ -252,6 +253,7 @@ func (g *GitService) GitHubAddUserCallback(token, code, state, storedState strin
 	}
 
 	if err := g.DB.AddUser(&newUser); err != nil {
+		g.EmbHub.QueueUserCreate(newUser.ID, newUser.Bio, []string{""}, []string{""})
 		return "", "", err
 	}
 

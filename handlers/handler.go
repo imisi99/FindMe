@@ -15,10 +15,11 @@ type Service struct {
 	Git      Git
 	Hub      *core.ChatHub
 	EmailHUB *core.EmailHub
+	EmbHub   *core.EmbeddingHub
 	Client   *http.Client
 }
 
-func NewService(db core.DB, rdb core.Cache, email core.Email, git Git, client *http.Client, hub *core.ChatHub, emailhub *core.EmailHub) *Service {
+func NewService(db core.DB, rdb core.Cache, email core.Email, git Git, client *http.Client, hub *core.ChatHub, emailhub *core.EmailHub, embHub *core.EmbeddingHub) *Service {
 	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Client: client, Hub: hub, EmailHUB: emailhub}
 }
 

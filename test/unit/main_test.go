@@ -135,9 +135,11 @@ func TestMain(m *testing.M) {
 	git := NewGitMock()
 	chathub := core.NewChatHub(20)
 	emailHub := core.NewEmailHub(2, 2)
+	embHub := core.NewEmbeddingHub(2, 2, "")
 	go chathub.Run()
 	go emailHub.Run(email)
-	service := handlers.NewService(db, rdb, email, git, &http.Client{}, chathub, emailHub)
+	go embHub.Run()
+	service := handlers.NewService(db, rdb, email, git, &http.Client{}, chathub, emailHub, embHub)
 
 	var skills []model.Skill
 	_ = service.DB.FetchAllSkills(&skills)

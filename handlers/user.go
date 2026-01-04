@@ -84,6 +84,8 @@ func (s *Service) AddUser(ctx *gin.Context) {
 		return
 	}
 
+	s.EmbHub.QueueUserCreate(user.ID, user.Bio, payload.Skills, []string{""})
+
 	ctx.JSON(http.StatusCreated, gin.H{"token": jwtToken})
 }
 
@@ -1032,6 +1034,13 @@ func (s *Service) UpdateUserInfo(ctx *gin.Context) {
 		Availability: user.Availability,
 	}
 
+	var skills []string
+	for _, skill := range user.Skills {
+		skills = append(skills, skill.Name)
+	}
+
+	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, []string{""})
+
 	ctx.JSON(http.StatusAccepted, gin.H{"user": profile})
 }
 
@@ -1187,6 +1196,8 @@ func (s *Service) UpdateUserSkills(ctx *gin.Context) {
 		return
 	}
 
+	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, payload.Skills, []string{""})
+
 	ctx.JSON(http.StatusAccepted, gin.H{"skills": payload.Skills})
 }
 
@@ -1230,9 +1241,12 @@ func (s *Service) DeleteUserSkills(ctx *gin.Context) {
 	}
 
 	var skillsToDelete []*model.Skill
+	var skills []string
 	for _, skill := range payload.Skills {
 		if delete, exists := userSkillSet[strings.ToLower(skill)]; exists {
 			skillsToDelete = append(skillsToDelete, delete)
+		} else {
+			skills = append(skills, skill)
 		}
 	}
 
@@ -1241,6 +1255,8 @@ func (s *Service) DeleteUserSkills(ctx *gin.Context) {
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
+
+	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, []string{""})
 
 	ctx.JSON(http.StatusNoContent, nil)
 }
@@ -1276,6 +1292,8 @@ func (s *Service) DeleteUserAccount(ctx *gin.Context) {
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
+
+	s.EmbHub.QueueUserDelete(user.ID)
 
 	ctx.JSON(http.StatusNoContent, nil)
 }

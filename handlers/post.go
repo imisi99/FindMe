@@ -293,6 +293,8 @@ func (s *Service) CreateProject(ctx *gin.Context) {
 		Views:       project.Views,
 	}
 
+	s.EmbHub.QueueProjectCreate(project.ID, project.Description, project.Description, payload.Tags)
+
 	ctx.JSON(http.StatusCreated, gin.H{"project": result})
 }
 
@@ -376,6 +378,8 @@ func (s *Service) EditProject(ctx *gin.Context) {
 		UpdatedAt:   project.UpdatedAt,
 		Views:       project.Views,
 	}
+
+	s.EmbHub.QueueProjectUpdate(project.ID, project.Description, project.Description, payload.Tags)
 
 	ctx.JSON(http.StatusAccepted, gin.H{"project": result})
 }
@@ -1078,6 +1082,8 @@ func (s *Service) DeleteProject(ctx *gin.Context) {
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
+
+	s.EmbHub.QueueProjectDelete(project.ID)
 
 	ctx.JSON(http.StatusNoContent, nil)
 }
