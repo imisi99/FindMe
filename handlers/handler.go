@@ -65,6 +65,8 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedUserRoutes.PATCH("/update-user-req", service.UpdateFriendReqStatus)
 	protectedUserRoutes.PATCH("/update-password", service.UpdateUserPassword)
 	protectedUserRoutes.PATCH("/update-availability/:status", service.UpdateUserAvaibilityStatus)
+	protectedUserRoutes.PATCH("/update-bio", service.UpdateUserBio)
+	protectedUserRoutes.PATCH("/update-interest", service.UpdateUserInterests)
 	protectedUserRoutes.PATCH("/update-skills", service.UpdateUserSkills)
 	protectedUserRoutes.PATCH("/reset-password", service.ResetPassword)
 	protectedUserRoutes.DELETE("/delete-skills", service.DeleteUserSkills)

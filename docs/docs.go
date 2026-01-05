@@ -2563,6 +2563,67 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for updating the logged-in user interests",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update the current user interests",
+                "parameters": [
+                    {
+                        "description": "new details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.UpdateUserInterests"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "User updated",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocUserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
             }
         },
         "/api/user/update-skills": {
@@ -3835,6 +3896,12 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "interests": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "skills": {
                     "type": "array",
                     "items": {
@@ -3894,6 +3961,13 @@ const docTemplate = `{
                 "fullname": {
                     "type": "string"
                 },
+                "interests": {
+                    "type": "array",
+                    "maxItems": 5,
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "password": {
                     "type": "string",
                     "minLength": 8
@@ -3925,6 +3999,27 @@ const docTemplate = `{
                 }
             }
         },
+        "schema.UpdateUserBio": {
+            "type": "object",
+            "properties": {
+                "bio": {
+                    "type": "string",
+                    "maxLength": 50
+                }
+            }
+        },
+        "schema.UpdateUserInterests": {
+            "type": "object",
+            "properties": {
+                "interests": {
+                    "type": "array",
+                    "maxItems": 5,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "schema.UpdateUserSkillsRequest": {
             "type": "object",
             "required": [
@@ -3947,10 +4042,6 @@ const docTemplate = `{
                 "username"
             ],
             "properties": {
-                "bio": {
-                    "type": "string",
-                    "maxLength": 50
-                },
                 "email": {
                     "type": "string"
                 },
@@ -3988,6 +4079,12 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "interests": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "skills": {
                     "type": "array",

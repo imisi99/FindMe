@@ -13,6 +13,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO:
+// Add the Availability also to the vector payload and change when called
+// Fetch the skills for the user update bio and interests for the emb service
+// Write tests for the new endpoints
+
 // AddUser godoc
 // @Summary			Register a new user
 // @Description  Sign up endpoint for new users
@@ -60,12 +65,13 @@ func (s *Service) AddUser(ctx *gin.Context) {
 	}
 
 	user := model.User{
-		FullName: payload.FullName,
-		UserName: payload.UserName,
-		Email:    payload.Email,
-		Password: hashedPassword,
-		Bio:      payload.Bio,
-		GitUser:  false,
+		FullName:  payload.FullName,
+		UserName:  payload.UserName,
+		Email:     payload.Email,
+		Password:  hashedPassword,
+		Bio:       payload.Bio,
+		Interests: payload.Interests,
+		GitUser:   false,
 
 		Skills:       allskills,
 		Availability: true,
@@ -174,6 +180,7 @@ func (s *Service) GetUser(ctx *gin.Context) {
 		Bio:          user.Bio,
 		Availability: user.Availability,
 		Skills:       skills,
+		Interests:    user.Interests,
 	}
 
 	var posts []schema.ProjectResponse
@@ -236,6 +243,7 @@ func (s *Service) GetUserInfo(ctx *gin.Context) {
 		Bio:          user.Bio,
 		Availability: user.Availability,
 		Skills:       skills,
+		Interests:    user.Interests,
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"user": profile})
@@ -287,6 +295,7 @@ func (s *Service) ViewUser(ctx *gin.Context) {
 		Bio:          user.Bio,
 		Email:        user.Email,
 		Skills:       skills,
+		Interests:    user.Interests,
 		Availability: user.Availability,
 	}
 
@@ -356,6 +365,7 @@ func (s *Service) ViewGitUser(ctx *gin.Context) {
 		Bio:          user.Bio,
 		Email:        user.Email,
 		Skills:       skills,
+		Interests:    user.Interests,
 		Availability: user.Availability,
 	}
 
@@ -424,6 +434,7 @@ func (s *Service) ViewUserbySkills(ctx *gin.Context) {
 			GitUser:      user.GitUser,
 			GitUserName:  user.GitUserName,
 			Skills:       skills,
+			Interests:    user.Interests,
 		})
 	}
 
@@ -882,7 +893,7 @@ func (s *Service) ForgotPassword(ctx *gin.Context) {
 		MaxAttempts: 3,
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"msg": "Email sent successfully."})
+	ctx.JSON(http.StatusOK, gin.H{"msg": "Check email for otp."})
 }
 
 // VerifyOTP godoc
@@ -1013,7 +1024,6 @@ func (s *Service) UpdateUserInfo(ctx *gin.Context) {
 	}
 
 	user.Email = payload.Email
-	user.Bio = payload.Bio
 	user.FullName = payload.FullName
 	user.UserName = payload.UserName
 
@@ -1039,9 +1049,99 @@ func (s *Service) UpdateUserInfo(ctx *gin.Context) {
 		skills = append(skills, skill.Name)
 	}
 
-	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, []string{""})
-
 	ctx.JSON(http.StatusAccepted, gin.H{"user": profile})
+}
+
+// UpdateUserBio godoc
+// @Summary     Update the current user bio
+// @Description An endpoint for updating the logged-in user bio information
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param payload body schema.UpdateUserBio true "new details"
+// @Security BearerAuth
+// @Success 202 {object} schema.DocUserResponse "User updated"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/user/update-profile [patch]
+func (s *Service) UpdateUserBio(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if !model.IsValidUUID(uid) || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	var payload schema.UpdateUserBio
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
+		return
+	}
+
+	var user model.User
+	if err := s.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	user.Bio = payload.Bio
+	if err := s.DB.SaveUser(&user); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, []string{""}, user.Interests[:])
+
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Bio updated successfully."})
+}
+
+// UpdateUserInterests godoc
+// @Summary     Update the current user interests
+// @Description An endpoint for updating the logged-in user interests
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param payload body schema.UpdateUserInterests true "new details"
+// @Security BearerAuth
+// @Success 202 {object} schema.DocUserResponse "User updated"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/user/update-profile [patch]
+func (s *Service) UpdateUserInterests(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if !model.IsValidUUID(uid) || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Failed to parse payload."})
+		return
+	}
+
+	var payload schema.UpdateUserInterests
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
+		return
+	}
+
+	var user model.User
+	if err := s.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	user.Interests = payload.Interest
+	if err := s.DB.SaveUser(&user); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, []string{""}, user.Interests[:])
+
+	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Interests updated successfully."})
 }
 
 // UpdateUserPassword godoc
@@ -1196,7 +1296,7 @@ func (s *Service) UpdateUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, payload.Skills, []string{""})
+	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, payload.Skills, user.Interests[:])
 
 	ctx.JSON(http.StatusAccepted, gin.H{"skills": payload.Skills})
 }
@@ -1256,7 +1356,7 @@ func (s *Service) DeleteUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, []string{""})
+	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests[:])
 
 	ctx.JSON(http.StatusNoContent, nil)
 }

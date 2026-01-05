@@ -7,8 +7,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// TODO:
-// Add an interest field
 type User struct {
 	GormModel
 	FullName     string  `gorm:"column:fullname;not null"`
@@ -18,7 +16,8 @@ type User struct {
 	GitID        *int64  `gorm:"column:gitid;uniqueIndex"`
 	Password     string
 	Bio          string
-	GitUser      bool `gorm:"column:gituser"`
+	Interests    [5]string `gorm:"column:interests"`
+	GitUser      bool      `gorm:"column:gituser"`
 	Availability bool
 
 	// Relations:
