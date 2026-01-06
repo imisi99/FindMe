@@ -3,13 +3,13 @@ package schema
 import "time"
 
 type SignupRequest struct {
-	FullName  string    `json:"fullname" binding:"required"`
-	UserName  string    `json:"username" binding:"required"`
-	Email     string    `json:"email" binding:"required,email"`
-	Password  string    `json:"password" binding:"required,min=8"`
-	Bio       string    `json:"bio" binding:"omitempty,max=50"`
-	Skills    []string  `json:"skills"`
-	Interests [5]string `json:"interests" binding:"omitempty,max=5"`
+	FullName  string   `json:"fullname" binding:"required"`
+	UserName  string   `json:"username" binding:"required"`
+	Email     string   `json:"email" binding:"required,email"`
+	Password  string   `json:"password" binding:"required,min=8"`
+	Bio       string   `json:"bio" binding:"omitempty,max=50"`
+	Skills    []string `json:"skills"`
+	Interests []string `json:"interests" binding:"omitempty,max=5"`
 }
 
 type GitHubUser struct {
@@ -37,7 +37,7 @@ type UpdateUserBio struct {
 }
 
 type UpdateUserInterests struct {
-	Interest [5]string `json:"interests" binding:"omitempty,max=5"`
+	Interest []string `json:"interests" binding:"omitempty,max=5"`
 }
 
 type UserAvailabilityStatusRequest struct {
@@ -82,7 +82,7 @@ type SearchUser struct {
 	GitUserName  *string
 	Availability bool
 	Bio          string
-	Interests    [5]string
+	Interests    []string
 }
 
 type UserProfileResponse struct {
@@ -95,7 +95,7 @@ type UserProfileResponse struct {
 	Bio          string
 	Availability bool
 	Skills       []string
-	Interests    [5]string
+	Interests    []string
 }
 
 type FriendReqStatus struct {

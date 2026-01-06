@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -16,8 +17,8 @@ type User struct {
 	GitID        *int64  `gorm:"column:gitid;uniqueIndex"`
 	Password     string
 	Bio          string
-	Interests    [5]string `gorm:"column:interests"`
-	GitUser      bool      `gorm:"column:gituser"`
+	Interests    pq.StringArray `gorm:"type:text[]"`
+	GitUser      bool           `gorm:"column:gituser"`
 	Availability bool
 
 	// Relations:

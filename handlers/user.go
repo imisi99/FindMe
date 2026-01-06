@@ -1044,11 +1044,6 @@ func (s *Service) UpdateUserInfo(ctx *gin.Context) {
 		Availability: user.Availability,
 	}
 
-	var skills []string
-	for _, skill := range user.Skills {
-		skills = append(skills, skill.Name)
-	}
-
 	ctx.JSON(http.StatusAccepted, gin.H{"user": profile})
 }
 
@@ -1065,7 +1060,7 @@ func (s *Service) UpdateUserInfo(ctx *gin.Context) {
 // @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
 // @Failure 500 {object} schema.DocNormalResponse "Server error"
-// @Router /api/user/update-profile [patch]
+// @Router /api/user/update-bio [patch]
 func (s *Service) UpdateUserBio(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -1080,7 +1075,7 @@ func (s *Service) UpdateUserBio(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := s.DB.FetchUser(&user, uid); err != nil {
+	if err := s.DB.FetchUserPreloadS(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -1093,7 +1088,12 @@ func (s *Service) UpdateUserBio(ctx *gin.Context) {
 		return
 	}
 
-	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, []string{""}, user.Interests[:])
+	var skills []string
+	for _, skill := range user.Skills {
+		skills = append(skills, skill.Name)
+	}
+
+	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests[:])
 
 	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Bio updated successfully."})
 }
@@ -1111,7 +1111,7 @@ func (s *Service) UpdateUserBio(ctx *gin.Context) {
 // @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
 // @Failure 500 {object} schema.DocNormalResponse "Server error"
-// @Router /api/user/update-profile [patch]
+// @Router /api/user/update-interest [patch]
 func (s *Service) UpdateUserInterests(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -1126,7 +1126,7 @@ func (s *Service) UpdateUserInterests(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := s.DB.FetchUser(&user, uid); err != nil {
+	if err := s.DB.FetchUserPreloadS(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
@@ -1139,7 +1139,12 @@ func (s *Service) UpdateUserInterests(ctx *gin.Context) {
 		return
 	}
 
-	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, []string{""}, user.Interests[:])
+	var skills []string
+	for _, skill := range user.Skills {
+		skills = append(skills, skill.Name)
+	}
+
+	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests[:])
 
 	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Interests updated successfully."})
 }

@@ -2433,6 +2433,132 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/user/update-bio": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for updating the logged-in user bio information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update the current user bio",
+                "parameters": [
+                    {
+                        "description": "new details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.UpdateUserBio"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "User updated",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocUserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/update-interest": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for updating the logged-in user interests",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update the current user interests",
+                "parameters": [
+                    {
+                        "description": "new details",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/schema.UpdateUserInterests"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "User updated",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocUserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid payload",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/user/update-password": {
             "patch": {
                 "security": [
@@ -2546,67 +2672,6 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Existing username / email",
-                        "schema": {
-                            "$ref": "#/definitions/schema.DocNormalResponse"
-                        }
-                    },
-                    "422": {
-                        "description": "Invalid payload",
-                        "schema": {
-                            "$ref": "#/definitions/schema.DocNormalResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Server error",
-                        "schema": {
-                            "$ref": "#/definitions/schema.DocNormalResponse"
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "An endpoint for updating the logged-in user interests",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "Update the current user interests",
-                "parameters": [
-                    {
-                        "description": "new details",
-                        "name": "payload",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/schema.UpdateUserInterests"
-                        }
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "description": "User updated",
-                        "schema": {
-                            "$ref": "#/definitions/schema.DocUserResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/schema.DocNormalResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Record not found",
                         "schema": {
                             "$ref": "#/definitions/schema.DocNormalResponse"
                         }

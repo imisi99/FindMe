@@ -410,7 +410,7 @@ func TestResetPassword(t *testing.T) {
 
 func TestUpdateuserProfile(t *testing.T) {
 	payload := defPayload
-	payload["bio"] = "Just a chill guy building stuff"
+	payload["fullname"] = "Knightmares"
 
 	body, _ := json.Marshal(payload)
 
@@ -444,6 +444,36 @@ func TestUpdateuserProfileDuplicate(t *testing.T) {
 
 	assert.Equal(t, http.StatusConflict, w.Code)
 	assert.Contains(t, w.Body.String(), "Username already in use!")
+}
+
+func TestUpdateuserBio(t *testing.T) {
+	payload := map[string]string{"bio": "I'm building stuff"}
+
+	body, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-bio", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
+}
+
+func TestUpdateuserinterest(t *testing.T) {
+	payload := map[string][]string{"interest": {"ai, anime"}}
+
+	body, _ := json.Marshal(payload)
+
+	req, _ := http.NewRequest(http.MethodPatch, "/api/user/update-interest", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusAccepted, w.Code)
 }
 
 func TestUpdateuserPassword(t *testing.T) {
