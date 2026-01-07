@@ -53,7 +53,7 @@ func main() {
 	go emailHub.Run(email)
 
 	git := handlers.NewGitService(os.Getenv("GIT_CLIENT_ID"), os.Getenv("GIT_CLIENT_SECRET"), os.Getenv("GIT_CALLBACK_URL"), db, embHub, client)
-	service := handlers.NewService(db, rdb, email, git, client, chathub, emailHub, embHub)
+	service := handlers.NewService(db, rdb, email, git, embHub, client, chathub, emailHub)
 	var skills []model.Skill
 	if err := service.DB.FetchAllSkills(&skills); err != nil {
 		log.Fatalln("Failed to Fetch skills from DB exiting...")

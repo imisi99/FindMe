@@ -97,6 +97,7 @@ func superUser(db *core.GormDB) {
 	db.DB.Create(users)
 
 	post := model.Project{
+		Title:        "A project to connect developers",
 		Description:  "Working on a platform for finding developers for contributive project",
 		UserID:       super.ID,
 		Views:        4,
@@ -135,11 +136,11 @@ func TestMain(m *testing.M) {
 	git := NewGitMock()
 	chathub := core.NewChatHub(20)
 	emailHub := core.NewEmailHub(2, 2)
-	embHub := core.NewEmbeddingHub(2, 2, "")
+	embhub := NewEmbeddingMock()
+
 	go chathub.Run()
 	go emailHub.Run(email)
-	go embHub.Run()
-	service := handlers.NewService(db, rdb, email, git, &http.Client{}, chathub, emailHub, embHub)
+	service := handlers.NewService(db, rdb, email, git, embhub, &http.Client{}, chathub, emailHub)
 
 	var skills []model.Skill
 	_ = service.DB.FetchAllSkills(&skills)

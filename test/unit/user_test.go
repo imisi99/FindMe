@@ -371,7 +371,7 @@ func TestForgotPassword(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Email sent successfully.")
+	assert.Contains(t, w.Body.String(), "Check email for otp.")
 }
 
 func TestVerifyOPT(t *testing.T) {

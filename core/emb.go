@@ -11,6 +11,17 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+type Embedding interface {
+	QueueUserCreate(id, bio string, skills, interests []string)
+	QueueUserUpdate(id, bio string, skills, interest []string)
+	QueueUserUpdateStatus(id string, status bool)
+	QueueUserDelete(id string)
+	QueueProjectCreate(id, title, description string, skills []string)
+	QueueProjectUpdate(id, title, description string, skills []string)
+	QueueProjectUpdateStatus(id string, status bool)
+	QueueProjectDelete(id string)
+}
+
 type EmbeddingJobType int
 
 const (
@@ -90,7 +101,7 @@ func (e *EmbeddingHub) Worker() {
 	for {
 		select {
 		case job := <-e.Jobs:
-			err := e.ProocessJob(job, userClient, projectClient)
+			err := e.ProcessJob(job, userClient, projectClient)
 			if err != nil {
 				job.Attempts++
 				if job.Attempts <= job.MaxAttempts {
@@ -109,7 +120,7 @@ func (e *EmbeddingHub) Worker() {
 	}
 }
 
-func (e *EmbeddingHub) ProocessJob(job *EmbeddingJob, userClient emb.UserEmbeddingServiceClient, projectClient emb.ProjectEmbeddingServiceClient) error {
+func (e *EmbeddingHub) ProcessJob(job *EmbeddingJob, userClient emb.UserEmbeddingServiceClient, projectClient emb.ProjectEmbeddingServiceClient) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 

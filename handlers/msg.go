@@ -10,6 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO:
+// Is there's a need to interact with the Chat Service here ?
+
 // CreateMessage godoc
 // @Summary     Sending of message to a chat
 // @Description An endpoint for sending a message to a chat

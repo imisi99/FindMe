@@ -8,6 +8,9 @@ import (
 	"github.com/go-mail/mail/v2"
 )
 
+// TODO:
+// Fix this to use one interface in the Service for the Hub and the methods
+
 type Email interface {
 	SendForgotPassEmail(username, token string) (string, string)
 	SendFriendReqEmail(fromUsername, toUsername, message, viewURL string) (string, string)

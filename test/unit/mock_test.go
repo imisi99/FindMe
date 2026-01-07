@@ -113,3 +113,18 @@ func (mock *GitMock) ViewRepo(ctx *gin.Context) {
 func NewGitMock() *GitMock {
 	return &GitMock{}
 }
+
+type EmbeddingMock struct{}
+
+func (e *EmbeddingMock) QueueUserCreate(id, bio string, skills, interests []string)        {}
+func (e *EmbeddingMock) QueueUserUpdate(id, bio string, skills, interest []string)         {}
+func (e *EmbeddingMock) QueueUserUpdateStatus(id string, status bool)                      {}
+func (e *EmbeddingMock) QueueUserDelete(id string)                                         {}
+func (e *EmbeddingMock) QueueProjectCreate(id, title, description string, skills []string) {}
+func (e *EmbeddingMock) QueueProjectUpdate(id, title, description string, skills []string) {}
+func (e *EmbeddingMock) QueueProjectUpdateStatus(id string, status bool)                   {}
+func (e *EmbeddingMock) QueueProjectDelete(id string)                                      {}
+
+func NewEmbeddingMock() *EmbeddingMock {
+	return &EmbeddingMock{}
+}

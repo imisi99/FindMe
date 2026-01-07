@@ -14,6 +14,7 @@ import (
 
 var (
 	projectPayload = schema.NewProjectRequest{
+		Title:       "A project",
 		Description: "Testing the project creation endpoint.",
 		Tags:        []string{"ml", "backend"},
 		Git:         true,
