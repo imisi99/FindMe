@@ -7,13 +7,15 @@ option go_package = "./generated";
 service UserEmbeddingService {
   rpc CreateUserEmbedding(UserEmbeddingRequest) returns (EmbeddingResponse);
   rpc UpdateUserEmbedding(UserEmbeddingRequest) returns (EmbeddingResponse);
+  rpc UpdateUserStatus(UpdateStatusRequest) returns (EmbeddingResponse);
   rpc DeleteUserEmbedding(DeleteEmbeddingRequest) returns (EmbeddingResponse);
 }
 
 service ProjectEmbeddingService {
-  rpc DeleteProjectEmbedding(DeleteEmbeddingRequest) returns (EmbeddingResponse);
   rpc CreateProjectEmbedding(ProjectEmbeddingRequest) returns (EmbeddingResponse);
   rpc UpdateProjectEmbedding(ProjectEmbeddingRequest) returns (EmbeddingResponse);
+  rpc UpdateProjectStatus(UpdateStatusRequest) returns (EmbeddingResponse);
+  rpc DeleteProjectEmbedding(DeleteEmbeddingRequest) returns (EmbeddingResponse);
 }
 
 message UserEmbeddingRequest {
@@ -28,6 +30,11 @@ message ProjectEmbeddingRequest {
   string title = 2;
   string description = 3;
   repeated string skills = 4;
+}
+
+message UpdateStatusRequest {
+  string id = 1;
+  bool status = 2;
 }
 
 message DeleteEmbeddingRequest {

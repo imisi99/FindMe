@@ -8,7 +8,6 @@ package generated
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -22,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	UserEmbeddingService_CreateUserEmbedding_FullMethodName = "/findme.UserEmbeddingService/CreateUserEmbedding"
 	UserEmbeddingService_UpdateUserEmbedding_FullMethodName = "/findme.UserEmbeddingService/UpdateUserEmbedding"
+	UserEmbeddingService_UpdateUserStatus_FullMethodName    = "/findme.UserEmbeddingService/UpdateUserStatus"
 	UserEmbeddingService_DeleteUserEmbedding_FullMethodName = "/findme.UserEmbeddingService/DeleteUserEmbedding"
 )
 
@@ -31,6 +31,7 @@ const (
 type UserEmbeddingServiceClient interface {
 	CreateUserEmbedding(ctx context.Context, in *UserEmbeddingRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error)
 	UpdateUserEmbedding(ctx context.Context, in *UserEmbeddingRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error)
+	UpdateUserStatus(ctx context.Context, in *UpdateStatusRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error)
 	DeleteUserEmbedding(ctx context.Context, in *DeleteEmbeddingRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error)
 }
 
@@ -62,6 +63,16 @@ func (c *userEmbeddingServiceClient) UpdateUserEmbedding(ctx context.Context, in
 	return out, nil
 }
 
+func (c *userEmbeddingServiceClient) UpdateUserStatus(ctx context.Context, in *UpdateStatusRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmbeddingResponse)
+	err := c.cc.Invoke(ctx, UserEmbeddingService_UpdateUserStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userEmbeddingServiceClient) DeleteUserEmbedding(ctx context.Context, in *DeleteEmbeddingRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(EmbeddingResponse)
@@ -78,6 +89,7 @@ func (c *userEmbeddingServiceClient) DeleteUserEmbedding(ctx context.Context, in
 type UserEmbeddingServiceServer interface {
 	CreateUserEmbedding(context.Context, *UserEmbeddingRequest) (*EmbeddingResponse, error)
 	UpdateUserEmbedding(context.Context, *UserEmbeddingRequest) (*EmbeddingResponse, error)
+	UpdateUserStatus(context.Context, *UpdateStatusRequest) (*EmbeddingResponse, error)
 	DeleteUserEmbedding(context.Context, *DeleteEmbeddingRequest) (*EmbeddingResponse, error)
 	mustEmbedUnimplementedUserEmbeddingServiceServer()
 }
@@ -92,11 +104,12 @@ type UnimplementedUserEmbeddingServiceServer struct{}
 func (UnimplementedUserEmbeddingServiceServer) CreateUserEmbedding(context.Context, *UserEmbeddingRequest) (*EmbeddingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateUserEmbedding not implemented")
 }
-
 func (UnimplementedUserEmbeddingServiceServer) UpdateUserEmbedding(context.Context, *UserEmbeddingRequest) (*EmbeddingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateUserEmbedding not implemented")
 }
-
+func (UnimplementedUserEmbeddingServiceServer) UpdateUserStatus(context.Context, *UpdateStatusRequest) (*EmbeddingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateUserStatus not implemented")
+}
 func (UnimplementedUserEmbeddingServiceServer) DeleteUserEmbedding(context.Context, *DeleteEmbeddingRequest) (*EmbeddingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteUserEmbedding not implemented")
 }
@@ -157,6 +170,24 @@ func _UserEmbeddingService_UpdateUserEmbedding_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserEmbeddingService_UpdateUserStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserEmbeddingServiceServer).UpdateUserStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserEmbeddingService_UpdateUserStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserEmbeddingServiceServer).UpdateUserStatus(ctx, req.(*UpdateStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UserEmbeddingService_DeleteUserEmbedding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteEmbeddingRequest)
 	if err := dec(in); err != nil {
@@ -191,6 +222,10 @@ var UserEmbeddingService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserEmbeddingService_UpdateUserEmbedding_Handler,
 		},
 		{
+			MethodName: "UpdateUserStatus",
+			Handler:    _UserEmbeddingService_UpdateUserStatus_Handler,
+		},
+		{
 			MethodName: "DeleteUserEmbedding",
 			Handler:    _UserEmbeddingService_DeleteUserEmbedding_Handler,
 		},
@@ -200,18 +235,20 @@ var UserEmbeddingService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	ProjectEmbeddingService_DeleteProjectEmbedding_FullMethodName = "/findme.ProjectEmbeddingService/DeleteProjectEmbedding"
 	ProjectEmbeddingService_CreateProjectEmbedding_FullMethodName = "/findme.ProjectEmbeddingService/CreateProjectEmbedding"
 	ProjectEmbeddingService_UpdateProjectEmbedding_FullMethodName = "/findme.ProjectEmbeddingService/UpdateProjectEmbedding"
+	ProjectEmbeddingService_UpdateProjectStatus_FullMethodName    = "/findme.ProjectEmbeddingService/UpdateProjectStatus"
+	ProjectEmbeddingService_DeleteProjectEmbedding_FullMethodName = "/findme.ProjectEmbeddingService/DeleteProjectEmbedding"
 )
 
 // ProjectEmbeddingServiceClient is the client API for ProjectEmbeddingService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ProjectEmbeddingServiceClient interface {
-	DeleteProjectEmbedding(ctx context.Context, in *DeleteEmbeddingRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error)
 	CreateProjectEmbedding(ctx context.Context, in *ProjectEmbeddingRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error)
 	UpdateProjectEmbedding(ctx context.Context, in *ProjectEmbeddingRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error)
+	UpdateProjectStatus(ctx context.Context, in *UpdateStatusRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error)
+	DeleteProjectEmbedding(ctx context.Context, in *DeleteEmbeddingRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error)
 }
 
 type projectEmbeddingServiceClient struct {
@@ -220,16 +257,6 @@ type projectEmbeddingServiceClient struct {
 
 func NewProjectEmbeddingServiceClient(cc grpc.ClientConnInterface) ProjectEmbeddingServiceClient {
 	return &projectEmbeddingServiceClient{cc}
-}
-
-func (c *projectEmbeddingServiceClient) DeleteProjectEmbedding(ctx context.Context, in *DeleteEmbeddingRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(EmbeddingResponse)
-	err := c.cc.Invoke(ctx, ProjectEmbeddingService_DeleteProjectEmbedding_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *projectEmbeddingServiceClient) CreateProjectEmbedding(ctx context.Context, in *ProjectEmbeddingRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error) {
@@ -252,13 +279,34 @@ func (c *projectEmbeddingServiceClient) UpdateProjectEmbedding(ctx context.Conte
 	return out, nil
 }
 
+func (c *projectEmbeddingServiceClient) UpdateProjectStatus(ctx context.Context, in *UpdateStatusRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmbeddingResponse)
+	err := c.cc.Invoke(ctx, ProjectEmbeddingService_UpdateProjectStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *projectEmbeddingServiceClient) DeleteProjectEmbedding(ctx context.Context, in *DeleteEmbeddingRequest, opts ...grpc.CallOption) (*EmbeddingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmbeddingResponse)
+	err := c.cc.Invoke(ctx, ProjectEmbeddingService_DeleteProjectEmbedding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProjectEmbeddingServiceServer is the server API for ProjectEmbeddingService service.
 // All implementations must embed UnimplementedProjectEmbeddingServiceServer
 // for forward compatibility.
 type ProjectEmbeddingServiceServer interface {
-	DeleteProjectEmbedding(context.Context, *DeleteEmbeddingRequest) (*EmbeddingResponse, error)
 	CreateProjectEmbedding(context.Context, *ProjectEmbeddingRequest) (*EmbeddingResponse, error)
 	UpdateProjectEmbedding(context.Context, *ProjectEmbeddingRequest) (*EmbeddingResponse, error)
+	UpdateProjectStatus(context.Context, *UpdateStatusRequest) (*EmbeddingResponse, error)
+	DeleteProjectEmbedding(context.Context, *DeleteEmbeddingRequest) (*EmbeddingResponse, error)
 	mustEmbedUnimplementedProjectEmbeddingServiceServer()
 }
 
@@ -269,18 +317,18 @@ type ProjectEmbeddingServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedProjectEmbeddingServiceServer struct{}
 
-func (UnimplementedProjectEmbeddingServiceServer) DeleteProjectEmbedding(context.Context, *DeleteEmbeddingRequest) (*EmbeddingResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method DeleteProjectEmbedding not implemented")
-}
-
 func (UnimplementedProjectEmbeddingServiceServer) CreateProjectEmbedding(context.Context, *ProjectEmbeddingRequest) (*EmbeddingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateProjectEmbedding not implemented")
 }
-
 func (UnimplementedProjectEmbeddingServiceServer) UpdateProjectEmbedding(context.Context, *ProjectEmbeddingRequest) (*EmbeddingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateProjectEmbedding not implemented")
 }
-
+func (UnimplementedProjectEmbeddingServiceServer) UpdateProjectStatus(context.Context, *UpdateStatusRequest) (*EmbeddingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateProjectStatus not implemented")
+}
+func (UnimplementedProjectEmbeddingServiceServer) DeleteProjectEmbedding(context.Context, *DeleteEmbeddingRequest) (*EmbeddingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteProjectEmbedding not implemented")
+}
 func (UnimplementedProjectEmbeddingServiceServer) mustEmbedUnimplementedProjectEmbeddingServiceServer() {
 }
 func (UnimplementedProjectEmbeddingServiceServer) testEmbeddedByValue() {}
@@ -301,24 +349,6 @@ func RegisterProjectEmbeddingServiceServer(s grpc.ServiceRegistrar, srv ProjectE
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&ProjectEmbeddingService_ServiceDesc, srv)
-}
-
-func _ProjectEmbeddingService_DeleteProjectEmbedding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteEmbeddingRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ProjectEmbeddingServiceServer).DeleteProjectEmbedding(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ProjectEmbeddingService_DeleteProjectEmbedding_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProjectEmbeddingServiceServer).DeleteProjectEmbedding(ctx, req.(*DeleteEmbeddingRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _ProjectEmbeddingService_CreateProjectEmbedding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -357,6 +387,42 @@ func _ProjectEmbeddingService_UpdateProjectEmbedding_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProjectEmbeddingService_UpdateProjectStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProjectEmbeddingServiceServer).UpdateProjectStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProjectEmbeddingService_UpdateProjectStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProjectEmbeddingServiceServer).UpdateProjectStatus(ctx, req.(*UpdateStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProjectEmbeddingService_DeleteProjectEmbedding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteEmbeddingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProjectEmbeddingServiceServer).DeleteProjectEmbedding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProjectEmbeddingService_DeleteProjectEmbedding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProjectEmbeddingServiceServer).DeleteProjectEmbedding(ctx, req.(*DeleteEmbeddingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProjectEmbeddingService_ServiceDesc is the grpc.ServiceDesc for ProjectEmbeddingService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -365,16 +431,20 @@ var ProjectEmbeddingService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ProjectEmbeddingServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "DeleteProjectEmbedding",
-			Handler:    _ProjectEmbeddingService_DeleteProjectEmbedding_Handler,
-		},
-		{
 			MethodName: "CreateProjectEmbedding",
 			Handler:    _ProjectEmbeddingService_CreateProjectEmbedding_Handler,
 		},
 		{
 			MethodName: "UpdateProjectEmbedding",
 			Handler:    _ProjectEmbeddingService_UpdateProjectEmbedding_Handler,
+		},
+		{
+			MethodName: "UpdateProjectStatus",
+			Handler:    _ProjectEmbeddingService_UpdateProjectStatus_Handler,
+		},
+		{
+			MethodName: "DeleteProjectEmbedding",
+			Handler:    _ProjectEmbeddingService_DeleteProjectEmbedding_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -994,7 +994,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "An endpoint for creating a new project for the current user",
+                "description": "An endpoint for creating a new project for the current user it internally calls a service to create a vector for the project",
                 "consumes": [
                     "application/json"
                 ],
@@ -1115,7 +1115,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "An endpoint for editing major details of a project",
+                "description": "An endpoint for editing major details of a project it internally calls a service to update the vector for the project",
                 "consumes": [
                     "application/json"
                 ],
@@ -1197,7 +1197,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "An endpoint for editing the availability status of a project",
+                "description": "An endpoint for editing the availability status of a project it internally calls a service to update the vector for the project",
                 "consumes": [
                     "application/json"
                 ],
@@ -1915,7 +1915,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "An endpoint to delete some skills from the current user skills",
+                "description": "An endpoint to delete some skills from the current user skills it internally calls a service to update the user vector",
                 "consumes": [
                     "application/json"
                 ],
@@ -1975,7 +1975,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "An endpoint for deleting the current user account",
+                "description": "An endpoint for deleting the current user account it internally calls a service to delete the vector of the user",
                 "consumes": [
                     "application/json"
                 ],
@@ -2379,7 +2379,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "An endpoint for updating the Availability status of the current user to either true or false",
+                "description": "An endpoint for updating the Availability status of the current user to either true or false it internally calls a service to update the user vector payload",
                 "consumes": [
                     "application/json"
                 ],
@@ -2440,7 +2440,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "An endpoint for updating the logged-in user bio information",
+                "description": "An endpoint for updating the logged-in user bio information it internally calls a service to update the vector for the user.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2503,7 +2503,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "An endpoint for updating the logged-in user interests",
+                "description": "An endpoint for updating the logged-in user interests it internally calls a service to update the vector for the user.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2698,7 +2698,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "An endpoint for updating the skills of the current user",
+                "description": "An endpoint for updating the skills of the current user it internally calls a service to update the user vector",
                 "consumes": [
                     "application/json"
                 ],
@@ -3267,7 +3267,7 @@ const docTemplate = `{
         },
         "/github-signup": {
             "get": {
-                "description": "A redirecting endpoint for sign-in / sign-up with github",
+                "description": "A redirecting endpoint for sign-in / sign-up with github it calls a service internally to create a vector for new users",
                 "consumes": [
                     "application/json"
                 ],
@@ -3379,7 +3379,7 @@ const docTemplate = `{
         },
         "/signup": {
             "post": {
-                "description": "Sign up endpoint for new users",
+                "description": "Sign up endpoint for new users it internally calls a service to create a vector for the user",
                 "consumes": [
                     "application/json"
                 ],
@@ -3547,6 +3547,9 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                },
+                "title": {
+                    "type": "string"
                 },
                 "updatedAt": {
                     "type": "string"
@@ -3836,7 +3839,8 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "description",
-                "tags"
+                "tags",
+                "title"
             ],
             "properties": {
                 "description": {
@@ -3853,6 +3857,9 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },
@@ -3885,6 +3892,9 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                },
+                "title": {
+                    "type": "string"
                 },
                 "updatedAt": {
                     "type": "string"

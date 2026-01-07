@@ -7,6 +7,7 @@ import (
 
 type Project struct {
 	GormModel
+	Title        string `gorm:"not null"`
 	Description  string `gorm:"not null"`
 	Views        uint   `gorm:"not null"`
 	Availability bool

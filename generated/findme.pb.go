@@ -157,6 +157,58 @@ func (x *ProjectEmbeddingRequest) GetSkills() []string {
 	return nil
 }
 
+type UpdateStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Status        bool                   `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateStatusRequest) Reset() {
+	*x = UpdateStatusRequest{}
+	mi := &file_findme_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateStatusRequest) ProtoMessage() {}
+
+func (x *UpdateStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_findme_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateStatusRequest.ProtoReflect.Descriptor instead.
+func (*UpdateStatusRequest) Descriptor() ([]byte, []int) {
+	return file_findme_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *UpdateStatusRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateStatusRequest) GetStatus() bool {
+	if x != nil {
+		return x.Status
+	}
+	return false
+}
+
 type DeleteEmbeddingRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -166,7 +218,7 @@ type DeleteEmbeddingRequest struct {
 
 func (x *DeleteEmbeddingRequest) Reset() {
 	*x = DeleteEmbeddingRequest{}
-	mi := &file_findme_proto_msgTypes[2]
+	mi := &file_findme_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -178,7 +230,7 @@ func (x *DeleteEmbeddingRequest) String() string {
 func (*DeleteEmbeddingRequest) ProtoMessage() {}
 
 func (x *DeleteEmbeddingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_findme_proto_msgTypes[2]
+	mi := &file_findme_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -191,7 +243,7 @@ func (x *DeleteEmbeddingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteEmbeddingRequest.ProtoReflect.Descriptor instead.
 func (*DeleteEmbeddingRequest) Descriptor() ([]byte, []int) {
-	return file_findme_proto_rawDescGZIP(), []int{2}
+	return file_findme_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DeleteEmbeddingRequest) GetId() string {
@@ -211,7 +263,7 @@ type EmbeddingResponse struct {
 
 func (x *EmbeddingResponse) Reset() {
 	*x = EmbeddingResponse{}
-	mi := &file_findme_proto_msgTypes[3]
+	mi := &file_findme_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -223,7 +275,7 @@ func (x *EmbeddingResponse) String() string {
 func (*EmbeddingResponse) ProtoMessage() {}
 
 func (x *EmbeddingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_findme_proto_msgTypes[3]
+	mi := &file_findme_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -236,7 +288,7 @@ func (x *EmbeddingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmbeddingResponse.ProtoReflect.Descriptor instead.
 func (*EmbeddingResponse) Descriptor() ([]byte, []int) {
-	return file_findme_proto_rawDescGZIP(), []int{3}
+	return file_findme_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *EmbeddingResponse) GetSuccess() bool {
@@ -268,20 +320,25 @@ const file_findme_proto_rawDesc = "" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x16\n" +
-	"\x06skills\x18\x04 \x03(\tR\x06skills\"(\n" +
+	"\x06skills\x18\x04 \x03(\tR\x06skills\"=\n" +
+	"\x13UpdateStatusRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\bR\x06status\"(\n" +
 	"\x16DeleteEmbeddingRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"?\n" +
 	"\x11EmbeddingResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x10\n" +
-	"\x03msg\x18\x02 \x01(\tR\x03msg2\x88\x02\n" +
+	"\x03msg\x18\x02 \x01(\tR\x03msg2\xd4\x02\n" +
 	"\x14UserEmbeddingService\x12N\n" +
 	"\x13CreateUserEmbedding\x12\x1c.findme.UserEmbeddingRequest\x1a\x19.findme.EmbeddingResponse\x12N\n" +
-	"\x13UpdateUserEmbedding\x12\x1c.findme.UserEmbeddingRequest\x1a\x19.findme.EmbeddingResponse\x12P\n" +
-	"\x13DeleteUserEmbedding\x12\x1e.findme.DeleteEmbeddingRequest\x1a\x19.findme.EmbeddingResponse2\x9a\x02\n" +
-	"\x17ProjectEmbeddingService\x12S\n" +
-	"\x16DeleteProjectEmbedding\x12\x1e.findme.DeleteEmbeddingRequest\x1a\x19.findme.EmbeddingResponse\x12T\n" +
+	"\x13UpdateUserEmbedding\x12\x1c.findme.UserEmbeddingRequest\x1a\x19.findme.EmbeddingResponse\x12J\n" +
+	"\x10UpdateUserStatus\x12\x1b.findme.UpdateStatusRequest\x1a\x19.findme.EmbeddingResponse\x12P\n" +
+	"\x13DeleteUserEmbedding\x12\x1e.findme.DeleteEmbeddingRequest\x1a\x19.findme.EmbeddingResponse2\xe9\x02\n" +
+	"\x17ProjectEmbeddingService\x12T\n" +
 	"\x16CreateProjectEmbedding\x12\x1f.findme.ProjectEmbeddingRequest\x1a\x19.findme.EmbeddingResponse\x12T\n" +
-	"\x16UpdateProjectEmbedding\x12\x1f.findme.ProjectEmbeddingRequest\x1a\x19.findme.EmbeddingResponseB\rZ\v./generatedb\x06proto3"
+	"\x16UpdateProjectEmbedding\x12\x1f.findme.ProjectEmbeddingRequest\x1a\x19.findme.EmbeddingResponse\x12M\n" +
+	"\x13UpdateProjectStatus\x12\x1b.findme.UpdateStatusRequest\x1a\x19.findme.EmbeddingResponse\x12S\n" +
+	"\x16DeleteProjectEmbedding\x12\x1e.findme.DeleteEmbeddingRequest\x1a\x19.findme.EmbeddingResponseB\rZ\v./generatedb\x06proto3"
 
 var (
 	file_findme_proto_rawDescOnce sync.Once
@@ -295,28 +352,33 @@ func file_findme_proto_rawDescGZIP() []byte {
 	return file_findme_proto_rawDescData
 }
 
-var file_findme_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_findme_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_findme_proto_goTypes = []any{
 	(*UserEmbeddingRequest)(nil),    // 0: findme.UserEmbeddingRequest
 	(*ProjectEmbeddingRequest)(nil), // 1: findme.ProjectEmbeddingRequest
-	(*DeleteEmbeddingRequest)(nil),  // 2: findme.DeleteEmbeddingRequest
-	(*EmbeddingResponse)(nil),       // 3: findme.EmbeddingResponse
+	(*UpdateStatusRequest)(nil),     // 2: findme.UpdateStatusRequest
+	(*DeleteEmbeddingRequest)(nil),  // 3: findme.DeleteEmbeddingRequest
+	(*EmbeddingResponse)(nil),       // 4: findme.EmbeddingResponse
 }
 var file_findme_proto_depIdxs = []int32{
 	0, // 0: findme.UserEmbeddingService.CreateUserEmbedding:input_type -> findme.UserEmbeddingRequest
 	0, // 1: findme.UserEmbeddingService.UpdateUserEmbedding:input_type -> findme.UserEmbeddingRequest
-	2, // 2: findme.UserEmbeddingService.DeleteUserEmbedding:input_type -> findme.DeleteEmbeddingRequest
-	2, // 3: findme.ProjectEmbeddingService.DeleteProjectEmbedding:input_type -> findme.DeleteEmbeddingRequest
+	2, // 2: findme.UserEmbeddingService.UpdateUserStatus:input_type -> findme.UpdateStatusRequest
+	3, // 3: findme.UserEmbeddingService.DeleteUserEmbedding:input_type -> findme.DeleteEmbeddingRequest
 	1, // 4: findme.ProjectEmbeddingService.CreateProjectEmbedding:input_type -> findme.ProjectEmbeddingRequest
 	1, // 5: findme.ProjectEmbeddingService.UpdateProjectEmbedding:input_type -> findme.ProjectEmbeddingRequest
-	3, // 6: findme.UserEmbeddingService.CreateUserEmbedding:output_type -> findme.EmbeddingResponse
-	3, // 7: findme.UserEmbeddingService.UpdateUserEmbedding:output_type -> findme.EmbeddingResponse
-	3, // 8: findme.UserEmbeddingService.DeleteUserEmbedding:output_type -> findme.EmbeddingResponse
-	3, // 9: findme.ProjectEmbeddingService.DeleteProjectEmbedding:output_type -> findme.EmbeddingResponse
-	3, // 10: findme.ProjectEmbeddingService.CreateProjectEmbedding:output_type -> findme.EmbeddingResponse
-	3, // 11: findme.ProjectEmbeddingService.UpdateProjectEmbedding:output_type -> findme.EmbeddingResponse
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
+	2, // 6: findme.ProjectEmbeddingService.UpdateProjectStatus:input_type -> findme.UpdateStatusRequest
+	3, // 7: findme.ProjectEmbeddingService.DeleteProjectEmbedding:input_type -> findme.DeleteEmbeddingRequest
+	4, // 8: findme.UserEmbeddingService.CreateUserEmbedding:output_type -> findme.EmbeddingResponse
+	4, // 9: findme.UserEmbeddingService.UpdateUserEmbedding:output_type -> findme.EmbeddingResponse
+	4, // 10: findme.UserEmbeddingService.UpdateUserStatus:output_type -> findme.EmbeddingResponse
+	4, // 11: findme.UserEmbeddingService.DeleteUserEmbedding:output_type -> findme.EmbeddingResponse
+	4, // 12: findme.ProjectEmbeddingService.CreateProjectEmbedding:output_type -> findme.EmbeddingResponse
+	4, // 13: findme.ProjectEmbeddingService.UpdateProjectEmbedding:output_type -> findme.EmbeddingResponse
+	4, // 14: findme.ProjectEmbeddingService.UpdateProjectStatus:output_type -> findme.EmbeddingResponse
+	4, // 15: findme.ProjectEmbeddingService.DeleteProjectEmbedding:output_type -> findme.EmbeddingResponse
+	8, // [8:16] is the sub-list for method output_type
+	0, // [0:8] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -333,7 +395,7 @@ func file_findme_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_findme_proto_rawDesc), len(file_findme_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

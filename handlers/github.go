@@ -38,7 +38,7 @@ func NewGitService(id, secret, callback string, db core.DB, emb *core.EmbeddingH
 
 // GitHubAddUser godoc
 // @Summary Signing up user using github
-// @Description A redirecting endpoint for sign-in / sign-up with github
+// @Description A redirecting endpoint for sign-in / sign-up with github it calls a service internally to create a vector for new users
 // @Tags Auth
 // @Accept json
 // @Produce json
@@ -253,9 +253,10 @@ func (g *GitService) GitHubAddUserCallback(token, code, state, storedState strin
 	}
 
 	if err := g.DB.AddUser(&newUser); err != nil {
-		g.EmbHub.QueueUserCreate(newUser.ID, newUser.Bio, []string{""}, []string{""})
 		return "", "", err
 	}
+
+	g.EmbHub.QueueUserCreate(newUser.ID, newUser.Bio, []string{""}, []string{""})
 
 	userToken, err := GenerateJWT(newUser.ID, "login", JWTExpiry)
 	if err != nil {

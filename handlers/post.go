@@ -47,6 +47,7 @@ func (s *Service) GetProjects(ctx *gin.Context) {
 		}
 		reuslt = append(reuslt, schema.ProjectResponse{
 			ID:          project.ID,
+			Title:       project.Title,
 			Description: project.Description,
 			Tags:        tags,
 			CreatedAt:   project.CreatedAt,
@@ -100,6 +101,7 @@ func (s *Service) ViewProject(ctx *gin.Context) {
 	result := schema.DetailedProjectResponse{
 		ProjectResponse: schema.ProjectResponse{
 			ID:          project.ID,
+			Title:       project.Title,
 			Description: project.Description,
 			Tags:        tags,
 			CreatedAt:   project.CreatedAt,
@@ -216,6 +218,7 @@ func (s *Service) SearchProject(ctx *gin.Context) {
 		}
 		projectResponse = append(projectResponse, schema.ProjectResponse{
 			ID:          project.ID,
+			Title:       project.Title,
 			Description: project.Description,
 			CreatedAt:   project.CreatedAt,
 			UpdatedAt:   project.UpdatedAt,
@@ -230,7 +233,7 @@ func (s *Service) SearchProject(ctx *gin.Context) {
 
 // CreateProject godoc
 // @Summary     Create a new project
-// @Description  An endpoint for creating a new project for the current user
+// @Description  An endpoint for creating a new project for the current user it internally calls a service to create a vector for the project
 // @Tags   Project
 // @Accept json
 // @Produce json
@@ -266,6 +269,7 @@ func (s *Service) CreateProject(ctx *gin.Context) {
 	}
 
 	project := model.Project{
+		Title:        payload.Title,
 		Description:  payload.Description,
 		Tags:         allskills,
 		UserID:       uid,
@@ -286,6 +290,7 @@ func (s *Service) CreateProject(ctx *gin.Context) {
 
 	result := schema.ProjectResponse{
 		ID:          project.ID,
+		Title:       project.Title,
 		Description: project.Description,
 		Tags:        payload.Tags,
 		CreatedAt:   project.CreatedAt,
@@ -293,14 +298,14 @@ func (s *Service) CreateProject(ctx *gin.Context) {
 		Views:       project.Views,
 	}
 
-	s.EmbHub.QueueProjectCreate(project.ID, project.Description, project.Description, payload.Tags)
+	s.EmbHub.QueueProjectCreate(project.ID, project.Title, project.Description, payload.Tags)
 
 	ctx.JSON(http.StatusCreated, gin.H{"project": result})
 }
 
 // EditProject godoc
 // @Summary    Editing details of a project
-// @Description An endpoint for editing major details of a project
+// @Description An endpoint for editing major details of a project it internally calls a service to update the vector for the project
 // @Tags Project
 // @Accept json
 // @Produce json
@@ -357,6 +362,7 @@ func (s *Service) EditProject(ctx *gin.Context) {
 		return
 	}
 
+	project.Title = payload.Title
 	project.Description = payload.Description
 
 	if payload.Git {
@@ -372,6 +378,7 @@ func (s *Service) EditProject(ctx *gin.Context) {
 
 	result := schema.ProjectResponse{
 		ID:          project.ID,
+		Title:       project.Title,
 		Description: project.Description,
 		Tags:        payload.Tags,
 		CreatedAt:   project.CreatedAt,
@@ -379,7 +386,7 @@ func (s *Service) EditProject(ctx *gin.Context) {
 		Views:       project.Views,
 	}
 
-	s.EmbHub.QueueProjectUpdate(project.ID, project.Description, project.Description, payload.Tags)
+	s.EmbHub.QueueProjectUpdate(project.ID, project.Title, project.Description, payload.Tags)
 
 	ctx.JSON(http.StatusAccepted, gin.H{"project": result})
 }
@@ -433,6 +440,7 @@ func (s *Service) EditProjectView(ctx *gin.Context) {
 	}
 	result := schema.ProjectResponse{
 		ID:          project.ID,
+		Title:       project.Title,
 		Description: project.Description,
 		Tags:        tags,
 		CreatedAt:   project.CreatedAt,
@@ -445,7 +453,7 @@ func (s *Service) EditProjectView(ctx *gin.Context) {
 
 // EditProjectAvailability godoc
 // @Summary     Editing the availability of a project
-// @Description An endpoint for editing the availability status of a project
+// @Description An endpoint for editing the availability status of a project it internally calls a service to update the vector for the project
 // @Tags Project
 // @Accept json
 // @Produce json
@@ -503,6 +511,7 @@ func (s *Service) EditProjectAvailability(ctx *gin.Context) {
 	}
 	result := schema.ProjectResponse{
 		ID:          project.ID,
+		Title:       project.Title,
 		Description: project.Description,
 		Tags:        tags,
 		Views:       project.Views,
@@ -510,6 +519,8 @@ func (s *Service) EditProjectAvailability(ctx *gin.Context) {
 		UpdatedAt:   project.UpdatedAt,
 		Available:   project.Availability,
 	}
+
+	s.EmbHub.QueueProjectUpdateStatus(project.ID, project.Availability)
 
 	ctx.JSON(http.StatusAccepted, gin.H{"project": result})
 }
@@ -574,6 +585,7 @@ func (s *Service) SaveProject(ctx *gin.Context) {
 
 	projectRes := schema.ProjectResponse{
 		ID:          project.ID,
+		Title:       project.Title,
 		Description: project.Description,
 		Available:   project.Availability,
 		Tags:        tags,
@@ -618,6 +630,7 @@ func (s *Service) ViewSavedProject(ctx *gin.Context) {
 		}
 		savedProjects = append(savedProjects, schema.ProjectResponse{
 			ID:          project.ID,
+			Title:       project.Title,
 			Description: project.Description,
 			Tags:        tags,
 			CreatedAt:   project.CreatedAt,
@@ -1041,7 +1054,7 @@ func (s *Service) ClearProjectApplication(ctx *gin.Context) {
 
 // DeleteProject godoc
 // @Summary    Delete a project
-// @Description An endpoint for deleting the current user project
+// @Description An endpoint for deleting the current user project it internally calls a service to delete the vector for the project
 // @Tags   Project
 // @Accept json
 // @Produce json

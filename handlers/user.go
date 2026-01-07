@@ -13,14 +13,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO:
-// Add the Availability also to the vector payload and change when called
-// Fetch the skills for the user update bio and interests for the emb service
+// DONE:
 // Write tests for the new endpoints
+// Fetch the skills for the user update bio and interests for the emb service
+// Add the Availability also to the vector payload and change when called
 
 // AddUser godoc
 // @Summary			Register a new user
-// @Description  Sign up endpoint for new users
+// @Description  Sign up endpoint for new users it internally calls a service to create a vector for the user
 // @Tags	Auth
 // @Accept  json
 // @Produce json
@@ -90,7 +90,7 @@ func (s *Service) AddUser(ctx *gin.Context) {
 		return
 	}
 
-	s.EmbHub.QueueUserCreate(user.ID, user.Bio, payload.Skills, []string{""})
+	s.EmbHub.QueueUserCreate(user.ID, user.Bio, payload.Skills, user.Interests)
 
 	ctx.JSON(http.StatusCreated, gin.H{"token": jwtToken})
 }
@@ -1049,7 +1049,7 @@ func (s *Service) UpdateUserInfo(ctx *gin.Context) {
 
 // UpdateUserBio godoc
 // @Summary     Update the current user bio
-// @Description An endpoint for updating the logged-in user bio information
+// @Description An endpoint for updating the logged-in user bio information it internally calls a service to update the vector for the user.
 // @Tags User
 // @Accept json
 // @Produce json
@@ -1093,14 +1093,14 @@ func (s *Service) UpdateUserBio(ctx *gin.Context) {
 		skills = append(skills, skill.Name)
 	}
 
-	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests[:])
+	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests)
 
 	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Bio updated successfully."})
 }
 
 // UpdateUserInterests godoc
 // @Summary     Update the current user interests
-// @Description An endpoint for updating the logged-in user interests
+// @Description An endpoint for updating the logged-in user interests it internally calls a service to update the vector for the user.
 // @Tags User
 // @Accept json
 // @Produce json
@@ -1144,7 +1144,7 @@ func (s *Service) UpdateUserInterests(ctx *gin.Context) {
 		skills = append(skills, skill.Name)
 	}
 
-	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests[:])
+	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests)
 
 	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Interests updated successfully."})
 }
@@ -1208,7 +1208,7 @@ func (s *Service) UpdateUserPassword(ctx *gin.Context) {
 
 // UpdateUserAvaibilityStatus godoc
 // @Summary    Update Availability status
-// @Description An endpoint for updating the Availability status of the current user to either true or false
+// @Description An endpoint for updating the Availability status of the current user to either true or false it internally calls a service to update the user vector payload
 // @Tags User
 // @Accept json
 // @Produce json
@@ -1240,6 +1240,7 @@ func (s *Service) UpdateUserAvaibilityStatus(ctx *gin.Context) {
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
+
 	user.Availability = statusbool
 
 	if err := s.DB.SaveUser(&user); err != nil {
@@ -1248,12 +1249,14 @@ func (s *Service) UpdateUserAvaibilityStatus(ctx *gin.Context) {
 		return
 	}
 
+	s.EmbHub.QueueUserUpdateStatus(user.ID, user.Availability)
+
 	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Availability updated successfully."})
 }
 
 // UpdateUserSkills godoc
 // @Summary     Update User skills
-// @Description An endpoint for updating the skills of the current user
+// @Description An endpoint for updating the skills of the current user it internally calls a service to update the user vector
 // @Tags User
 // @Accept json
 // @Produce json
@@ -1301,14 +1304,14 @@ func (s *Service) UpdateUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, payload.Skills, user.Interests[:])
+	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, payload.Skills, user.Interests)
 
 	ctx.JSON(http.StatusAccepted, gin.H{"skills": payload.Skills})
 }
 
 // DeleteUserSkills godoc
 // @Summary    Delete skills from the user skills
-// @Description An endpoint to delete some skills from the current user skills
+// @Description An endpoint to delete some skills from the current user skills it internally calls a service to update the user vector
 // @Tags User
 // @Accept json
 // @Produce json
@@ -1361,14 +1364,14 @@ func (s *Service) DeleteUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests[:])
+	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests)
 
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
 // DeleteUserAccount godoc
 // @Summary    Delete a user account
-// @Description An endpoint for deleting the current user account
+// @Description An endpoint for deleting the current user account it internally calls a service to delete the vector of the user
 // @Tags User
 // @Accept json
 // @Produce json

@@ -3,6 +3,7 @@ package schema
 import "time"
 
 type NewProjectRequest struct {
+	Title       string   `json:"title" binding:"required"`
 	Description string   `json:"description" binding:"required"`
 	Tags        []string `json:"tags" binding:"required"`
 	Git         bool     `json:"git" binding:"omitempty"`
@@ -11,6 +12,7 @@ type NewProjectRequest struct {
 
 type ProjectResponse struct {
 	ID          string
+	Title       string
 	Description string
 	Available   bool
 	Tags        []string

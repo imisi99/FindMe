@@ -16,15 +16,18 @@ type EmbeddingJobType int
 const (
 	CreateUserEmbedding EmbeddingJobType = iota
 	UpdateUserEmbedding
+	UpdateUserStatus
 	DeleteUserEmbedding
 	CreateProjectEmbedding
 	UpdateProjectEmbedding
+	UpdateProjectStatus
 	DeleteProjectEmbedding
 )
 
 type UserEmbedding struct {
 	ID        string
 	Bio       string
+	Status    bool
 	Skills    []string
 	Interests []string
 }
@@ -33,6 +36,7 @@ type ProjectEmbedding struct {
 	ID          string
 	Title       string
 	Description string
+	Status      bool
 	Skills      []string
 }
 
@@ -126,6 +130,11 @@ func (e *EmbeddingHub) ProocessJob(job *EmbeddingJob, userClient emb.UserEmbeddi
 			Skills:    job.User.Skills,
 			Interests: job.User.Interests,
 		})
+	case UpdateUserStatus:
+		_, err = userClient.UpdateUserStatus(ctx, &emb.UpdateStatusRequest{
+			Id:     job.User.ID,
+			Status: job.User.Status,
+		})
 	case DeleteUserEmbedding:
 		_, err = userClient.DeleteUserEmbedding(ctx, &emb.DeleteEmbeddingRequest{
 			Id: job.User.ID,
@@ -143,6 +152,11 @@ func (e *EmbeddingHub) ProocessJob(job *EmbeddingJob, userClient emb.UserEmbeddi
 			Title:       job.Project.Title,
 			Description: job.Project.Description,
 			Skills:      job.Project.Skills,
+		})
+	case UpdateProjectStatus:
+		_, err = projectClient.UpdateProjectStatus(ctx, &emb.UpdateStatusRequest{
+			Id:     job.Project.ID,
+			Status: job.Project.Status,
 		})
 	case DeleteProjectEmbedding:
 		_, err = projectClient.DeleteProjectEmbedding(ctx, &emb.DeleteEmbeddingRequest{
@@ -174,6 +188,17 @@ func (e *EmbeddingHub) QueueUserUpdate(id, bio string, skills, interest []string
 			Bio:       bio,
 			Skills:    skills,
 			Interests: interest,
+		},
+	}
+}
+
+func (e *EmbeddingHub) QueueUserUpdateStatus(id string, status bool) {
+	e.Jobs <- &EmbeddingJob{
+		Type:        UpdateUserStatus,
+		MaxAttempts: 2,
+		User: &UserEmbedding{
+			ID:     id,
+			Status: status,
 		},
 	}
 }
@@ -210,6 +235,17 @@ func (e *EmbeddingHub) QueueProjectUpdate(id, title, description string, skills 
 			Title:       title,
 			Description: description,
 			Skills:      skills,
+		},
+	}
+}
+
+func (e *EmbeddingHub) QueueProjectUpdateStatus(id string, status bool) {
+	e.Jobs <- &EmbeddingJob{
+		Type:        UpdateProjectStatus,
+		MaxAttempts: 2,
+		Project: &ProjectEmbedding{
+			ID:     id,
+			Status: status,
 		},
 	}
 }
