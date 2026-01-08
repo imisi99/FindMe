@@ -298,7 +298,7 @@ func (s *Service) CreateProject(ctx *gin.Context) {
 		Views:       project.Views,
 	}
 
-	s.EmbHub.QueueProjectCreate(project.ID, project.Title, project.Description, payload.Tags)
+	s.Emb.QueueProjectCreate(project.ID, project.Title, project.Description, payload.Tags)
 
 	ctx.JSON(http.StatusCreated, gin.H{"project": result})
 }
@@ -386,7 +386,7 @@ func (s *Service) EditProject(ctx *gin.Context) {
 		Views:       project.Views,
 	}
 
-	s.EmbHub.QueueProjectUpdate(project.ID, project.Title, project.Description, payload.Tags)
+	s.Emb.QueueProjectUpdate(project.ID, project.Title, project.Description, payload.Tags)
 
 	ctx.JSON(http.StatusAccepted, gin.H{"project": result})
 }
@@ -520,7 +520,7 @@ func (s *Service) EditProjectAvailability(ctx *gin.Context) {
 		Available:   project.Availability,
 	}
 
-	s.EmbHub.QueueProjectUpdateStatus(project.ID, project.Availability)
+	s.Emb.QueueProjectUpdateStatus(project.ID, project.Availability)
 
 	ctx.JSON(http.StatusAccepted, gin.H{"project": result})
 }
@@ -779,14 +779,7 @@ func (s *Service) ApplyForProject(ctx *gin.Context) {
 		Username: project.User.UserName,
 	}
 
-	body, subject := s.Email.SendProjectApplicationEmail(user.UserName, project.User.UserName, project.Description, "nil")
-
-	s.EmailHUB.Jobs <- &core.EmailJob{
-		To:          project.User.Email,
-		Subject:     subject,
-		Body:        body,
-		MaxAttempts: 1,
-	}
+	s.Email.QueueProjectApplication(user.UserName, project.User.UserName, project.Description, "nil", project.User.Email)
 
 	ctx.JSON(http.StatusOK, gin.H{"project_req": application})
 }
@@ -900,13 +893,8 @@ func (s *Service) UpdateProjectApplication(ctx *gin.Context) {
 			ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 			return
 		}
-		body, subject := s.Email.SendProjectApplicationReject(req.ToUser.UserName, req.FromUser.UserName, req.Project.Description, payload.Reason)
-		s.EmailHUB.Jobs <- &core.EmailJob{
-			To:          req.FromUser.Email,
-			Subject:     subject,
-			Body:        body,
-			MaxAttempts: 1,
-		}
+
+		s.Email.QueueProjectApplicationReject(req.ToUser.UserName, req.FromUser.UserName, req.Project.Description, payload.Reason, req.FromUser.Email)
 
 	case model.StatusAccepted:
 		var err error
@@ -926,13 +914,7 @@ func (s *Service) UpdateProjectApplication(ctx *gin.Context) {
 			return
 		}
 
-		body, subject := s.Email.SendProjectApplicationAccept(req.ToUser.UserName, req.FromUser.UserName, req.Project.Description, "")
-		s.EmailHUB.Jobs <- &core.EmailJob{
-			To:          req.FromUser.Email,
-			Subject:     subject,
-			Body:        body,
-			MaxAttempts: 1,
-		}
+		s.Email.QueueProjectApplicationAccept(req.ToUser.UserName, req.FromUser.UserName, req.Project.Description, "", req.FromUser.Email)
 
 	default:
 		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid status."})
@@ -1096,7 +1078,7 @@ func (s *Service) DeleteProject(ctx *gin.Context) {
 		return
 	}
 
-	s.EmbHub.QueueProjectDelete(project.ID)
+	s.Emb.QueueProjectDelete(project.ID)
 
 	ctx.JSON(http.StatusNoContent, nil)
 }

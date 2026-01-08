@@ -9,18 +9,17 @@ import (
 )
 
 type Service struct {
-	DB       core.DB
-	RDB      core.Cache
-	Email    core.Email
-	Git      Git
-	EmbHub   core.Embedding
-	ChatHub  *core.ChatHub
-	EmailHUB *core.EmailHub
-	Client   *http.Client
+	DB     core.DB
+	RDB    core.Cache
+	Email  core.Email
+	Git    Git
+	Emb    core.Embedding
+	Chat   *core.ChatHub
+	Client *http.Client
 }
 
-func NewService(db core.DB, rdb core.Cache, email core.Email, git Git, embHub core.Embedding, client *http.Client, chathub *core.ChatHub, emailhub *core.EmailHub) *Service {
-	return &Service{DB: db, RDB: rdb, Email: email, Git: git, EmbHub: embHub, Client: client, ChatHub: chathub, EmailHUB: emailhub}
+func NewService(db core.DB, rdb core.Cache, email core.Email, git Git, embHub core.Embedding, client *http.Client, chat *core.ChatHub) *Service {
+	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Emb: embHub, Client: client, Chat: chat}
 }
 
 func SetupHandler(router *gin.Engine, service *Service) {

@@ -65,6 +65,19 @@ func NewCacheMock() *CacheMock {
 	}
 }
 
+type EmailHub struct{}
+
+func (mock *EmailHub) QueueProjectApplicationReject(_, _, _, _, _ string) {}
+func (mock *EmailHub) QueueProjectApplicationAccept(_, _, _, _, _ string) {}
+func (mock *EmailHub) QueueProjectApplication(_, _, _, _, _ string)       {}
+func (mock *EmailHub) QueueFriendReqEmail(_, _, _, _, _ string)           {}
+func (mock *EmailHub) QueueForgotPassEmail(_, _, _ string)                {}
+func (mock *EmailHub) Worker()                                            {}
+
+func NewEmailHubMock() *EmailHub {
+	return &EmailHub{}
+}
+
 type EmailMock struct{}
 
 func (mock *EmailMock) SendForgotPassEmail(_, _ string) (string, string)               { return "", "" }

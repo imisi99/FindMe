@@ -8,19 +8,25 @@ import (
 	"github.com/go-mail/mail/v2"
 )
 
-// TODO:
-// Fix this to use one interface in the Service for the Hub and the methods
-
-type Email interface {
-	SendForgotPassEmail(username, token string) (string, string)
+type EmailS interface {
+	SendEmail(to, subject, body string) error
 	SendFriendReqEmail(fromUsername, toUsername, message, viewURL string) (string, string)
+	SendForgotPassEmail(username, token string) (string, string)
 	SendProjectApplicationEmail(fromUsername, toUsername, message, viewURL string) (string, string)
 	SendProjectApplicationAccept(fromUsername, toUsername, message, chatURL string) (string, string)
-	SendProjectApplicationReject(fromusername, toUsername, message, reason string) (string, string)
-	SendEmail(to, subject, body string) error
+	SendProjectApplicationReject(fromUsername, toUsername, message, reason string) (string, string)
 }
 
-type MyEmail struct {
+type Email interface {
+	Worker()
+	QueueFriendReqEmail(fromUsername, toUsername, message, viewURL, to string)
+	QueueForgotPassEmail(to, username, token string)
+	QueueProjectApplication(fromUsername, toUsername, message, viewURL, to string)
+	QueueProjectApplicationAccept(fromUsername, toUsername, message, chatURL, to string)
+	QueueProjectApplicationReject(fromUsername, toUsername, message, reason, to string)
+}
+
+type EmailService struct {
 	Server   string
 	MailPort int
 	Addr     string
@@ -39,23 +45,25 @@ type EmailHub struct {
 	Jobs       chan *EmailJob
 	Quit       chan bool
 	WorkerPool int
+	Service    EmailS
 }
 
-func NewEmail(server, addr, pass string, port int) *MyEmail {
-	return &MyEmail{Server: server, MailPort: port, Addr: addr, Password: pass}
+func NewEmailService(server, addr, pass string, port int) *EmailService {
+	return &EmailService{Server: server, MailPort: port, Addr: addr, Password: pass}
 }
 
-func NewEmailHub(queueSize, workers int) *EmailHub {
+func NewEmailHub(queueSize, workers int, service EmailS) *EmailHub {
 	return &EmailHub{
 		Jobs:       make(chan *EmailJob, queueSize),
 		Quit:       make(chan bool),
 		WorkerPool: workers,
+		Service:    service,
 	}
 }
 
-func (h *EmailHub) Run(emailService Email) {
+func (h *EmailHub) Run() {
 	for range h.WorkerPool {
-		go h.Worker(emailService)
+		go h.Worker()
 	}
 	log.Println("[EMAIL HUB] The Email hub is up and running")
 }
@@ -66,15 +74,15 @@ func (h *EmailHub) Stop() {
 	}
 }
 
-func (h *EmailHub) Worker(emailService Email) {
+func (h *EmailHub) Worker() {
 	for {
 		select {
 		case job := <-h.Jobs:
-			err := emailService.SendEmail(job.To, job.Subject, job.Body)
+			err := h.Service.SendEmail(job.To, job.Subject, job.Body)
 			if err != nil {
 				job.Attempts++
 				if job.Attempts <= job.MaxAttempts {
-					waitTime := time.Duration(job.Attempts*3) * time.Second
+					waitTime := time.Duration(job.Attempts*4) * time.Second
 					log.Printf("[EmailJob] Retrying in %v", waitTime)
 
 					go func(j *EmailJob, delay time.Duration) {
@@ -89,8 +97,58 @@ func (h *EmailHub) Worker(emailService Email) {
 	}
 }
 
+func (h *EmailHub) QueueFriendReqEmail(fromUsername, toUsername, message, viewURL, to string) {
+	body, subject := h.Service.SendFriendReqEmail(fromUsername, toUsername, message, viewURL)
+	h.Jobs <- &EmailJob{
+		To:          to,
+		Subject:     subject,
+		Body:        body,
+		MaxAttempts: 2,
+	}
+}
+
+func (h *EmailHub) QueueForgotPassEmail(to, username, token string) {
+	body, subject := h.Service.SendForgotPassEmail(username, token)
+	h.Jobs <- &EmailJob{
+		To:          to,
+		Subject:     subject,
+		Body:        body,
+		MaxAttempts: 3,
+	}
+}
+
+func (h *EmailHub) QueueProjectApplication(fromUsername, toUsername, message, viewURL, to string) {
+	body, subject := h.Service.SendProjectApplicationEmail(fromUsername, toUsername, message, viewURL)
+	h.Jobs <- &EmailJob{
+		To:          to,
+		Subject:     subject,
+		Body:        body,
+		MaxAttempts: 2,
+	}
+}
+
+func (h *EmailHub) QueueProjectApplicationAccept(fromUsername, toUsername, message, chatURL, to string) {
+	body, subject := h.Service.SendProjectApplicationAccept(fromUsername, toUsername, message, chatURL)
+	h.Jobs <- &EmailJob{
+		To:          to,
+		Subject:     subject,
+		Body:        body,
+		MaxAttempts: 2,
+	}
+}
+
+func (h *EmailHub) QueueProjectApplicationReject(fromUsername, toUsername, message, reason, to string) {
+	body, subject := h.Service.SendProjectApplicationReject(fromUsername, toUsername, message, reason)
+	h.Jobs <- &EmailJob{
+		To:          to,
+		Subject:     subject,
+		Body:        body,
+		MaxAttempts: 2,
+	}
+}
+
 // SendForgotPassEmail -> Sends an OTP for reseting Password
-func (e *MyEmail) SendForgotPassEmail(username, token string) (string, string) {
+func (e *EmailService) SendForgotPassEmail(username, token string) (string, string) {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -145,7 +203,7 @@ func (e *MyEmail) SendForgotPassEmail(username, token string) (string, string) {
 }
 
 // SendFriendReqEmail -> Sends a notification about a new friend request
-func (e *MyEmail) SendFriendReqEmail(fromUsername, toUsername, message, viewURL string) (string, string) {
+func (e *EmailService) SendFriendReqEmail(fromUsername, toUsername, message, viewURL string) (string, string) {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -208,7 +266,7 @@ func (e *MyEmail) SendFriendReqEmail(fromUsername, toUsername, message, viewURL 
 }
 
 // SendProjectApplicationEmail -> Sends a notification about a new application to post
-func (e *MyEmail) SendProjectApplicationEmail(fromUsername, toUsername, message, viewURL string) (string, string) {
+func (e *EmailService) SendProjectApplicationEmail(fromUsername, toUsername, message, viewURL string) (string, string) {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -271,7 +329,7 @@ func (e *MyEmail) SendProjectApplicationEmail(fromUsername, toUsername, message,
 }
 
 // SendProjectApplicationAccept -> Sends notification about accepted post application
-func (e *MyEmail) SendProjectApplicationAccept(fromUsername, toUsername, message, chatURL string) (string, string) {
+func (e *EmailService) SendProjectApplicationAccept(fromUsername, toUsername, message, chatURL string) (string, string) {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -334,7 +392,7 @@ func (e *MyEmail) SendProjectApplicationAccept(fromUsername, toUsername, message
 }
 
 // SendProjectApplicationReject -> Sends notification about rejected post application
-func (e *MyEmail) SendProjectApplicationReject(fromUsername, toUsername, message, reason string) (string, string) {
+func (e *EmailService) SendProjectApplicationReject(fromUsername, toUsername, message, reason string) (string, string) {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -396,7 +454,7 @@ func (e *MyEmail) SendProjectApplicationReject(fromUsername, toUsername, message
 	return htmlBody, "Project Application Update"
 }
 
-func (e *MyEmail) SendEmail(to, subject, body string) error {
+func (e *EmailService) SendEmail(to, subject, body string) error {
 	msg := mail.NewMessage()
 	msg.SetAddressHeader("From", e.Addr, "FindMe Team")
 	msg.SetHeader("To", to)

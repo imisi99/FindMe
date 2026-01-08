@@ -132,15 +132,13 @@ func superUser(db *core.GormDB) {
 func TestMain(m *testing.M) {
 	db := getTestDB()
 	rdb := NewCacheMock()
-	email := NewEmailMock()
 	git := NewGitMock()
 	chathub := core.NewChatHub(20)
-	emailHub := core.NewEmailHub(2, 2)
+	emailHub := NewEmailHubMock()
 	embhub := NewEmbeddingMock()
 
 	go chathub.Run()
-	go emailHub.Run(email)
-	service := handlers.NewService(db, rdb, email, git, embhub, &http.Client{}, chathub, emailHub)
+	service := handlers.NewService(db, rdb, emailHub, git, embhub, &http.Client{}, chathub)
 
 	var skills []model.Skill
 	_ = service.DB.FetchAllSkills(&skills)

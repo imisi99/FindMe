@@ -49,8 +49,8 @@ func (s *Service) WSChat(ctx *gin.Context) {
 		SendChan: make(chan *schema.ViewMessage),
 	}
 
-	s.ChatHub.Register <- client
+	s.Chat.Register <- client
 
-	go client.ReadPump(s.ChatHub)
+	go client.ReadPump(s.Chat)
 	go client.WritePump()
 }

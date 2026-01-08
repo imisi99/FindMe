@@ -43,17 +43,19 @@ func main() {
 
 	// setup git, chat, email and embedding hub
 	client := &http.Client{Timeout: 10 * time.Minute}
+	email := core.NewEmailService("smtp.gmail.com", os.Getenv("EMAIL"), os.Getenv("EMAIL_APP_PASSWORD"), 587)
+
 	chathub := core.NewChatHub(100)
-	emailHub := core.NewEmailHub(200, 5)
+	emailHub := core.NewEmailHub(200, 5, email)
 	embHub := core.NewEmbeddingHub(100, 10, "")
+
+	git := handlers.NewGitService(os.Getenv("GIT_CLIENT_ID"), os.Getenv("GIT_CLIENT_SECRET"), os.Getenv("GIT_CALLBACK_URL"), db, embHub, client)
+	service := handlers.NewService(db, rdb, emailHub, git, embHub, client, chathub)
 
 	go chathub.Run()
 	go embHub.Run()
-	email := core.NewEmail("smtp.gmail.com", os.Getenv("EMAIL"), os.Getenv("EMAIL_APP_PASSWORD"), 587)
-	go emailHub.Run(email)
+	go emailHub.Run()
 
-	git := handlers.NewGitService(os.Getenv("GIT_CLIENT_ID"), os.Getenv("GIT_CLIENT_SECRET"), os.Getenv("GIT_CALLBACK_URL"), db, embHub, client)
-	service := handlers.NewService(db, rdb, email, git, embHub, client, chathub, emailHub)
 	var skills []model.Skill
 	if err := service.DB.FetchAllSkills(&skills); err != nil {
 		log.Fatalln("Failed to Fetch skills from DB exiting...")

@@ -13,6 +13,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO:
+// Add status when creating and updating vector
+
 // DONE:
 // Write tests for the new endpoints
 // Fetch the skills for the user update bio and interests for the emb service
@@ -90,7 +93,7 @@ func (s *Service) AddUser(ctx *gin.Context) {
 		return
 	}
 
-	s.EmbHub.QueueUserCreate(user.ID, user.Bio, payload.Skills, user.Interests)
+	s.Emb.QueueUserCreate(user.ID, user.Bio, payload.Skills, user.Interests)
 
 	ctx.JSON(http.StatusCreated, gin.H{"token": jwtToken})
 }
@@ -511,13 +514,7 @@ func (s *Service) SendFriendReq(ctx *gin.Context) {
 		return
 	}
 
-	body, subject := s.Email.SendFriendReqEmail(user.UserName, friend.UserName, req.Message, "")
-	s.EmailHUB.Jobs <- &core.EmailJob{
-		To:          friend.Email,
-		Subject:     subject,
-		Body:        body,
-		MaxAttempts: 1,
-	}
+	s.Email.QueueFriendReqEmail(user.UserName, friend.UserName, req.Message, "", friend.Email)
 
 	friendReq := schema.FriendReqStatus{
 		ID:       req.ID,
@@ -885,13 +882,7 @@ func (s *Service) ForgotPassword(ctx *gin.Context) {
 		return
 	}
 
-	body, subject := s.Email.SendForgotPassEmail(user.UserName, token)
-	s.EmailHUB.Jobs <- &core.EmailJob{
-		To:          user.Email,
-		Subject:     subject,
-		Body:        body,
-		MaxAttempts: 3,
-	}
+	s.Email.QueueForgotPassEmail(user.Email, user.UserName, token)
 
 	ctx.JSON(http.StatusOK, gin.H{"msg": "Check email for otp."})
 }
@@ -1093,7 +1084,7 @@ func (s *Service) UpdateUserBio(ctx *gin.Context) {
 		skills = append(skills, skill.Name)
 	}
 
-	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests)
+	s.Emb.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests)
 
 	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Bio updated successfully."})
 }
@@ -1144,7 +1135,7 @@ func (s *Service) UpdateUserInterests(ctx *gin.Context) {
 		skills = append(skills, skill.Name)
 	}
 
-	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests)
+	s.Emb.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests)
 
 	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Interests updated successfully."})
 }
@@ -1249,7 +1240,7 @@ func (s *Service) UpdateUserAvaibilityStatus(ctx *gin.Context) {
 		return
 	}
 
-	s.EmbHub.QueueUserUpdateStatus(user.ID, user.Availability)
+	s.Emb.QueueUserUpdateStatus(user.ID, user.Availability)
 
 	ctx.JSON(http.StatusAccepted, gin.H{"msg": "Availability updated successfully."})
 }
@@ -1304,7 +1295,7 @@ func (s *Service) UpdateUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, payload.Skills, user.Interests)
+	s.Emb.QueueUserUpdate(user.ID, user.Bio, payload.Skills, user.Interests)
 
 	ctx.JSON(http.StatusAccepted, gin.H{"skills": payload.Skills})
 }
@@ -1364,7 +1355,7 @@ func (s *Service) DeleteUserSkills(ctx *gin.Context) {
 		return
 	}
 
-	s.EmbHub.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests)
+	s.Emb.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests)
 
 	ctx.JSON(http.StatusNoContent, nil)
 }
@@ -1401,7 +1392,7 @@ func (s *Service) DeleteUserAccount(ctx *gin.Context) {
 		return
 	}
 
-	s.EmbHub.QueueUserDelete(user.ID)
+	s.Emb.QueueUserDelete(user.ID)
 
 	ctx.JSON(http.StatusNoContent, nil)
 }
