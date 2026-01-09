@@ -100,6 +100,7 @@ func (db *GormDB) CheckHealth() error {
 	return err
 }
 
+// FetchAllSkills -> Retrieves all the skills from the db
 func (db *GormDB) FetchAllSkills(skills *[]model.Skill) error {
 	if err := db.DB.Find(skills).Error; err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to fetch skills."}
@@ -107,6 +108,7 @@ func (db *GormDB) FetchAllSkills(skills *[]model.Skill) error {
 	return nil
 }
 
+// AddUser -> Adds a user to the db
 func (db *GormDB) AddUser(user *model.User) error {
 	if err := db.DB.Create(user).Error; err != nil {
 		log.Println("Failed to create user err -> ", err.Error())
@@ -115,6 +117,7 @@ func (db *GormDB) AddUser(user *model.User) error {
 	return nil
 }
 
+// CheckExistingUser -> Checks for an existing user with the email or username
 func (db *GormDB) CheckExistingUser(user *model.User, email, username string) error {
 	err := db.DB.Where("username = ? OR email = ?", username, email).First(user).Error
 	if err == nil {
@@ -130,6 +133,7 @@ func (db *GormDB) CheckExistingUser(user *model.User, email, username string) er
 	return nil
 }
 
+// CheckExistingUserUpdate -> Checks for an existing user with the email or username that is not the current user
 func (db *GormDB) CheckExistingUserUpdate(user *model.User, email, username, uid string) error {
 	err := db.DB.Where("username = ? OR email = ?", username, email).First(user).Error
 	if err == nil && user.ID != uid {
@@ -145,6 +149,7 @@ func (db *GormDB) CheckExistingUserUpdate(user *model.User, email, username, uid
 	return nil
 }
 
+// CheckExistingFriends -> Checks for an existing friendship between users
 func (db *GormDB) CheckExistingFriends(uid, fid string) (error, bool) {
 	var count int64
 	if err := db.DB.Model(&model.UserFriend{}).Where("(user_id = ? AND friend_id = ?)", uid, fid).Count(&count).Error; err != nil {
@@ -156,6 +161,7 @@ func (db *GormDB) CheckExistingFriends(uid, fid string) (error, bool) {
 	return nil, false
 }
 
+// CheckExistingFriendReq -> Checks for an existing friend request between users
 func (db *GormDB) CheckExistingFriendReq(uid, fid string) (error, bool) {
 	var count int64
 	if err := db.DB.Model(&model.FriendReq{}).Where("(user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)", uid, fid, fid, uid).Count(&count).Error; err != nil {
@@ -167,6 +173,7 @@ func (db *GormDB) CheckExistingFriendReq(uid, fid string) (error, bool) {
 	return nil, false
 }
 
+// CheckExistingAppReq -> Checks for an existing project application from a user
 func (db *GormDB) CheckExistingAppReq(pid, uid string) (error, bool) {
 	var count int64
 	if err := db.DB.Model(&model.ProjectReq{}).Where("(project_id = ? AND from_id = ?)", pid, uid).Count(&count).Error; err != nil {
@@ -178,6 +185,7 @@ func (db *GormDB) CheckExistingAppReq(pid, uid string) (error, bool) {
 	return nil, false
 }
 
+// VerifyUser -> Verify users for logging-in
 func (db *GormDB) VerifyUser(user *model.User, username string) error {
 	if err := db.DB.Where("username = ? OR email = ?", username, username).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -189,6 +197,7 @@ func (db *GormDB) VerifyUser(user *model.User, username string) error {
 	return nil
 }
 
+// SaveUser -> Saves a user to the db after changes to the record
 func (db *GormDB) SaveUser(user *model.User) error {
 	if err := db.DB.Save(user).Error; err != nil {
 		log.Println("Failed to save user with id -> ", user.ID, "err -> ", err.Error())
@@ -197,6 +206,7 @@ func (db *GormDB) SaveUser(user *model.User) error {
 	return nil
 }
 
+// FetchUser -> Retrieves a user from the db
 func (db *GormDB) FetchUser(user *model.User, uid string) error {
 	if err := db.DB.Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -208,6 +218,8 @@ func (db *GormDB) FetchUser(user *model.User, uid string) error {
 	return nil
 }
 
+// FetchUserPreloadSP -> Retrieves a user from the db and preloads the user skills
+// and projects with tags owned by the user
 func (db *GormDB) FetchUserPreloadSP(user *model.User, uid string) error {
 	if err := db.DB.Preload("Projects.Tags").Preload("Skills").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -219,6 +231,7 @@ func (db *GormDB) FetchUserPreloadSP(user *model.User, uid string) error {
 	return nil
 }
 
+// FetchUserPreloadS -> Retrieves a user from the db and preloads the user skills
 func (db *GormDB) FetchUserPreloadS(user *model.User, uid string) error {
 	if err := db.DB.Preload("Skills").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -230,6 +243,7 @@ func (db *GormDB) FetchUserPreloadS(user *model.User, uid string) error {
 	return nil
 }
 
+// FetchUserPreloadF -> Retrieves a user from the db and preloads the user friends
 func (db *GormDB) FetchUserPreloadF(user *model.User, uid string) error {
 	if err := db.DB.Preload("Friends").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -241,6 +255,7 @@ func (db *GormDB) FetchUserPreloadF(user *model.User, uid string) error {
 	return nil
 }
 
+// FetchUserPreloadFReq -> Retrieves a user from the db and preloads the friend req sent and received by the user
 func (db *GormDB) FetchUserPreloadFReq(user *model.User, uid string) error {
 	if err := db.DB.Preload("Friends").Preload("FriendReq.Friend").Preload("RecFriendReq.User").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -252,6 +267,7 @@ func (db *GormDB) FetchUserPreloadFReq(user *model.User, uid string) error {
 	return nil
 }
 
+// FetchUserPreloadPReq -> Retrieves a user from the db and preloads the project applications made by the user
 func (db *GormDB) FetchUserPreloadPReq(user *model.User, uid string) error {
 	if err := db.DB.Preload("SentProjectReq").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -263,6 +279,7 @@ func (db *GormDB) FetchUserPreloadPReq(user *model.User, uid string) error {
 	return nil
 }
 
+// SearchUserEmail -> Searches for a user by using the email address of the user
 func (db *GormDB) SearchUserEmail(user *model.User, email string) error {
 	if err := db.DB.Where("email = ?", email).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -274,6 +291,8 @@ func (db *GormDB) SearchUserEmail(user *model.User, email string) error {
 	return nil
 }
 
+// SearchUserPreloadSP -> Searches for a user by using the username and preloads the user skills
+// and projects with tags owned by the user
 func (db *GormDB) SearchUserPreloadSP(user *model.User, username string) error {
 	if err := db.DB.Preload("Skills").Preload("Projects.Tags").Where("username = ?", username).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -285,6 +304,8 @@ func (db *GormDB) SearchUserPreloadSP(user *model.User, username string) error {
 	return nil
 }
 
+// SearchUserGitPreloadSP -> Searches for a user by using the github username and preloads the user skills
+// and projects with tags owned by the user
 func (db *GormDB) SearchUserGitPreloadSP(user *model.User, gitusername string) error {
 	if err := db.DB.Preload("Skills").Preload("Projects.Tags").Where("gitusername = ?", gitusername).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -296,6 +317,7 @@ func (db *GormDB) SearchUserGitPreloadSP(user *model.User, gitusername string) e
 	return nil
 }
 
+// SearchUsersBySKills -> Searches for users that contain a given set of skills and preloads the users skills
 func (db *GormDB) SearchUsersBySKills(users *[]model.User, skills []string, uid string) error {
 	subquery := db.DB.Select("user_id").
 		Table("user_skills").
@@ -308,6 +330,7 @@ func (db *GormDB) SearchUsersBySKills(users *[]model.User, skills []string, uid 
 	return nil
 }
 
+// AddFriendReq -> Adds a friend req to the db
 func (db *GormDB) AddFriendReq(req *model.FriendReq) error {
 	if err := db.DB.Create(req).Error; err != nil {
 		log.Println("Failed to create friend req err -> ", err.Error())
@@ -316,6 +339,7 @@ func (db *GormDB) AddFriendReq(req *model.FriendReq) error {
 	return nil
 }
 
+// ViewFriendReq -> Retrieves all friend req sent and received by a user
 func (db *GormDB) ViewFriendReq(user *model.User, uid string) error {
 	if err := db.DB.Preload("FriendReq.Friend").Preload("RecFriendReq.User").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -327,6 +351,7 @@ func (db *GormDB) ViewFriendReq(user *model.User, uid string) error {
 	return nil
 }
 
+// FetchFriendReq -> Retrieves a friend req from the db
 func (db *GormDB) FetchFriendReq(req *model.FriendReq, rid string) error {
 	if err := db.DB.Where("id = ?", rid).First(req).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -338,6 +363,7 @@ func (db *GormDB) FetchFriendReq(req *model.FriendReq, rid string) error {
 	return nil
 }
 
+// UpdateFriendReqReject -> Updates the status of a friend req to reject in the db
 func (db *GormDB) UpdateFriendReqReject(req *model.FriendReq) error {
 	if err := db.DB.Delete(req).Error; err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to update request status."}
@@ -345,6 +371,8 @@ func (db *GormDB) UpdateFriendReqReject(req *model.FriendReq) error {
 	return nil
 }
 
+// UpdateFriendReqAccept -> Updates the status of a friend req to accept
+// and creates friendship and chat between users in the db
 func (db *GormDB) UpdateFriendReqAccept(req *model.FriendReq, user, friend *model.User, chat *model.Chat) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Unscoped().Delete(req).Error; err != nil {
@@ -372,6 +400,7 @@ func (db *GormDB) UpdateFriendReqAccept(req *model.FriendReq, user, friend *mode
 	return nil
 }
 
+// DeleteFriendReq -> Deletes a friend req from the db
 func (db *GormDB) DeleteFriendReq(req *model.FriendReq) error {
 	if err := db.DB.Unscoped().Delete(req).Error; err != nil {
 		log.Println("Failed to delete friend req with id -> ", req.ID, "err -> ", err.Error())
@@ -380,6 +409,7 @@ func (db *GormDB) DeleteFriendReq(req *model.FriendReq) error {
 	return nil
 }
 
+// DeleteFriend -> Delete friendship between users from the db
 func (db *GormDB) DeleteFriend(user, friend *model.User, chat *model.Chat) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(user).Association("Friends").Delete(friend); err != nil {
@@ -399,6 +429,7 @@ func (db *GormDB) DeleteFriend(user, friend *model.User, chat *model.Chat) error
 	return nil
 }
 
+// UpdateSkills -> Updates the skills of a user in the db by replacing it with the specified skills
 func (db *GormDB) UpdateSkills(user *model.User, skills []*model.Skill) error {
 	if err := db.DB.Model(user).Association("Skills").Replace(skills); err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to update skills."}
@@ -406,6 +437,7 @@ func (db *GormDB) UpdateSkills(user *model.User, skills []*model.Skill) error {
 	return nil
 }
 
+// DeleteSkills -> Deletes the specified skills from the user skills in the db
 func (db *GormDB) DeleteSkills(user *model.User, skills []*model.Skill) error {
 	if err := db.DB.Model(user).Association("Skills").Delete(skills); err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to delete skills."}
@@ -413,6 +445,7 @@ func (db *GormDB) DeleteSkills(user *model.User, skills []*model.Skill) error {
 	return nil
 }
 
+// DeleteUser -> Deletes a user from the db
 func (db *GormDB) DeleteUser(user *model.User) error {
 	if err := db.DB.Delete(user).Error; err != nil {
 		log.Println("Failed to delete user with id -> ", user.ID, "err -> ", err.Error())
@@ -421,6 +454,7 @@ func (db *GormDB) DeleteUser(user *model.User) error {
 	return nil
 }
 
+// AddProject -> Adds a project to the db
 func (db *GormDB) AddProject(project *model.Project) error {
 	if err := db.DB.Create(project).Error; err != nil {
 		log.Println("Failed to create project err -> ", err.Error())
@@ -429,6 +463,7 @@ func (db *GormDB) AddProject(project *model.Project) error {
 	return nil
 }
 
+// FetchUserProjects -> Retrieves the projects with the tags preloaded for a user in the db
 func (db *GormDB) FetchUserProjects(user *model.User, uid string) error {
 	if err := db.DB.Preload("Projects.Tags").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -440,6 +475,7 @@ func (db *GormDB) FetchUserProjects(user *model.User, uid string) error {
 	return nil
 }
 
+// FetchProject -> Retrieves a project from the db
 func (db *GormDB) FetchProject(project *model.Project, pid string) error {
 	if err := db.DB.Where("id = ?", pid).First(project).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -451,6 +487,7 @@ func (db *GormDB) FetchProject(project *model.Project, pid string) error {
 	return nil
 }
 
+// FetchProjectPreloadT -> Retrieves a project with the tags preloaded from the db
 func (db *GormDB) FetchProjectPreloadT(project *model.Project, pid string) error {
 	if err := db.DB.Preload("Tags").Where("id = ?", pid).First(project).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -462,6 +499,7 @@ func (db *GormDB) FetchProjectPreloadT(project *model.Project, pid string) error
 	return nil
 }
 
+// FetchProjectPreloadTU -> Retrieves a project with the tags and the owner (user) preloaded from the db
 func (db *GormDB) FetchProjectPreloadTU(project *model.Project, pid string) error {
 	if err := db.DB.Preload("Tags").Preload("User").Where("id = ?", pid).First(project).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -473,6 +511,7 @@ func (db *GormDB) FetchProjectPreloadTU(project *model.Project, pid string) erro
 	return nil
 }
 
+// FetchProjectPreloadA -> Retrieves a project with the applications for the project preloaded from the db
 func (db *GormDB) FetchProjectPreloadA(project *model.Project, pid string) error {
 	if err := db.DB.Preload("Applications.FromUser").Where("id = ?", pid).First(project).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -484,6 +523,7 @@ func (db *GormDB) FetchProjectPreloadA(project *model.Project, pid string) error
 	return nil
 }
 
+// FetchProjectPreloadC -> Retrieves a project with the chat for the project preloaded from the db
 func (db *GormDB) FetchProjectPreloadC(project *model.Project, pid string) error {
 	if err := db.DB.Preload("Chat").Where("id = ?", pid).First(project).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -495,6 +535,7 @@ func (db *GormDB) FetchProjectPreloadC(project *model.Project, pid string) error
 	return nil
 }
 
+// EditProject -> Edits a project and saves the project in the db
 func (db *GormDB) EditProject(project *model.Project, skills []*model.Skill) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(project).Association("Tags").Replace(skills); err != nil {
@@ -510,6 +551,7 @@ func (db *GormDB) EditProject(project *model.Project, skills []*model.Skill) err
 	return nil
 }
 
+// SaveProject -> Saves a project in the db
 func (db *GormDB) SaveProject(project *model.Project) error {
 	if err := db.DB.Save(project).Error; err != nil {
 		log.Println("Failed to save project with id -> ", project.ID, "err -> ", err.Error())
@@ -518,6 +560,7 @@ func (db *GormDB) SaveProject(project *model.Project) error {
 	return nil
 }
 
+// BookmarkProject -> Adds a project to a user's project bookmark in the db
 func (db *GormDB) BookmarkProject(user *model.User, project *model.Project) error {
 	if err := db.DB.Model(user).Association("SavedProjects").Append(project); err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to bookmark project."}
@@ -525,6 +568,7 @@ func (db *GormDB) BookmarkProject(user *model.User, project *model.Project) erro
 	return nil
 }
 
+// FetchUserPreloadB -> Retrieves a user from the db and preloads the user's project bookmark
 func (db *GormDB) FetchUserPreloadB(user *model.User, uid string) error {
 	if err := db.DB.Preload("SavedProjects").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -536,6 +580,7 @@ func (db *GormDB) FetchUserPreloadB(user *model.User, uid string) error {
 	return nil
 }
 
+// FetchProjectPreloadU -> Retrieves a project from the db and preloads the owner of the project
 func (db *GormDB) FetchProjectPreloadU(project *model.Project, pid string) error {
 	if err := db.DB.Preload("User").Where("id = ?", pid).First(project).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -547,6 +592,7 @@ func (db *GormDB) FetchProjectPreloadU(project *model.Project, pid string) error
 	return nil
 }
 
+// SearchProjectsBySKills -> Searches for projects in the db by using the specified skills
 func (db *GormDB) SearchProjectsBySKills(projects *[]model.Project, skills []string, uid string) error {
 	subquery := db.DB.Select("project_id").
 		Table("project_skills").
@@ -559,6 +605,7 @@ func (db *GormDB) SearchProjectsBySKills(projects *[]model.Project, skills []str
 	return nil
 }
 
+// RemoveBookmarkedProject -> Removes a project from a user's project bookmark in the db
 func (db *GormDB) RemoveBookmarkedProject(user *model.User, project *model.Project) error {
 	if err := db.DB.Model(user).Association("SavedProjects").Delete(project); err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to remove project from bookmark."}
@@ -566,6 +613,7 @@ func (db *GormDB) RemoveBookmarkedProject(user *model.User, project *model.Proje
 	return nil
 }
 
+// AddProjectApplicationReq -> Add a project application to the db
 func (db *GormDB) AddProjectApplicationReq(req *model.ProjectReq) error {
 	if err := db.DB.Save(req).Error; err != nil {
 		log.Println("Failed to save project application req with id -> ", req.ID, "err -> ", err.Error())
@@ -574,6 +622,7 @@ func (db *GormDB) AddProjectApplicationReq(req *model.ProjectReq) error {
 	return nil
 }
 
+// ViewProjectApplications -> Retrieves all sent and received project's application of a user in the db
 func (db *GormDB) ViewProjectApplications(user *model.User, uid string) error {
 	if err := db.DB.Preload("RecProjectReq.FromUser").Preload("SentProjectReq.ToUser").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -585,6 +634,7 @@ func (db *GormDB) ViewProjectApplications(user *model.User, uid string) error {
 	return nil
 }
 
+// FetchProjectApplication -> Retrieves a project application with the applicant, owner and chat preloaded
 func (db *GormDB) FetchProjectApplication(req *model.ProjectReq, rid string) error {
 	if err := db.DB.Preload("FromUser").Preload("ToUser").Preload("Project.Chat").Where("id = ?", rid).First(req).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -596,6 +646,7 @@ func (db *GormDB) FetchProjectApplication(req *model.ProjectReq, rid string) err
 	return nil
 }
 
+// UpdateProjectAppliationReject -> Updates the status of the project application to reject in the db
 func (db *GormDB) UpdateProjectAppliationReject(req *model.ProjectReq) error {
 	if err := db.DB.Delete(req).Error; err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to update project application status."}
@@ -603,6 +654,8 @@ func (db *GormDB) UpdateProjectAppliationReject(req *model.ProjectReq) error {
 	return nil
 }
 
+// UpdateProjectApplicationAccept -> Updates the status of the project application
+// and adds the applicant to the project's chat in the db
 func (db *GormDB) UpdateProjectApplicationAccept(req *model.ProjectReq, user *model.User, chat *model.Chat) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Unscoped().Delete(req).Error; err != nil {
@@ -620,6 +673,8 @@ func (db *GormDB) UpdateProjectApplicationAccept(req *model.ProjectReq, user *mo
 	return nil
 }
 
+// UpdateProjectApplicationAcceptF -> Updates the status of the project application
+// and adds owner and applicant to the project's chat(new chat) in the db
 func (db *GormDB) UpdateProjectApplicationAcceptF(req *model.ProjectReq, user1, user2 *model.User, project *model.Project, chat *model.Chat) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Unscoped().Delete(req).Error; err != nil {
@@ -649,6 +704,7 @@ func (db *GormDB) UpdateProjectApplicationAcceptF(req *model.ProjectReq, user1, 
 	return nil
 }
 
+// FetchProjectAppPreloadFU -> Retrieves a project application with the applicant preloaded from the db
 func (db *GormDB) FetchProjectAppPreloadFU(req *model.ProjectReq, rid string) error {
 	if err := db.DB.Preload("FromUser").Where("id = ?", rid).First(req).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -660,6 +716,7 @@ func (db *GormDB) FetchProjectAppPreloadFU(req *model.ProjectReq, rid string) er
 	return nil
 }
 
+// DeleteProjectApplicationReq -> Deletes a project application from the db
 func (db *GormDB) DeleteProjectApplicationReq(req *model.ProjectReq) error {
 	if err := db.DB.Unscoped().Delete(req).Error; err != nil {
 		log.Println("Failed to delete project application req with id -> ", req.ID, "err -> ", err.Error())
@@ -668,6 +725,7 @@ func (db *GormDB) DeleteProjectApplicationReq(req *model.ProjectReq) error {
 	return nil
 }
 
+// ClearProjectApplication -> Clears all applications on a project from the db
 func (db *GormDB) ClearProjectApplication(req []*model.ProjectReq) error {
 	if err := db.DB.Unscoped().Delete(req).Error; err != nil {
 		log.Println("Failed to clear project applications for project with id -> ", req[0].ProjectID, "err -> ", err.Error())
@@ -676,6 +734,7 @@ func (db *GormDB) ClearProjectApplication(req []*model.ProjectReq) error {
 	return nil
 }
 
+// DeleteProject -> Deletes a project from the db
 func (db *GormDB) DeleteProject(project *model.Project) error {
 	if err := db.DB.Delete(project).Error; err != nil {
 		log.Println("Failed to delete project with id -> ", project.ID, "err -> ", err.Error())
@@ -685,6 +744,7 @@ func (db *GormDB) DeleteProject(project *model.Project) error {
 	return nil
 }
 
+// AddSkills -> Adds a set of skills to the db
 func (db *GormDB) AddSkills(skills *[]*model.Skill) error {
 	if err := db.DB.Create(skills).Error; err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to create new skills."}
@@ -692,6 +752,7 @@ func (db *GormDB) AddSkills(skills *[]*model.Skill) error {
 	return nil
 }
 
+// FindExistingSkills -> Retrieves existing skills in a skill set from the db
 func (db *GormDB) FindExistingSkills(skills *[]*model.Skill, skill []string) error {
 	if err := db.DB.Where("name IN ?", skill).Find(skills).Error; err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to find skills."}
@@ -699,6 +760,7 @@ func (db *GormDB) FindExistingSkills(skills *[]*model.Skill, skill []string) err
 	return nil
 }
 
+// FindExistingGitID -> Searches for a user using a gitid
 func (db *GormDB) FindExistingGitID(user *model.User, gitid int64) error {
 	if err := db.DB.Where("gitid = ?", gitid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -710,6 +772,7 @@ func (db *GormDB) FindExistingGitID(user *model.User, gitid int64) error {
 	return nil
 }
 
+// CheckExistingEmail -> Searches for a user using the email address in the db
 func (db *GormDB) CheckExistingEmail(email string) error {
 	var count int64
 	if err := db.DB.Model(&model.User{}).Where("email = ?", email).Count(&count).Error; err != nil {
@@ -721,6 +784,7 @@ func (db *GormDB) CheckExistingEmail(email string) error {
 	return nil
 }
 
+// CheckExistingUsername -> Searches for an existing user with the username in the db
 func (db *GormDB) CheckExistingUsername(username string) error {
 	var count int64
 	if err := db.DB.Model(&model.User{}).Where("username = ?", username).Count(&count).Error; err != nil {
@@ -732,6 +796,7 @@ func (db *GormDB) CheckExistingUsername(username string) error {
 	return nil
 }
 
+// AddMessage -> Adds a message to the db
 func (db *GormDB) AddMessage(msg *model.UserMessage) error {
 	if err := db.DB.Create(msg).Error; err != nil {
 		log.Println("Failed to create msg err -> ", err.Error())
@@ -740,6 +805,7 @@ func (db *GormDB) AddMessage(msg *model.UserMessage) error {
 	return nil
 }
 
+// GetChatHistory -> Retrieves the chat history for a chat from the db
 func (db *GormDB) GetChatHistory(chatID string, chat *model.Chat) error {
 	if err := db.DB.Preload("Messages").Preload("Users").Where("id = ?", chatID).First(chat).Error; err != nil {
 		log.Println(chatID, err)
@@ -752,6 +818,7 @@ func (db *GormDB) GetChatHistory(chatID string, chat *model.Chat) error {
 	return nil
 }
 
+// FetchChat -> Retrieves a chat from the db
 func (db *GormDB) FetchChat(chatID string, chat *model.Chat) error {
 	if err := db.DB.Where("id = ?", chatID).First(chat).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -763,6 +830,7 @@ func (db *GormDB) FetchChat(chatID string, chat *model.Chat) error {
 	return nil
 }
 
+// FetchUserPreloadCM -> Retrieves a user with the user's chat, chat's messages and members preloaded
 func (db *GormDB) FetchUserPreloadCM(user *model.User, uid string) error {
 	if err := db.DB.Preload("Chats.Messages").Preload("Chats.Users").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -774,6 +842,7 @@ func (db *GormDB) FetchUserPreloadCM(user *model.User, uid string) error {
 	return nil
 }
 
+// FetchUserPreloadC -> Retrieves a user with the user's chat and chat members preloaded
 func (db *GormDB) FetchUserPreloadC(user *model.User, uid string) error {
 	if err := db.DB.Preload("Chats.Users").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -785,6 +854,7 @@ func (db *GormDB) FetchUserPreloadC(user *model.User, uid string) error {
 	return nil
 }
 
+// FetchMsg -> Retrieves a message from the db
 func (db *GormDB) FetchMsg(msg *model.UserMessage, mid string) error {
 	if err := db.DB.Where("id = ?", mid).First(msg).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -796,6 +866,7 @@ func (db *GormDB) FetchMsg(msg *model.UserMessage, mid string) error {
 	return nil
 }
 
+// SaveMsg -> Saves a message in the db
 func (db *GormDB) SaveMsg(msg *model.UserMessage) error {
 	if err := db.DB.Save(msg).Error; err != nil {
 		log.Println("Failed to save msg with id -> ", msg.ID, "err -> ", err.Error())
@@ -804,6 +875,7 @@ func (db *GormDB) SaveMsg(msg *model.UserMessage) error {
 	return nil
 }
 
+// SaveChat -> Saves a chat in the db
 func (db *GormDB) SaveChat(chat *model.Chat) error {
 	if err := db.DB.Save(chat).Error; err != nil {
 		log.Printf("Failed to save chat with id -> %v, err -> %v", chat.ID, err.Error())
@@ -812,6 +884,7 @@ func (db *GormDB) SaveChat(chat *model.Chat) error {
 	return nil
 }
 
+// DeleteMsg -> Deletes a message in the db
 func (db *GormDB) DeleteMsg(msg *model.UserMessage) error {
 	if err := db.DB.Delete(msg).Error; err != nil {
 		log.Println("Failed to delete msg with id -> ", msg.ID, "err -> ", err.Error())
@@ -820,6 +893,7 @@ func (db *GormDB) DeleteMsg(msg *model.UserMessage) error {
 	return nil
 }
 
+// FindChat -> Finds an existing chat between two users with the messages preloaded
 func (db *GormDB) FindChat(uid, fid string, chat *model.Chat) error {
 	if err := db.DB.
 		Preload("Messages").
@@ -838,6 +912,7 @@ func (db *GormDB) FindChat(uid, fid string, chat *model.Chat) error {
 	return nil
 }
 
+// AddUserChat -> Adds a user to a chat group in the db
 func (db *GormDB) AddUserChat(chat *model.Chat, user *model.User) error {
 	if err := db.DB.Model(chat).Association("Users").Append(user); err != nil {
 		log.Printf("Unable to add user with id -> %v to chat with id -> %v, Error: %v", user.ID, chat.ID, err.Error())
@@ -846,6 +921,7 @@ func (db *GormDB) AddUserChat(chat *model.Chat, user *model.User) error {
 	return nil
 }
 
+// RemoveUserChat -> Removes a user from a chat group in the db
 func (db *GormDB) RemoveUserChat(chat *model.Chat, user *model.User) error {
 	if err := db.DB.Model(chat).Association("Users").Delete(user); err != nil {
 		log.Printf("Unable to remove user with id -> %v from chat with id -> %v, Error: %v", user.ID, chat.ID, err.Error())
@@ -854,6 +930,7 @@ func (db *GormDB) RemoveUserChat(chat *model.Chat, user *model.User) error {
 	return nil
 }
 
+// LeaveChat -> Leave a chat group
 func (db *GormDB) LeaveChat(chat *model.Chat, user *model.User) error {
 	if err := db.DB.Model(chat).Association("Users").Delete(user); err != nil {
 		log.Println("Failed to remove user from chat with ID -> ", err.Error())
@@ -862,6 +939,7 @@ func (db *GormDB) LeaveChat(chat *model.Chat, user *model.User) error {
 	return nil
 }
 
+// DeleteChat -> Delete a chat group in the db
 func (db *GormDB) DeleteChat(chat *model.Chat) error {
 	if err := db.DB.Delete(chat).Error; err != nil {
 		log.Printf("Unable to delete a group chat with id -> %v , err -> %v ", chat.ID, err.Error())

@@ -13,14 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO:
-// Add status when creating and updating vector
-
-// DONE:
-// Write tests for the new endpoints
-// Fetch the skills for the user update bio and interests for the emb service
-// Add the Availability also to the vector payload and change when called
-
 // AddUser godoc
 // @Summary			Register a new user
 // @Description  Sign up endpoint for new users it internally calls a service to create a vector for the user
