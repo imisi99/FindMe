@@ -47,14 +47,16 @@ func main() {
 
 	chathub := core.NewChatHub(100)
 	emailHub := core.NewEmailHub(200, 5, email)
-	embHub := core.NewEmbeddingHub(100, 10, "")
+	embHub := core.NewEmbeddingHub(100, 10, "emb:8000")
+	recHub := core.NewRecommendationHub(10, 100, "rec:8050")
 
 	git := handlers.NewGitService(os.Getenv("GIT_CLIENT_ID"), os.Getenv("GIT_CLIENT_SECRET"), os.Getenv("GIT_CALLBACK_URL"), db, embHub, client)
-	service := handlers.NewService(db, rdb, emailHub, git, embHub, client, chathub)
+	service := handlers.NewService(db, rdb, emailHub, git, embHub, recHub, client, chathub)
 
 	go chathub.Run()
 	go embHub.Run()
 	go emailHub.Run()
+	go recHub.Run()
 
 	var skills []model.Skill
 	if err := service.DB.FetchAllSkills(&skills); err != nil {

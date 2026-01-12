@@ -14,12 +14,13 @@ type Service struct {
 	Email  core.Email
 	Git    Git
 	Emb    core.Embedding
+	Rec    core.Recommendation
 	Chat   *core.ChatHub
 	Client *http.Client
 }
 
-func NewService(db core.DB, rdb core.Cache, email core.Email, git Git, embHub core.Embedding, client *http.Client, chat *core.ChatHub) *Service {
-	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Emb: embHub, Client: client, Chat: chat}
+func NewService(db core.DB, rdb core.Cache, email core.Email, git Git, embHub core.Embedding, recHub core.Recommendation, client *http.Client, chat *core.ChatHub) *Service {
+	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Emb: embHub, Rec: recHub, Client: client, Chat: chat}
 }
 
 func SetupHandler(router *gin.Engine, service *Service) {

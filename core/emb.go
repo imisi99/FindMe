@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	emb "findme/generated"
+	"findme/emb"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

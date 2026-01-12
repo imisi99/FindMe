@@ -141,3 +141,12 @@ func (e *EmbeddingMock) QueueProjectDelete(id string)                           
 func NewEmbeddingMock() *EmbeddingMock {
 	return &EmbeddingMock{}
 }
+
+type RecommendationMock struct{}
+
+func (r *RecommendationMock) QueueUserRecommendation(_ string)    {}
+func (r *RecommendationMock) QueueProjectRecommendation(_ string) {}
+
+func NewRecommendationMock() *RecommendationMock {
+	return &RecommendationMock{}
+}

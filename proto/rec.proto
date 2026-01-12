@@ -1,0 +1,20 @@
+syntax="proto3";
+
+package rec;
+
+option go_package = "./rec";
+
+service RecommendationService {
+  rpc ProjectRecommendation(RecommendationRequest) returns (RecommendationResponse);
+  rpc UserRecommendation(RecommendationRequest) returns (RecommendationResponse);
+}
+
+message RecommendationRequest {
+  string id = 1;
+}
+
+message RecommendationResponse {
+  bool success = 1;
+  repeated string ids = 2;
+}
+

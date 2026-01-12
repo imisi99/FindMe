@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v3.12.4
-// source: findme.proto
+// source: emb.proto
 
-package generated
+package emb
 
 import (
 	context "context"
@@ -19,10 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserEmbeddingService_CreateUserEmbedding_FullMethodName = "/findme.UserEmbeddingService/CreateUserEmbedding"
-	UserEmbeddingService_UpdateUserEmbedding_FullMethodName = "/findme.UserEmbeddingService/UpdateUserEmbedding"
-	UserEmbeddingService_UpdateUserStatus_FullMethodName    = "/findme.UserEmbeddingService/UpdateUserStatus"
-	UserEmbeddingService_DeleteUserEmbedding_FullMethodName = "/findme.UserEmbeddingService/DeleteUserEmbedding"
+	UserEmbeddingService_CreateUserEmbedding_FullMethodName = "/emb.UserEmbeddingService/CreateUserEmbedding"
+	UserEmbeddingService_UpdateUserEmbedding_FullMethodName = "/emb.UserEmbeddingService/UpdateUserEmbedding"
+	UserEmbeddingService_UpdateUserStatus_FullMethodName    = "/emb.UserEmbeddingService/UpdateUserStatus"
+	UserEmbeddingService_DeleteUserEmbedding_FullMethodName = "/emb.UserEmbeddingService/DeleteUserEmbedding"
 )
 
 // UserEmbeddingServiceClient is the client API for UserEmbeddingService service.
@@ -210,7 +210,7 @@ func _UserEmbeddingService_DeleteUserEmbedding_Handler(srv interface{}, ctx cont
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var UserEmbeddingService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "findme.UserEmbeddingService",
+	ServiceName: "emb.UserEmbeddingService",
 	HandlerType: (*UserEmbeddingServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -231,14 +231,14 @@ var UserEmbeddingService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "findme.proto",
+	Metadata: "emb.proto",
 }
 
 const (
-	ProjectEmbeddingService_CreateProjectEmbedding_FullMethodName = "/findme.ProjectEmbeddingService/CreateProjectEmbedding"
-	ProjectEmbeddingService_UpdateProjectEmbedding_FullMethodName = "/findme.ProjectEmbeddingService/UpdateProjectEmbedding"
-	ProjectEmbeddingService_UpdateProjectStatus_FullMethodName    = "/findme.ProjectEmbeddingService/UpdateProjectStatus"
-	ProjectEmbeddingService_DeleteProjectEmbedding_FullMethodName = "/findme.ProjectEmbeddingService/DeleteProjectEmbedding"
+	ProjectEmbeddingService_CreateProjectEmbedding_FullMethodName = "/emb.ProjectEmbeddingService/CreateProjectEmbedding"
+	ProjectEmbeddingService_UpdateProjectEmbedding_FullMethodName = "/emb.ProjectEmbeddingService/UpdateProjectEmbedding"
+	ProjectEmbeddingService_UpdateProjectStatus_FullMethodName    = "/emb.ProjectEmbeddingService/UpdateProjectStatus"
+	ProjectEmbeddingService_DeleteProjectEmbedding_FullMethodName = "/emb.ProjectEmbeddingService/DeleteProjectEmbedding"
 )
 
 // ProjectEmbeddingServiceClient is the client API for ProjectEmbeddingService service.
@@ -427,7 +427,7 @@ func _ProjectEmbeddingService_DeleteProjectEmbedding_Handler(srv interface{}, ct
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ProjectEmbeddingService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "findme.ProjectEmbeddingService",
+	ServiceName: "emb.ProjectEmbeddingService",
 	HandlerType: (*ProjectEmbeddingServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -448,5 +448,5 @@ var ProjectEmbeddingService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "findme.proto",
+	Metadata: "emb.proto",
 }

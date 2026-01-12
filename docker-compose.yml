@@ -92,7 +92,7 @@ services:
   certbot:
     image: certbot/certbot
     container_name: findMe_certbot
-    restart: unless-stopped
+    restart: always
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot

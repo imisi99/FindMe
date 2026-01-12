@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package findme;
+package emb;
 
-option go_package = "./generated";
+option go_package = "./emb";
 
 service UserEmbeddingService {
   rpc CreateUserEmbedding(UserEmbeddingRequest) returns (EmbeddingResponse);
