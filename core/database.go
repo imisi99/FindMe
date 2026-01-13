@@ -14,6 +14,7 @@ type DB interface {
 	CheckHealth() error
 	FetchAllSkills(skills *[]model.Skill) error
 	AddUser(user *model.User) error
+	FindUsers(users *[]model.User, ids []string) error
 	CheckExistingUser(user *model.User, email, username string) error
 	CheckExistingUserUpdate(user *model.User, email, username, uid string) error
 	CheckExistingEmail(email string) error
@@ -113,6 +114,14 @@ func (db *GormDB) AddUser(user *model.User) error {
 	if err := db.DB.Create(user).Error; err != nil {
 		log.Println("Failed to create user err -> ", err.Error())
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to create new user."}
+	}
+	return nil
+}
+
+// FindUsers -> Retrieves a list of users from the db with their skills preloaded
+func (db *GormDB) FindUsers(users *[]model.User, ids []string) error {
+	if err := db.DB.Preload("Skills").Find(users); err != nil {
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to retrieve users."}
 	}
 	return nil
 }

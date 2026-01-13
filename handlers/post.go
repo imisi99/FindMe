@@ -303,6 +303,80 @@ func (s *Service) CreateProject(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"project": result})
 }
 
+// RecommendUsers godoc
+// @Summary Recommends users to work on a project
+// @Description An endpoint for recommending users for a project using ai
+// @Tags Project
+// @Accept json
+// @Produce json
+// @Param id query string true "Project ID"
+// @Security BearerAuth
+// @Success 200 {object} schema.DocUsersResponse "Users Retrieved"
+// @Failure 400 {object} schema.DocNormalResponse "Invalid id"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/post/recommend [get]
+func (s *Service) RecommendUsers(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if !model.IsValidUUID(uid) || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	pid := ctx.Query("id")
+	if !model.IsValidUUID(pid) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid project id."})
+		return
+	}
+
+	var project model.Project
+	if err := s.DB.FetchProject(&project, pid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	res, err := s.Rec.GetRecommendation(project.ID, core.UserRecommendation)
+	if err != nil {
+		log.Printf("[gRPC Recommendation] Failed to get recommendation for project -> %v, err -> %v", project.ID, err.Error())
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to retrieve users for the project."})
+		return
+	}
+
+	var users []model.User
+
+	if err := s.DB.FindUsers(&users, res.IDs); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	var profiles []schema.UserProfileResponse
+
+	for _, user := range users {
+		var skills []string
+		for _, skill := range user.Skills {
+			skills = append(skills, skill.Name)
+		}
+		profiles = append(profiles,
+			schema.UserProfileResponse{
+				ID:           user.ID,
+				UserName:     user.UserName,
+				FullName:     user.FullName,
+				Email:        user.Email,
+				GitUserName:  user.GitUserName,
+				Gituser:      user.GitUser,
+				Bio:          user.Bio,
+				Availability: user.Availability,
+				Skills:       skills,
+				Interests:    user.Interests,
+			})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"users": profiles})
+}
+
 // EditProject godoc
 // @Summary    Editing details of a project
 // @Description An endpoint for editing major details of a project it internally calls a service to update the vector for the project

@@ -17,6 +17,10 @@ type DocUserResponse struct {
 	User UserProfileResponse `json:"user"`
 }
 
+type DocUsersResponse struct {
+	Users []UserProfileResponse `json:"users"`
+}
+
 type DocUsersSearch struct {
 	Users []SearchUser `json:"users"`
 }

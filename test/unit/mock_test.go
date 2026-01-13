@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"findme/core"
 	"findme/model"
 	"findme/schema"
 
@@ -146,6 +147,9 @@ type RecommendationMock struct{}
 
 func (r *RecommendationMock) QueueUserRecommendation(_ string)    {}
 func (r *RecommendationMock) QueueProjectRecommendation(_ string) {}
+func (r *RecommendationMock) GetRecommendation(ID string, jobType core.RecommendationJobType) (*schema.RecResponse, error) {
+	return nil, nil
+}
 
 func NewRecommendationMock() *RecommendationMock {
 	return &RecommendationMock{}

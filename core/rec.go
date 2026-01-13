@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"findme/rec"
+	"findme/schema"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -14,6 +15,7 @@ import (
 type Recommendation interface {
 	QueueUserRecommendation(ID string)
 	QueueProjectRecommendation(ID string)
+	GetRecommendation(ID string, jobType RecommendationJobType) (*schema.RecResponse, error)
 }
 
 type RecommendationJobType int
@@ -66,7 +68,7 @@ func (r *RecommendationHub) WorkerPool() {
 	for {
 		select {
 		case job := <-r.Jobs:
-			err := r.ProcessJob(job, client)
+			_, err := r.ProcessJob(job, client)
 			if err != nil {
 				job.Attempts++
 				if job.Attempts <= job.MaxAttempts {
@@ -83,23 +85,28 @@ func (r *RecommendationHub) WorkerPool() {
 	}
 }
 
-func (r *RecommendationHub) ProcessJob(job *RecommendationJob, client rec.RecommendationServiceClient) error {
+func (r *RecommendationHub) ProcessJob(job *RecommendationJob, client rec.RecommendationServiceClient) (*schema.RecResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
 	var err error
+	res := &schema.RecResponse{}
+	recRes := &rec.RecommendationResponse{}
 
 	switch job.Type {
 	case UserRecommendation:
-		_, err = client.UserRecommendation(ctx, &rec.RecommendationRequest{
+		recRes, err = client.UserRecommendation(ctx, &rec.RecommendationRequest{
 			Id: job.ID,
 		})
 	case ProjectRecommendation:
-		_, err = client.ProjectRecommendation(ctx, &rec.RecommendationRequest{
+		recRes, err = client.ProjectRecommendation(ctx, &rec.RecommendationRequest{
 			Id: job.ID,
 		})
 	}
-	return err
+
+	res.IDs = recRes.Ids
+
+	return res, err
 }
 
 func (r *RecommendationHub) QueueUserRecommendation(projectID string) {
@@ -116,4 +123,28 @@ func (r *RecommendationHub) QueueProjectRecommendation(userID string) {
 		ID:          userID,
 		MaxAttempts: 3,
 	}
+}
+
+func (r *RecommendationHub) GetRecommendation(ID string, jobType RecommendationJobType) (*schema.RecResponse, error) {
+	conn, err := grpc.NewClient(r.GPRCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Println("[gRPC Recommendation] Failed to connect to grpc with address -> ", r.GPRCAddr)
+	}
+
+	defer conn.Close()
+
+	client := rec.NewRecommendationServiceClient(conn)
+
+	job := &RecommendationJob{
+		Type:        jobType,
+		ID:          ID,
+		MaxAttempts: 1,
+	}
+
+	res := &schema.RecResponse{}
+
+	if res, err = r.ProcessJob(job, client); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
