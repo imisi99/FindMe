@@ -45,6 +45,7 @@ type DB interface {
 	DeleteSkills(user *model.User, skills []*model.Skill) error
 	DeleteUser(user *model.User) error
 	AddProject(project *model.Project) error
+	FindProjects(projects *[]model.Project, ids []string) error
 	FetchUserProjects(user *model.User, uid string) error
 	FetchProject(project *model.Project, pid string) error
 	FetchProjectPreloadT(project *model.Project, pid string) error
@@ -120,7 +121,7 @@ func (db *GormDB) AddUser(user *model.User) error {
 
 // FindUsers -> Retrieves a list of users from the db with their skills preloaded
 func (db *GormDB) FindUsers(users *[]model.User, ids []string) error {
-	if err := db.DB.Preload("Skills").Find(users); err != nil {
+	if err := db.DB.Where("id IN ?", ids).Preload("Skills").Find(users); err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to retrieve users."}
 	}
 	return nil
@@ -468,6 +469,14 @@ func (db *GormDB) AddProject(project *model.Project) error {
 	if err := db.DB.Create(project).Error; err != nil {
 		log.Println("Failed to create project err -> ", err.Error())
 		return &CustomMessage{http.StatusInternalServerError, "Failed to create project."}
+	}
+	return nil
+}
+
+// FindProjects -> Retrieves a list of projects in the db with the tags preloaded
+func (db *GormDB) FindProjects(projects *[]model.Project, ids []string) error {
+	if err := db.DB.Where("id IN ?", ids).Preload("Tags").Find(projects); err != nil {
+		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to retrieve projects"}
 	}
 	return nil
 }

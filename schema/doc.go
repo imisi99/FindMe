@@ -51,6 +51,10 @@ type DocProjectResponse struct {
 	Project ProjectResponse `json:"project"`
 }
 
+type DocProjectsResponse struct {
+	Projects []ProjectResponse `json:"projects"`
+}
+
 type DocAllProjectResponse struct {
 	Project []ProjectResponse `json:"project"`
 }

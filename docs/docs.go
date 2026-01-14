@@ -1371,6 +1371,67 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/post/recommend": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for recommending users for a project using ai",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Recommends users to work on a project",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Users Retrieved",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocUsersResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/post/save-post": {
             "put": {
                 "security": [
@@ -2164,6 +2225,52 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/recommend": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for recommending projects for a user to work on using ai",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Recommends projects for a user to work on",
+                "responses": {
+                    "200": {
+                        "description": "Projects Retreived",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocProjectsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/schema.DocNormalResponse"
                         }
@@ -3646,6 +3753,17 @@ const docTemplate = `{
                 }
             }
         },
+        "schema.DocProjectsResponse": {
+            "type": "object",
+            "properties": {
+                "projects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.ProjectResponse"
+                    }
+                }
+            }
+        },
         "schema.DocSkillsResponse": {
             "type": "object",
             "properties": {
@@ -3670,6 +3788,17 @@ const docTemplate = `{
             "properties": {
                 "user": {
                     "$ref": "#/definitions/schema.UserProfileResponse"
+                }
+            }
+        },
+        "schema.DocUsersResponse": {
+            "type": "object",
+            "properties": {
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.UserProfileResponse"
+                    }
                 }
             }
         },

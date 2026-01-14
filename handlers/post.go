@@ -338,8 +338,8 @@ func (s *Service) RecommendUsers(ctx *gin.Context) {
 	}
 
 	res, err := s.Rec.GetRecommendation(project.ID, core.UserRecommendation)
-	if err != nil {
-		log.Printf("[gRPC Recommendation] Failed to get recommendation for project -> %v, err -> %v", project.ID, err.Error())
+	if err != nil || res == nil {
+		log.Printf("[gRPC Recommendation] Failed to get recommendation for project -> %v, err -> %v", project.ID, err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to retrieve users for the project."})
 		return
 	}

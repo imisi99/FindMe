@@ -84,6 +84,16 @@ func TestGetProjects(t *testing.T) {
 	assert.Contains(t, w.Body.String(), defProjectDescription)
 }
 
+func TestRecommendUsers(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/post/recommend", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
 func TestSearchProjectTags(t *testing.T) {
 	payload := map[string][]string{"tags": {"backend"}}
 	body, _ := json.Marshal(payload)

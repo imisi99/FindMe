@@ -142,6 +142,16 @@ func TestGetUserProfile(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "johndoe@gmail.com")
 }
 
+func TestRecommendProjects(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/recommend", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
 func TestViewGitUser(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-git?id=imisi99", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)

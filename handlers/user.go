@@ -244,6 +244,67 @@ func (s *Service) GetUserInfo(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"user": profile})
 }
 
+// RecommendProjects godoc
+// @Summary  Recommends projects for a user to work on
+// @Description An endpoint for recommending projects for a user to work on using ai
+// @Tags User
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} schema.DocProjectsResponse "Projects Retreived"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/user/recommend [get]
+func (s *Service) RecommendProjects(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if !model.IsValidUUID(uid) || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	rec, err := s.Rec.GetRecommendation(uid, core.ProjectRecommendation)
+	if err != nil || rec == nil {
+		log.Printf("[gRPC Recommendation] Failed to get recommendation for user -> %v, err -> %v", uid, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to retreive projects for the user."})
+		return
+	}
+
+	var user model.User
+	if err := s.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	var projects []model.Project
+	if err := s.DB.FindProjects(&projects, rec.IDs); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	var result []schema.ProjectResponse
+
+	for _, project := range projects {
+		var tags []string
+		for _, tag := range project.Tags {
+			tags = append(tags, tag.Name)
+		}
+		result = append(result, schema.ProjectResponse{
+			ID:          project.ID,
+			Title:       project.Title,
+			Description: project.Description,
+			Tags:        tags,
+			CreatedAt:   project.CreatedAt,
+			UpdatedAt:   project.UpdatedAt,
+			Views:       project.Views,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"projects": result})
+}
+
 // ViewUser godoc
 // @Summary			 Search for user with their username
 // @Description  An endpoint for searching for a user with their username to show their projects and profile

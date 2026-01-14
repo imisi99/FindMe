@@ -105,6 +105,13 @@ definitions:
       user:
         $ref: '#/definitions/schema.UserProfileResponse'
     type: object
+  schema.DocProjectsResponse:
+    properties:
+      projects:
+        items:
+          $ref: '#/definitions/schema.ProjectResponse'
+        type: array
+    type: object
   schema.DocSkillsResponse:
     properties:
       skills:
@@ -121,6 +128,13 @@ definitions:
     properties:
       user:
         $ref: '#/definitions/schema.UserProfileResponse'
+    type: object
+  schema.DocUsersResponse:
+    properties:
+      users:
+        items:
+          $ref: '#/definitions/schema.UserProfileResponse'
+        type: array
     type: object
   schema.DocUsersSearch:
     properties:
@@ -1388,6 +1402,45 @@ paths:
       summary: Retreive all current user projects
       tags:
       - Project
+  /api/post/recommend:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for recommending users for a project using ai
+      parameters:
+      - description: Project ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users Retrieved
+          schema:
+            $ref: '#/definitions/schema.DocUsersResponse'
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Recommends users to work on a project
+      tags:
+      - Project
   /api/post/save-post:
     put:
       consumes:
@@ -1911,6 +1964,36 @@ paths:
       security:
       - BearerAuth: []
       summary: Get the logged in user info
+      tags:
+      - User
+  /api/user/recommend:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for recommending projects for a user to work on using
+        ai
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Projects Retreived
+          schema:
+            $ref: '#/definitions/schema.DocProjectsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Recommends projects for a user to work on
       tags:
       - User
   /api/user/reset-password:

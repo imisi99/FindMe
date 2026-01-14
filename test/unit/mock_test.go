@@ -148,7 +148,7 @@ type RecommendationMock struct{}
 func (r *RecommendationMock) QueueUserRecommendation(_ string)    {}
 func (r *RecommendationMock) QueueProjectRecommendation(_ string) {}
 func (r *RecommendationMock) GetRecommendation(ID string, jobType core.RecommendationJobType) (*schema.RecResponse, error) {
-	return nil, nil
+	return &schema.RecResponse{}, nil
 }
 
 func NewRecommendationMock() *RecommendationMock {
