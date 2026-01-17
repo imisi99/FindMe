@@ -197,7 +197,7 @@ func (db *GormDB) CheckExistingAppReq(pid, uid string) (error, bool) {
 
 // VerifyUser -> Verify users for logging-in
 func (db *GormDB) VerifyUser(user *model.User, username string) error {
-	if err := db.DB.Where("username = ? OR email = ?", username, username).First(user).Error; err != nil {
+	if err := db.DB.Preload("Subscriptions").Where("username = ? OR email = ?", username, username).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "Invalid Credentials!"}
 		} else {

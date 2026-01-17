@@ -18,6 +18,7 @@ import (
 type JWTClaims struct {
 	UserID  string
 	Purpose string
+	Premium bool
 	jwt.RegisteredClaims
 }
 
@@ -36,10 +37,11 @@ var (
 )
 
 // GenerateJWT -> Generates JWT token
-func GenerateJWT(userID string, purpose string, expiry time.Duration) (string, error) {
+func GenerateJWT(userID string, purpose string, premium bool, expiry time.Duration) (string, error) {
 	claims := JWTClaims{
 		UserID:  userID,
 		Purpose: purpose,
+		Premium: premium,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -77,7 +79,9 @@ func Authorization(user *model.User, password string) (string, error) {
 		return "", &core.CustomMessage{Code: 404, Message: "Invalid Credentials!"}
 	}
 
-	jwtToken, err := GenerateJWT(user.ID, "login", JWTExpiry)
+	premium := core.CheckSubscription(user)
+
+	jwtToken, err := GenerateJWT(user.ID, "login", premium, JWTExpiry)
 	if err != nil {
 		return "", &core.CustomMessage{Code: 500, Message: "Failed to generate jwt token"}
 	}

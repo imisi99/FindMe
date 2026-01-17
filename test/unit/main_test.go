@@ -145,8 +145,8 @@ func TestMain(m *testing.M) {
 	_ = service.DB.FetchAllSkills(&skills)
 	service.RDB.CacheSkills(skills)
 	router = getTestRouter(service)
-	tokenString, _ = handlers.GenerateJWT(id1, "login", handlers.JWTExpiry)  // Initially the logged in user is the super user me for the post test
-	tokenString1, _ = handlers.GenerateJWT(id2, "login", handlers.JWTExpiry) // User for saving post
+	tokenString, _ = handlers.GenerateJWT(id1, "login", true, handlers.JWTExpiry)  // Initially the logged in user is the super user me for the post test
+	tokenString1, _ = handlers.GenerateJWT(id2, "login", true, handlers.JWTExpiry) // User for saving post
 	code := m.Run()
 
 	os.Exit(code)

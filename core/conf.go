@@ -5,6 +5,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	norm "math/rand"
+	"time"
+
+	"findme/model"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -61,4 +64,16 @@ func GenerateUsername(username string) string {
 		b[i] = charset[norm.Intn(len(charset))]
 	}
 	return username + "_" + string(b)
+}
+
+func CheckSubscription(user *model.User) bool {
+	premium := false
+	if len(user.Subscriptions) > 0 {
+		for _, sub := range user.Subscriptions { // TODO: This is probably not the best way to do this (not efficient) but works for now
+			if time.Now().Before(sub.EndDate) {
+				premium = true
+			}
+		}
+	}
+	return premium
 }

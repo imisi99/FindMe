@@ -78,7 +78,7 @@ func (s *Service) AddUser(ctx *gin.Context) {
 		return
 	}
 
-	jwtToken, err := GenerateJWT(user.ID, "login", JWTExpiry)
+	jwtToken, err := GenerateJWT(user.ID, "login", false, JWTExpiry)
 	if err != nil {
 		log.Println("[APP] Failed to generate jwt token -> ", err.Error())
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to generate jwt token."})
@@ -966,7 +966,7 @@ func (s *Service) VerifyOTP(ctx *gin.Context) {
 		return
 	}
 
-	jwt, err := GenerateJWT(uid, "reset", JWTRExpiry)
+	jwt, err := GenerateJWT(uid, "reset", false, JWTRExpiry)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to create jwt token."})
 		return

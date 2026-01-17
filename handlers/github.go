@@ -191,7 +191,8 @@ func (g *GitService) GitHubAddUserCallback(token, code, state, storedState strin
 
 	var existingUser model.User
 	if err := g.DB.FindExistingGitID(&existingUser, user.ID); err == nil {
-		userToken, err := GenerateJWT(existingUser.ID, "login", JWTExpiry)
+		premium := core.CheckSubscription(&existingUser)
+		userToken, err := GenerateJWT(existingUser.ID, "login", premium, JWTExpiry)
 		if err != nil {
 			return "", "", &core.CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to generate jwt token for user."}
 		}
@@ -258,7 +259,7 @@ func (g *GitService) GitHubAddUserCallback(token, code, state, storedState strin
 
 	g.EmbHub.QueueUserCreate(newUser.ID, newUser.Bio, []string{""}, []string{""})
 
-	userToken, err := GenerateJWT(newUser.ID, "login", JWTExpiry)
+	userToken, err := GenerateJWT(newUser.ID, "login", false, JWTExpiry)
 	if err != nil {
 		return "", "", &core.CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to generate jwt token for user."}
 	}

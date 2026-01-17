@@ -22,15 +22,25 @@ type User struct {
 	Availability bool
 
 	// Relations:
-	Skills         []*Skill      `gorm:"many2many:user_skills"`
-	Projects       []*Project    `gorm:"foreignKey:UserID"`
-	SavedProjects  []*Project    `gorm:"many2many:user_saved_projects"`
-	Friends        []*User       `gorm:"many2many:user_friends"`
-	FriendReq      []*FriendReq  `gorm:"foreignKey:UserID"`
-	RecFriendReq   []*FriendReq  `gorm:"foreignKey:FriendID"`
-	Chats          []*Chat       `gorm:"many2many:chat_users"`
-	SentProjectReq []*ProjectReq `gorm:"foreignKey:FromID"`
-	RecProjectReq  []*ProjectReq `gorm:"foreignKey:ToID"`
+	Skills         []*Skill         `gorm:"many2many:user_skills"`
+	Projects       []*Project       `gorm:"foreignKey:UserID"`
+	SavedProjects  []*Project       `gorm:"many2many:user_saved_projects"`
+	Friends        []*User          `gorm:"many2many:user_friends"`
+	FriendReq      []*FriendReq     `gorm:"foreignKey:UserID"`
+	RecFriendReq   []*FriendReq     `gorm:"foreignKey:FriendID"`
+	Chats          []*Chat          `gorm:"many2many:chat_users"`
+	SentProjectReq []*ProjectReq    `gorm:"foreignKey:FromID"`
+	RecProjectReq  []*ProjectReq    `gorm:"foreignKey:ToID"`
+	Subscriptions  []*Subscriptions `gorm:"foreignKey:UserID"`
+}
+
+type Subscriptions struct {
+	GormModel
+	UserID    string
+	StartDate time.Time
+	EndDate   time.Time
+
+	User *User `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 type UserFriend struct {
