@@ -191,7 +191,7 @@ func (g *GitService) GitHubAddUserCallback(token, code, state, storedState strin
 
 	var existingUser model.User
 	if err := g.DB.FindExistingGitID(&existingUser, user.ID); err == nil {
-		premium := core.CheckSubscription(&existingUser)
+		premium := CheckSubscription(&existingUser)
 		userToken, err := GenerateJWT(existingUser.ID, "login", premium, JWTExpiry)
 		if err != nil {
 			return "", "", &core.CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to generate jwt token for user."}

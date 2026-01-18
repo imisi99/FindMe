@@ -1865,6 +1865,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/transc/view": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint that retrieves all the transactions of the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transactions"
+                ],
+                "summary": "Retrieves the transactions for a user",
+                "responses": {
+                    "200": {
+                        "description": "Transactions retrieved",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocTranscResposne"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/user/connect-github": {
             "post": {
                 "security": [
@@ -3783,6 +3829,17 @@ const docTemplate = `{
                 }
             }
         },
+        "schema.DocTranscResposne": {
+            "type": "object",
+            "properties": {
+                "transactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.TransactionResponse"
+                    }
+                }
+            }
+        },
         "schema.DocUserResponse": {
             "type": "object",
             "properties": {
@@ -4183,6 +4240,14 @@ const docTemplate = `{
                     }
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.TransactionResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
                     "type": "string"
                 }
             }

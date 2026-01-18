@@ -90,3 +90,7 @@ type DocViewAllChats struct {
 type DocViewRepos struct {
 	Repos []ViewRepo `json:"repos"`
 }
+
+type DocTranscResposne struct {
+	Transactions []TransactionResponse
+}

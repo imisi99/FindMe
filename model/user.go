@@ -8,6 +8,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// TODO:
+// Add a country field for the user
+
 type User struct {
 	GormModel
 	FullName     string  `gorm:"column:fullname;not null"`
@@ -21,6 +24,8 @@ type User struct {
 	GitUser      bool           `gorm:"column:gituser"`
 	Availability bool
 
+	FreeTrial time.Time `gorm:"column:trial"`
+
 	// Relations:
 	Skills         []*Skill         `gorm:"many2many:user_skills"`
 	Projects       []*Project       `gorm:"foreignKey:UserID"`
@@ -32,15 +37,27 @@ type User struct {
 	SentProjectReq []*ProjectReq    `gorm:"foreignKey:FromID"`
 	RecProjectReq  []*ProjectReq    `gorm:"foreignKey:ToID"`
 	Subscriptions  []*Subscriptions `gorm:"foreignKey:UserID"`
+	Transactions   []*Transactions  `gorm:"foreignKey:UserID"`
 }
 
 type Subscriptions struct {
 	GormModel
-	UserID    string
-	StartDate time.Time
-	EndDate   time.Time
+	UserID        string
+	TransactionID string
+	StartDate     time.Time
+	EndDate       time.Time
+
+	User        *User         `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Transaction *Transactions `gorm:"foreignKey:TransactionID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+}
+
+type Transactions struct {
+	GormModel
+	Paid   int
+	UserID string
 
 	User *User `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	// TODO: Add other details for the payment service
 }
 
 type UserFriend struct {

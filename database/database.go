@@ -40,6 +40,8 @@ func Connect() *gorm.DB {
 		&model.UserSavedProject{},
 		&model.Chat{},
 		&model.ChatUser{},
+		&model.Subscriptions{},
+		&model.Transactions{},
 	)
 	if err != nil {
 		log.Fatalf("[ERROR] [DB] Failed to create tables -> %s", err.Error())

@@ -124,6 +124,13 @@ definitions:
       token:
         type: string
     type: object
+  schema.DocTranscResposne:
+    properties:
+      transactions:
+        items:
+          $ref: '#/definitions/schema.TransactionResponse'
+        type: array
+    type: object
   schema.DocUserResponse:
     properties:
       user:
@@ -389,6 +396,11 @@ definitions:
     - fullname
     - password
     - username
+    type: object
+  schema.TransactionResponse:
+    properties:
+      id:
+        type: string
     type: object
   schema.UpdatePassword:
     properties:
@@ -1722,6 +1734,36 @@ paths:
       summary: View all current user bookmarked projects
       tags:
       - Project
+  /api/transc/view:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint that retrieves all the transactions of the current
+        user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Transactions retrieved
+          schema:
+            $ref: '#/definitions/schema.DocTranscResposne'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Retrieves the transactions for a user
+      tags:
+      - Transactions
   /api/user/connect-github:
     post:
       consumes:

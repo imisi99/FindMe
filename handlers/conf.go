@@ -79,7 +79,7 @@ func Authorization(user *model.User, password string) (string, error) {
 		return "", &core.CustomMessage{Code: 404, Message: "Invalid Credentials!"}
 	}
 
-	premium := core.CheckSubscription(user)
+	premium := CheckSubscription(user)
 
 	jwtToken, err := GenerateJWT(user.ID, "login", premium, JWTExpiry)
 	if err != nil {
@@ -87,6 +87,19 @@ func Authorization(user *model.User, password string) (string, error) {
 	}
 
 	return jwtToken, nil
+}
+
+// CheckSubscription -> Checks if a user has a current subscription
+func CheckSubscription(user *model.User) bool {
+	premium := false
+	if len(user.Subscriptions) > 0 {
+		for _, sub := range user.Subscriptions { // TODO: This is probably not the best way to do this (not efficient) but works for now
+			if time.Now().Before(sub.EndDate) {
+				premium = true
+			}
+		}
+	}
+	return premium
 }
 
 // Authentication -> Authenticate user
@@ -116,6 +129,7 @@ func (s *Service) Authentication() gin.HandlerFunc {
 
 		ctx.Set("userID", payload.UserID)
 		ctx.Set("purpose", payload.Purpose)
+		ctx.Set("premium", payload.Premium)
 
 		ctx.Next()
 	}

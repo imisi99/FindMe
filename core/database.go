@@ -30,6 +30,7 @@ type DB interface {
 	FetchUserPreloadF(user *model.User, uid string) error
 	FetchUserPreloadFReq(user *model.User, uid string) error
 	FetchUserPreloadPReq(user *model.User, uid string) error
+	FetchUserPreloadT(user *model.User, uid string) error
 	SearchUserEmail(user *model.User, email string) error
 	SearchUserPreloadSP(user *model.User, username string) error
 	SearchUserGitPreloadSP(user *model.User, gitusername string) error
@@ -282,6 +283,18 @@ func (db *GormDB) FetchUserPreloadPReq(user *model.User, uid string) error {
 	if err := db.DB.Preload("SentProjectReq").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found."}
+		} else {
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to retrieve user."}
+		}
+	}
+	return nil
+}
+
+// FetchUserPreloadT -> Retrieves a user from the db with the user Transactions preloaded
+func (db *GormDB) FetchUserPreloadT(user *model.User, uid string) error {
+	if err := db.DB.Preload("Transactions").Where("id = ?", uid).First(user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found"}
 		} else {
 			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to retrieve user."}
 		}
