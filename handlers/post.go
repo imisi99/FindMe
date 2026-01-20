@@ -314,6 +314,7 @@ func (s *Service) CreateProject(ctx *gin.Context) {
 // @Success 200 {object} schema.DocUsersResponse "Users Retrieved"
 // @Failure 400 {object} schema.DocNormalResponse "Invalid id"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 402 {object} schema.DocNormalResponse "Payment Required"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
 // @Failure 500 {object} schema.DocNormalResponse "Server error"
 // @Router /api/post/recommend [get]
@@ -321,6 +322,12 @@ func (s *Service) RecommendUsers(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	premium := ctx.GetBool("premium")
+	if !premium {
+		ctx.JSON(http.StatusPaymentRequired, gin.H{"msg": "You need to pay to use this service."})
 		return
 	}
 

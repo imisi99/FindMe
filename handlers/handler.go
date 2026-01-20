@@ -46,9 +46,11 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedUserRoutes := router.Group("/api/user")
 	protectedProjectRoutes := router.Group("/api/post")
 	protectedMsgRoutes := router.Group("/api/msg")
+	protectedTranscRoutes := router.Group("/api/transc")
 	protectedUserRoutes.Use(service.Authentication())
 	protectedProjectRoutes.Use(service.Authentication())
 	protectedMsgRoutes.Use(service.Authentication())
+	protectedTranscRoutes.Use(service.Authentication())
 
 	protectedUserRoutes.GET("/profile", service.GetUserInfo)
 	protectedUserRoutes.POST("/search", service.ViewUserbySkills)
@@ -60,6 +62,7 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedUserRoutes.GET("/view-user-friend", service.ViewUserFriendsByID)
 	protectedUserRoutes.GET("/view-repo", service.Git.ViewRepo)
 	protectedUserRoutes.GET("/recommend", service.RecommendProjects)
+	protectedUserRoutes.GET("/view-subs", service.ViewSubscriptions)
 	protectedUserRoutes.POST("/send-user-req", service.SendFriendReq)
 	protectedUserRoutes.POST("/connect-github", service.Git.ConnectGitHub)
 	protectedUserRoutes.PUT("/update-profile", service.UpdateUserInfo)
@@ -74,6 +77,8 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedUserRoutes.DELETE("/delete-user", service.DeleteUserAccount)
 	protectedUserRoutes.DELETE("/delete-friend-req", service.DeleteSentReq)
 	protectedUserRoutes.DELETE("/delete-user-friend", service.DeleteUserFriend)
+
+	protectedTranscRoutes.GET("/view", service.GetTransactions)
 
 	protectedMsgRoutes.GET("/ws/chat", service.WSChat)
 

@@ -198,6 +198,13 @@ definitions:
           $ref: '#/definitions/schema.ViewRepo'
         type: array
     type: object
+  schema.DocViewSubscriptions:
+    properties:
+      subs:
+        items:
+          $ref: '#/definitions/schema.ViewSubscriptions'
+        type: array
+    type: object
   schema.EditMessage:
     properties:
       msg:
@@ -533,6 +540,15 @@ definitions:
       language:
         type: string
       name:
+        type: string
+    type: object
+  schema.ViewSubscriptions:
+    properties:
+      end:
+        type: string
+      id:
+        type: string
+      start:
         type: string
     type: object
 info:
@@ -1440,6 +1456,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/schema.DocNormalResponse'
+        "402":
+          description: Payment Required
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
         "404":
           description: Record not found
           schema:
@@ -2025,6 +2045,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/schema.DocNormalResponse'
+        "402":
+          description: Payment Required
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
         "404":
           description: Record not found
           schema:
@@ -2599,6 +2623,35 @@ paths:
       summary: View Github public repo for current user
       tags:
       - Git
+  /api/user/view-subs:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for viewing the history of a user's subsciption
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Subscriptions
+          schema:
+            $ref: '#/definitions/schema.DocViewSubscriptions'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Views a user subscription history
+      tags:
+      - User
   /api/user/view-user-friend:
     get:
       consumes:

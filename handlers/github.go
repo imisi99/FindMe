@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"findme/core"
 	"findme/model"
@@ -250,6 +251,7 @@ func (g *GitService) GitHubAddUserCallback(token, code, state, storedState strin
 		GitUser:      true,
 		UserName:     newUsername,
 		Availability: true,
+		FreeTrial:    time.Now().Add(7 * 24 * time.Hour),
 		Bio:          user.Bio,
 	}
 

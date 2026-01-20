@@ -98,6 +98,12 @@ type UserProfileResponse struct {
 	Interests    []string
 }
 
+type ViewSubscriptions struct {
+	ID    string
+	Start time.Time
+	End   time.Time
+}
+
 type FriendReqStatus struct {
 	ID       string
 	Username string

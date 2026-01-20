@@ -31,6 +31,7 @@ type DB interface {
 	FetchUserPreloadFReq(user *model.User, uid string) error
 	FetchUserPreloadPReq(user *model.User, uid string) error
 	FetchUserPreloadT(user *model.User, uid string) error
+	FetchUserPreloadSub(user *model.User, uid string) error
 	SearchUserEmail(user *model.User, email string) error
 	SearchUserPreloadSP(user *model.User, username string) error
 	SearchUserGitPreloadSP(user *model.User, gitusername string) error
@@ -122,7 +123,8 @@ func (db *GormDB) AddUser(user *model.User) error {
 
 // FindUsers -> Retrieves a list of users from the db with their skills preloaded
 func (db *GormDB) FindUsers(users *[]model.User, ids []string) error {
-	if err := db.DB.Where("id IN ?", ids).Preload("Skills").Find(users); err != nil {
+	if err := db.DB.Preload("Skills").Where("id IN ?", ids).Find(users).Error; err != nil {
+		log.Println(err)
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to retrieve users."}
 	}
 	return nil
@@ -293,6 +295,18 @@ func (db *GormDB) FetchUserPreloadPReq(user *model.User, uid string) error {
 // FetchUserPreloadT -> Retrieves a user from the db with the user Transactions preloaded
 func (db *GormDB) FetchUserPreloadT(user *model.User, uid string) error {
 	if err := db.DB.Preload("Transactions").Where("id = ?", uid).First(user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found"}
+		} else {
+			return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to retrieve user."}
+		}
+	}
+	return nil
+}
+
+// FetchUserPreloadSub -> Retrieves a user from the db with the subscriptions preloaded
+func (db *GormDB) FetchUserPreloadSub(user *model.User, uid string) error {
+	if err := db.DB.Preload("Subscriptions").Where("id = ?", uid).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return &CustomMessage{Code: http.StatusNotFound, Message: "User not found"}
 		} else {
@@ -488,7 +502,7 @@ func (db *GormDB) AddProject(project *model.Project) error {
 
 // FindProjects -> Retrieves a list of projects in the db with the tags preloaded
 func (db *GormDB) FindProjects(projects *[]model.Project, ids []string) error {
-	if err := db.DB.Where("id IN ?", ids).Preload("Tags").Find(projects); err != nil {
+	if err := db.DB.Preload("Tags").Where("id IN ?", ids).Find(projects).Error; err != nil {
 		return &CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to retrieve projects"}
 	}
 	return nil

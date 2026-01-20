@@ -85,7 +85,7 @@ func TestGetProjects(t *testing.T) {
 }
 
 func TestRecommendUsers(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/api/post/recommend", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/api/post/recommend?id="+project.ID, nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
 
 	w := httptest.NewRecorder()

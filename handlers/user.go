@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"findme/core"
 	"findme/model"
@@ -67,6 +68,7 @@ func (s *Service) AddUser(ctx *gin.Context) {
 		Bio:       payload.Bio,
 		Interests: payload.Interests,
 		GitUser:   false,
+		FreeTrial: time.Now().Add(7 * 24 * time.Hour),
 
 		Skills:       allskills,
 		Availability: true,
@@ -253,6 +255,7 @@ func (s *Service) GetUserInfo(ctx *gin.Context) {
 // @Security BearerAuth
 // @Success 200 {object} schema.DocProjectsResponse "Projects Retreived"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 402 {object} schema.DocNormalResponse "Payment Required"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
 // @Failure 500 {object} schema.DocNormalResponse "Server error"
 // @Router /api/user/recommend [get]
@@ -260,6 +263,12 @@ func (s *Service) RecommendProjects(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	premium := ctx.GetBool("premium")
+	if !premium {
+		ctx.JSON(http.StatusPaymentRequired, gin.H{"msg": "You need to pay to use this service."})
 		return
 	}
 
@@ -1411,6 +1420,45 @@ func (s *Service) DeleteUserSkills(ctx *gin.Context) {
 	s.Emb.QueueUserUpdate(user.ID, user.Bio, skills, user.Interests)
 
 	ctx.JSON(http.StatusNoContent, nil)
+}
+
+// ViewSubscriptions godoc
+// @Summary  Views a user subscription history
+// @Description An endpoint for viewing the history of a user's subsciption
+// @Tags User
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} schema.DocViewSubscriptions "Subscriptions"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/user/view-subs [get]
+func (s *Service) ViewSubscriptions(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if !model.IsValidUUID(uid) || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	var user model.User
+	if err := s.DB.FetchUserPreloadSub(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	var response []schema.ViewSubscriptions
+
+	for _, sub := range user.Subscriptions {
+		response = append(response, schema.ViewSubscriptions{
+			ID:    sub.ID,
+			Start: sub.StartDate,
+			End:   sub.EndDate,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"subs": response})
 }
 
 // DeleteUserAccount godoc

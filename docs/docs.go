@@ -1417,6 +1417,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/schema.DocNormalResponse"
                         }
                     },
+                    "402": {
+                        "description": "Payment Required",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
                     "404": {
                         "description": "Record not found",
                         "schema": {
@@ -2321,6 +2327,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/schema.DocNormalResponse"
                         }
                     },
+                    "402": {
+                        "description": "Payment Required",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
                     "404": {
                         "description": "Record not found",
                         "schema": {
@@ -3200,6 +3212,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/user/view-subs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for viewing the history of a user's subsciption",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Views a user subscription history",
+                "responses": {
+                    "200": {
+                        "description": "Subscriptions",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocViewSubscriptions"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/user/view-user-friend": {
             "get": {
                 "security": [
@@ -3945,6 +4003,17 @@ const docTemplate = `{
                 }
             }
         },
+        "schema.DocViewSubscriptions": {
+            "type": "object",
+            "properties": {
+                "subs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.ViewSubscriptions"
+                    }
+                }
+            }
+        },
         "schema.EditMessage": {
             "type": "object",
             "required": [
@@ -4450,6 +4519,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.ViewSubscriptions": {
+            "type": "object",
+            "properties": {
+                "end": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "start": {
                     "type": "string"
                 }
             }

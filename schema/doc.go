@@ -94,3 +94,7 @@ type DocViewRepos struct {
 type DocTranscResposne struct {
 	Transactions []TransactionResponse
 }
+
+type DocViewSubscriptions struct {
+	Subs []ViewSubscriptions
+}

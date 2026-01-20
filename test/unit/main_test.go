@@ -33,21 +33,27 @@ func getTestDB() *core.GormDB {
 	})
 
 	_ = db.AutoMigrate(
-		&model.Skill{},
 		&model.User{},
+		&model.Skill{},
 		&model.Project{},
+		&model.ProjectReq{},
 		&model.ProjectSkill{},
 		&model.UserSkill{},
 		&model.UserFriend{},
 		&model.FriendReq{},
 		&model.UserMessage{},
-		&model.ProjectReq{},
+		&model.UserSavedProject{},
+		&model.Chat{},
+		&model.ChatUser{},
+		&model.Subscriptions{},
+		&model.Transactions{},
 	)
 
 	_ = db.SetupJoinTable(&model.Project{}, "Tags", &model.ProjectSkill{})
 	_ = db.SetupJoinTable(&model.User{}, "Skills", &model.UserSkill{})
 	_ = db.SetupJoinTable(&model.User{}, "Friends", &model.UserFriend{})
 	_ = db.SetupJoinTable(&model.User{}, "Chats", &model.ChatUser{})
+	_ = db.SetupJoinTable(&model.User{}, "SavedProjects", &model.UserSavedProject{})
 
 	gdb := core.NewGormDB(db)
 	superUser(gdb)

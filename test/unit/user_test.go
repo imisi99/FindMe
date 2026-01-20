@@ -582,6 +582,16 @@ func TestDeleteSkills(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }
 
+func TestViewSubscriptions(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/view-subs", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
 func TestDeleteUser(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodDelete, "/api/user/delete-user", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
