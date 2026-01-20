@@ -298,7 +298,7 @@ func (s *Service) CreateProject(ctx *gin.Context) {
 		Views:       project.Views,
 	}
 
-	s.Emb.QueueProjectCreate(project.ID, project.Title, project.Description, payload.Tags)
+	s.Emb.QueueProjectCreate(project.ID, project.Title, project.Description, uid, payload.Tags)
 
 	ctx.JSON(http.StatusCreated, gin.H{"project": result})
 }

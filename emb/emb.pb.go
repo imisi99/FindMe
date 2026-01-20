@@ -94,7 +94,8 @@ type ProjectEmbeddingRequest struct {
 	ProjectId     string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Skills        []string               `protobuf:"bytes,4,rep,name=skills,proto3" json:"skills,omitempty"`
+	UserId        string                 `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Skills        []string               `protobuf:"bytes,5,rep,name=skills,proto3" json:"skills,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -146,6 +147,13 @@ func (x *ProjectEmbeddingRequest) GetTitle() string {
 func (x *ProjectEmbeddingRequest) GetDescription() string {
 	if x != nil {
 		return x.Description
+	}
+	return ""
+}
+
+func (x *ProjectEmbeddingRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
 	}
 	return ""
 }
@@ -314,13 +322,14 @@ const file_emb_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x10\n" +
 	"\x03bio\x18\x02 \x01(\tR\x03bio\x12\x16\n" +
 	"\x06skills\x18\x03 \x03(\tR\x06skills\x12\x1c\n" +
-	"\tinterests\x18\x04 \x03(\tR\tinterests\"\x88\x01\n" +
+	"\tinterests\x18\x04 \x03(\tR\tinterests\"\xa1\x01\n" +
 	"\x17ProjectEmbeddingRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x16\n" +
-	"\x06skills\x18\x04 \x03(\tR\x06skills\"=\n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x17\n" +
+	"\auser_id\x18\x04 \x01(\tR\x06userId\x12\x16\n" +
+	"\x06skills\x18\x05 \x03(\tR\x06skills\"=\n" +
 	"\x13UpdateStatusRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\bR\x06status\"(\n" +

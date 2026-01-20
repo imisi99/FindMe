@@ -16,7 +16,7 @@ type Embedding interface {
 	QueueUserUpdate(id, bio string, skills, interest []string)
 	QueueUserUpdateStatus(id string, status bool)
 	QueueUserDelete(id string)
-	QueueProjectCreate(id, title, description string, skills []string)
+	QueueProjectCreate(id, title, description, uid string, skills []string)
 	QueueProjectUpdate(id, title, description string, skills []string)
 	QueueProjectUpdateStatus(id string, status bool)
 	QueueProjectDelete(id string)
@@ -156,6 +156,7 @@ func (e *EmbeddingHub) ProcessJob(job *EmbeddingJob, userClient emb.UserEmbeddin
 			Title:       job.Project.Title,
 			Description: job.Project.Description,
 			Skills:      job.Project.Skills,
+			UserId:      job.User.ID,
 		})
 	case UpdateProjectEmbedding:
 		_, err = projectClient.UpdateProjectEmbedding(ctx, &emb.ProjectEmbeddingRequest{
@@ -224,7 +225,7 @@ func (e *EmbeddingHub) QueueUserDelete(id string) {
 	}
 }
 
-func (e *EmbeddingHub) QueueProjectCreate(id, title, description string, skills []string) {
+func (e *EmbeddingHub) QueueProjectCreate(id, title, description, uid string, skills []string) {
 	e.Jobs <- &EmbeddingJob{
 		Type:        CreateProjectEmbedding,
 		MaxAttempts: 3,
@@ -233,6 +234,9 @@ func (e *EmbeddingHub) QueueProjectCreate(id, title, description string, skills 
 			Title:       title,
 			Description: description,
 			Skills:      skills,
+		},
+		User: &UserEmbedding{
+			ID: uid,
 		},
 	}
 }

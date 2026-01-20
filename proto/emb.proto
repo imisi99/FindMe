@@ -29,7 +29,8 @@ message ProjectEmbeddingRequest {
   string project_id = 1;
   string title = 2;
   string description = 3;
-  repeated string skills = 4;
+  string user_id = 4;
+  repeated string skills = 5;
 }
 
 message UpdateStatusRequest {
