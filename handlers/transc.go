@@ -40,9 +40,40 @@ func (s *Service) GetTransactions(ctx *gin.Context) {
 
 	for _, transc := range user.Transactions {
 		response = append(response, schema.TransactionResponse{
-			ID: transc.ID,
+			ID:      transc.ID,
+			Amount:  transc.Amount,
+			Channel: transc.Channel,
+			Status:  transc.Status,
+			PaidAt:  *transc.PaidAt,
 		})
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"transactions": response})
+}
+
+// CreateTransaction godoc
+// @Summary Creates a transaction for subscription payment
+// @Description An endpoint for creating a transaction to initiate the payment process
+// @Tags Transaction
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+func (s *Service) CreateTransaction(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if !model.IsValidUUID(uid) || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	var transc model.Transactions
+
+	if err := s.DB.AddTransaction(&transc); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{"msg": "ok"})
 }

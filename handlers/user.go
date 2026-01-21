@@ -14,6 +14,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// TODO:
+// Add a country field for the signup
+
 // AddUser godoc
 // @Summary			Register a new user
 // @Description  Sign up endpoint for new users it internally calls a service to create a vector for the user
@@ -80,7 +83,7 @@ func (s *Service) AddUser(ctx *gin.Context) {
 		return
 	}
 
-	jwtToken, err := GenerateJWT(user.ID, "login", false, JWTExpiry)
+	jwtToken, err := GenerateJWT(user.ID, "login", true, JWTExpiry)
 	if err != nil {
 		log.Println("[APP] Failed to generate jwt token -> ", err.Error())
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to generate jwt token."})

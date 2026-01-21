@@ -8,14 +8,12 @@ import (
 	"gorm.io/gorm"
 )
 
-// TODO:
-// Add a country field for the user
-
 type User struct {
 	GormModel
-	FullName     string  `gorm:"column:fullname;not null"`
-	UserName     string  `gorm:"column:username;unique;not null;index"`
-	Email        string  `gorm:"unique;not null"`
+	FullName     string `gorm:"column:fullname;not null"`
+	UserName     string `gorm:"column:username;unique;not null;index"`
+	Email        string `gorm:"unique;not null"`
+	Country      string
 	GitUserName  *string `gorm:"column:gitusername;uniqueIndex"`
 	GitID        *int64  `gorm:"column:gitid;uniqueIndex"`
 	Password     string
@@ -44,6 +42,7 @@ type Subscriptions struct {
 	GormModel
 	UserID        string
 	TransactionID string
+	Status        string
 	StartDate     time.Time
 	EndDate       time.Time
 
@@ -53,11 +52,16 @@ type Subscriptions struct {
 
 type Transactions struct {
 	GormModel
-	Paid   int
-	UserID string
+	UserID      string
+	Amount      int64
+	Curency     string `gorm:"default:'NGN'"`
+	Reference   string `gorm:"uniqueIndex"`
+	PaystackRef string
+	Status      string `gorm:"default:'pending'"`
+	Channel     string
+	PaidAt      *time.Time
 
 	User *User `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	// TODO: Add other details for the payment service
 }
 
 type UserFriend struct {
@@ -96,6 +100,11 @@ type FriendReq struct {
 const (
 	StatusAccepted = "accepted"
 	StatusRejected = "rejected"
+	StatusPending  = "pending"
+	StatusActive   = "active"
+	StatusFailed   = "failed"
+	StatusSuccess  = "success"
+	StatusExpired  = "expired"
 )
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {

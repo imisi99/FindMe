@@ -406,7 +406,16 @@ definitions:
     type: object
   schema.TransactionResponse:
     properties:
+      amount:
+        format: int64
+        type: integer
+      channel:
+        type: string
       id:
+        type: string
+      paidAt:
+        type: string
+      status:
         type: string
     type: object
   schema.UpdatePassword:

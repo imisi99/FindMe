@@ -1,6 +1,11 @@
 package schema
 
+import "time"
+
 type TransactionResponse struct {
-	ID string
-	// TODO: Add other stuff from payment service possibly a backtract to the subscribtion
+	ID      string
+	Amount  int64
+	Channel string
+	Status  string
+	PaidAt  time.Time
 }

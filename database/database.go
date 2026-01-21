@@ -10,6 +10,7 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // Connect -> Connection to database
@@ -23,6 +24,8 @@ func Connect() *gorm.DB {
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db.Logger.LogMode(logger.Silent)
+
 	if err != nil {
 		log.Fatalf("[ERROR] [DB] Failed to establish database connection -> %s", err.Error())
 	}

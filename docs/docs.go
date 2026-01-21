@@ -4316,7 +4316,20 @@ const docTemplate = `{
         "schema.TransactionResponse": {
             "type": "object",
             "properties": {
+                "amount": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "channel": {
+                    "type": "string"
+                },
                 "id": {
+                    "type": "string"
+                },
+                "paidAt": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }

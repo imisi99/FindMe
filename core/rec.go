@@ -104,7 +104,9 @@ func (r *RecommendationHub) ProcessJob(job *RecommendationJob, client rec.Recomm
 		})
 	}
 
-	res.IDs = recRes.Ids
+	if recRes != nil {
+		res.IDs = recRes.Ids
+	}
 
 	return res, err
 }
@@ -141,9 +143,8 @@ func (r *RecommendationHub) GetRecommendation(ID string, jobType RecommendationJ
 		MaxAttempts: 1,
 	}
 
-	res := &schema.RecResponse{}
-
-	if res, err = r.ProcessJob(job, client); err != nil {
+	res, err := r.ProcessJob(job, client)
+	if err != nil {
 		return nil, err
 	}
 	return res, nil

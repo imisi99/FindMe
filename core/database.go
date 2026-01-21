@@ -88,6 +88,7 @@ type DB interface {
 	RemoveUserChat(chat *model.Chat, user *model.User) error
 	LeaveChat(chat *model.Chat, user *model.User) error
 	DeleteChat(chat *model.Chat) error
+	AddTransaction(transc *model.Transactions) error
 }
 
 type GormDB struct {
@@ -989,6 +990,14 @@ func (db *GormDB) DeleteChat(chat *model.Chat) error {
 	if err := db.DB.Delete(chat).Error; err != nil {
 		log.Printf("Unable to delete a group chat with id -> %v , err -> %v ", chat.ID, err.Error())
 		return &CustomMessage{http.StatusInternalServerError, "Failed to delete chat."}
+	}
+	return nil
+}
+
+func (db *GormDB) AddTransaction(transc *model.Transactions) error {
+	if err := db.DB.Create(transc).Error; err != nil {
+		log.Println("An error occured while trying to create a transaction -> ", err.Error())
+		return &CustomMessage{http.StatusInternalServerError, "Failed to initiate transaction"}
 	}
 	return nil
 }

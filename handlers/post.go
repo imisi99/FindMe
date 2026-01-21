@@ -256,7 +256,6 @@ func (s *Service) CreateProject(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse payload."})
 		return
 	}
-	log.Println(payload.Git)
 
 	for i := range payload.Tags {
 		payload.Tags[i] = strings.ToLower(payload.Tags[i])
