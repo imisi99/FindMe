@@ -15,6 +15,6 @@ message RecommendationRequest {
 
 message RecommendationResponse {
   bool success = 1;
-  repeated string ids = 2;
+  map<string, float> res = 2;
 }
 

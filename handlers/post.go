@@ -310,7 +310,7 @@ func (s *Service) CreateProject(ctx *gin.Context) {
 // @Produce json
 // @Param id query string true "Project ID"
 // @Security BearerAuth
-// @Success 200 {object} schema.DocUsersResponse "Users Retrieved"
+// @Success 200 {object} schema.DocRecUsersResponse "Users Retrieved"
 // @Failure 400 {object} schema.DocNormalResponse "Invalid id"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
 // @Failure 402 {object} schema.DocNormalResponse "Payment Required"
@@ -352,32 +352,42 @@ func (s *Service) RecommendUsers(ctx *gin.Context) {
 
 	var users []model.User
 
-	if err := s.DB.FindUsers(&users, res.IDs); err != nil {
+	var ids []string
+	for id := range res.Res {
+		ids = append(ids, id)
+	}
+
+	if err := s.DB.FindUsers(&users, ids); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	var profiles []schema.UserProfileResponse
+	var profiles []schema.RecProfileResponse
 
 	for _, user := range users {
+		score := res.Res[user.ID]
 		var skills []string
 		for _, skill := range user.Skills {
 			skills = append(skills, skill.Name)
 		}
 		profiles = append(profiles,
-			schema.UserProfileResponse{
-				ID:           user.ID,
-				UserName:     user.UserName,
-				FullName:     user.FullName,
-				Email:        user.Email,
-				GitUserName:  user.GitUserName,
-				Gituser:      user.GitUser,
-				Bio:          user.Bio,
-				Availability: user.Availability,
-				Skills:       skills,
-				Interests:    user.Interests,
-			})
+			schema.RecProfileResponse{
+				User: schema.UserProfileResponse{
+					ID:           user.ID,
+					UserName:     user.UserName,
+					FullName:     user.FullName,
+					Email:        user.Email,
+					GitUserName:  user.GitUserName,
+					Gituser:      user.GitUser,
+					Bio:          user.Bio,
+					Availability: user.Availability,
+					Skills:       skills,
+					Interests:    user.Interests,
+				},
+				Score: score,
+			},
+		)
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"users": profiles})

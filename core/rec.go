@@ -105,7 +105,7 @@ func (r *RecommendationHub) ProcessJob(job *RecommendationJob, client rec.Recomm
 	}
 
 	if recRes != nil {
-		res.IDs = recRes.Ids
+		res.Res = recRes.Res
 	}
 
 	return res, err

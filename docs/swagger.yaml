@@ -105,11 +105,18 @@ definitions:
       user:
         $ref: '#/definitions/schema.UserProfileResponse'
     type: object
-  schema.DocProjectsResponse:
+  schema.DocRecProjectsResponse:
     properties:
       projects:
         items:
-          $ref: '#/definitions/schema.ProjectResponse'
+          $ref: '#/definitions/schema.RecProjectResponse'
+        type: array
+    type: object
+  schema.DocRecUsersResponse:
+    properties:
+      users:
+        items:
+          $ref: '#/definitions/schema.RecProfileResponse'
         type: array
     type: object
   schema.DocSkillsResponse:
@@ -135,13 +142,6 @@ definitions:
     properties:
       user:
         $ref: '#/definitions/schema.UserProfileResponse'
-    type: object
-  schema.DocUsersResponse:
-    properties:
-      users:
-        items:
-          $ref: '#/definitions/schema.UserProfileResponse'
-        type: array
     type: object
   schema.DocUsersSearch:
     properties:
@@ -300,6 +300,22 @@ definitions:
         type: string
       views:
         type: integer
+    type: object
+  schema.RecProfileResponse:
+    properties:
+      score:
+        format: float32
+        type: number
+      user:
+        $ref: '#/definitions/schema.UserProfileResponse'
+    type: object
+  schema.RecProjectResponse:
+    properties:
+      project:
+        $ref: '#/definitions/schema.ProjectResponse'
+      score:
+        format: float32
+        type: number
     type: object
   schema.RejectApplication:
     properties:
@@ -1456,7 +1472,7 @@ paths:
         "200":
           description: Users Retrieved
           schema:
-            $ref: '#/definitions/schema.DocUsersResponse'
+            $ref: '#/definitions/schema.DocRecUsersResponse'
         "400":
           description: Invalid id
           schema:
@@ -2049,7 +2065,7 @@ paths:
         "200":
           description: Projects Retreived
           schema:
-            $ref: '#/definitions/schema.DocProjectsResponse'
+            $ref: '#/definitions/schema.DocRecProjectsResponse'
         "401":
           description: Unauthorized
           schema:

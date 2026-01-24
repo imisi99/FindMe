@@ -17,8 +17,8 @@ type DocUserResponse struct {
 	User UserProfileResponse `json:"user"`
 }
 
-type DocUsersResponse struct {
-	Users []UserProfileResponse `json:"users"`
+type DocRecUsersResponse struct {
+	Users []RecProfileResponse `json:"users"`
 }
 
 type DocUsersSearch struct {
@@ -51,8 +51,8 @@ type DocProjectResponse struct {
 	Project ProjectResponse `json:"project"`
 }
 
-type DocProjectsResponse struct {
-	Projects []ProjectResponse `json:"projects"`
+type DocRecProjectsResponse struct {
+	Projects []RecProjectResponse `json:"projects"`
 }
 
 type DocAllProjectResponse struct {

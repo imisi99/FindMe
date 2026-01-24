@@ -68,7 +68,7 @@ func (x *RecommendationRequest) GetId() string {
 type RecommendationResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	Ids           []string               `protobuf:"bytes,2,rep,name=ids,proto3" json:"ids,omitempty"`
+	Res           map[string]float32     `protobuf:"bytes,2,rep,name=res,proto3" json:"res,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"fixed32,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -110,9 +110,9 @@ func (x *RecommendationResponse) GetSuccess() bool {
 	return false
 }
 
-func (x *RecommendationResponse) GetIds() []string {
+func (x *RecommendationResponse) GetRes() map[string]float32 {
 	if x != nil {
-		return x.Ids
+		return x.Res
 	}
 	return nil
 }
@@ -123,10 +123,13 @@ const file_rec_proto_rawDesc = "" +
 	"\n" +
 	"\trec.proto\x12\x03rec\"'\n" +
 	"\x15RecommendationRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"D\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xa2\x01\n" +
 	"\x16RecommendationResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x10\n" +
-	"\x03ids\x18\x02 \x03(\tR\x03ids2\xb8\x01\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x126\n" +
+	"\x03res\x18\x02 \x03(\v2$.rec.RecommendationResponse.ResEntryR\x03res\x1a6\n" +
+	"\bResEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x02R\x05value:\x028\x012\xb8\x01\n" +
 	"\x15RecommendationService\x12P\n" +
 	"\x15ProjectRecommendation\x12\x1a.rec.RecommendationRequest\x1a\x1b.rec.RecommendationResponse\x12M\n" +
 	"\x12UserRecommendation\x12\x1a.rec.RecommendationRequest\x1a\x1b.rec.RecommendationResponseB\aZ\x05./recb\x06proto3"
@@ -143,21 +146,23 @@ func file_rec_proto_rawDescGZIP() []byte {
 	return file_rec_proto_rawDescData
 }
 
-var file_rec_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_rec_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_rec_proto_goTypes = []any{
 	(*RecommendationRequest)(nil),  // 0: rec.RecommendationRequest
 	(*RecommendationResponse)(nil), // 1: rec.RecommendationResponse
+	nil,                            // 2: rec.RecommendationResponse.ResEntry
 }
 var file_rec_proto_depIdxs = []int32{
-	0, // 0: rec.RecommendationService.ProjectRecommendation:input_type -> rec.RecommendationRequest
-	0, // 1: rec.RecommendationService.UserRecommendation:input_type -> rec.RecommendationRequest
-	1, // 2: rec.RecommendationService.ProjectRecommendation:output_type -> rec.RecommendationResponse
-	1, // 3: rec.RecommendationService.UserRecommendation:output_type -> rec.RecommendationResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	2, // 0: rec.RecommendationResponse.res:type_name -> rec.RecommendationResponse.ResEntry
+	0, // 1: rec.RecommendationService.ProjectRecommendation:input_type -> rec.RecommendationRequest
+	0, // 2: rec.RecommendationService.UserRecommendation:input_type -> rec.RecommendationRequest
+	1, // 3: rec.RecommendationService.ProjectRecommendation:output_type -> rec.RecommendationResponse
+	1, // 4: rec.RecommendationService.UserRecommendation:output_type -> rec.RecommendationResponse
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_rec_proto_init() }
@@ -171,7 +176,7 @@ func file_rec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rec_proto_rawDesc), len(file_rec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

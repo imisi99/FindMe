@@ -1402,7 +1402,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Users Retrieved",
                         "schema": {
-                            "$ref": "#/definitions/schema.DocUsersResponse"
+                            "$ref": "#/definitions/schema.DocRecUsersResponse"
                         }
                     },
                     "400": {
@@ -2318,7 +2318,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Projects Retreived",
                         "schema": {
-                            "$ref": "#/definitions/schema.DocProjectsResponse"
+                            "$ref": "#/definitions/schema.DocRecProjectsResponse"
                         }
                     },
                     "401": {
@@ -3857,13 +3857,24 @@ const docTemplate = `{
                 }
             }
         },
-        "schema.DocProjectsResponse": {
+        "schema.DocRecProjectsResponse": {
             "type": "object",
             "properties": {
                 "projects": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/schema.ProjectResponse"
+                        "$ref": "#/definitions/schema.RecProjectResponse"
+                    }
+                }
+            }
+        },
+        "schema.DocRecUsersResponse": {
+            "type": "object",
+            "properties": {
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schema.RecProfileResponse"
                     }
                 }
             }
@@ -3903,17 +3914,6 @@ const docTemplate = `{
             "properties": {
                 "user": {
                     "$ref": "#/definitions/schema.UserProfileResponse"
-                }
-            }
-        },
-        "schema.DocUsersResponse": {
-            "type": "object",
-            "properties": {
-                "users": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/schema.UserProfileResponse"
-                    }
                 }
             }
         },
@@ -4156,6 +4156,30 @@ const docTemplate = `{
                 },
                 "views": {
                     "type": "integer"
+                }
+            }
+        },
+        "schema.RecProfileResponse": {
+            "type": "object",
+            "properties": {
+                "score": {
+                    "type": "number",
+                    "format": "float32"
+                },
+                "user": {
+                    "$ref": "#/definitions/schema.UserProfileResponse"
+                }
+            }
+        },
+        "schema.RecProjectResponse": {
+            "type": "object",
+            "properties": {
+                "project": {
+                    "$ref": "#/definitions/schema.ProjectResponse"
+                },
+                "score": {
+                    "type": "number",
+                    "format": "float32"
                 }
             }
         },

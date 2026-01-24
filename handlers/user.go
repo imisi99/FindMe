@@ -256,7 +256,7 @@ func (s *Service) GetUserInfo(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} schema.DocProjectsResponse "Projects Retreived"
+// @Success 200 {object} schema.DocRecProjectsResponse "Projects Retreived"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
 // @Failure 402 {object} schema.DocNormalResponse "Payment Required"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
@@ -289,28 +289,38 @@ func (s *Service) RecommendProjects(ctx *gin.Context) {
 		return
 	}
 
+	var ids []string
+
+	for id := range rec.Res {
+		ids = append(ids, id)
+	}
+
 	var projects []model.Project
-	if err := s.DB.FindProjects(&projects, rec.IDs); err != nil {
+	if err := s.DB.FindProjects(&projects, ids); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
-	var result []schema.ProjectResponse
+	var result []schema.RecProjectResponse
 
 	for _, project := range projects {
+		score := rec.Res[project.ID]
 		var tags []string
 		for _, tag := range project.Tags {
 			tags = append(tags, tag.Name)
 		}
-		result = append(result, schema.ProjectResponse{
-			ID:          project.ID,
-			Title:       project.Title,
-			Description: project.Description,
-			Tags:        tags,
-			CreatedAt:   project.CreatedAt,
-			UpdatedAt:   project.UpdatedAt,
-			Views:       project.Views,
+		result = append(result, schema.RecProjectResponse{
+			Project: schema.ProjectResponse{
+				ID:          project.ID,
+				Title:       project.Title,
+				Description: project.Description,
+				Tags:        tags,
+				CreatedAt:   project.CreatedAt,
+				UpdatedAt:   project.UpdatedAt,
+				Views:       project.Views,
+			},
+			Score: score,
 		})
 	}
 
