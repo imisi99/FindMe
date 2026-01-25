@@ -55,8 +55,7 @@ type Transactions struct {
 	UserID      string
 	Amount      int64
 	Curency     string `gorm:"default:'NGN'"`
-	Reference   string `gorm:"uniqueIndex"`
-	PaystackRef string
+	PaystackRef string `gorm:"uniqueIndex"`
 	Status      string `gorm:"default:'pending'"`
 	Channel     string
 	PaidAt      *time.Time

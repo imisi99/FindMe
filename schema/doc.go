@@ -98,3 +98,8 @@ type DocTranscResposne struct {
 type DocViewSubscriptions struct {
 	Subs []ViewSubscriptions
 }
+
+type DocInitTranscResponse struct {
+	URI   string `json:"uri"`
+	Token string `json:"token"`
+}

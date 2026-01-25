@@ -27,6 +27,7 @@ var (
 		"email":       "johndoe@gmail.com",
 		"password":    "JohnDoe234",
 		"gitusername": "johndoe23",
+		"country":     "NGN",
 	}
 	token     Token
 	friendreq ViewFriendReq
@@ -440,7 +441,7 @@ func TestUpdateuserProfileDuplicate(t *testing.T) {
 		"username": "Imisioluwa23",
 		"fullname": "John Doe",
 		"email":    "JohnDoe@gmail.com",
-		"password": "JohnDoe234",
+		"country":  "UK",
 	}
 
 	body, _ := json.Marshal(payload)

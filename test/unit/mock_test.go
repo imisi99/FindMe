@@ -128,6 +128,15 @@ func NewGitMock() *GitMock {
 	return &GitMock{}
 }
 
+type TranscMock struct{}
+
+func (mock *TranscMock) InitializeTransaction(ctx *gin.Context) {}
+func (mock *TranscMock) GetTransactions(_ *gin.Context)         {}
+
+func NewTranscMock() *TranscMock {
+	return &TranscMock{}
+}
+
 type EmbeddingMock struct{}
 
 func (e *EmbeddingMock) QueueUserCreate(id, bio string, skills, interests []string)             {}

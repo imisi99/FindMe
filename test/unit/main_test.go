@@ -139,13 +139,14 @@ func TestMain(m *testing.M) {
 	db := getTestDB()
 	rdb := NewCacheMock()
 	git := NewGitMock()
+	transc := NewTranscMock()
 	chathub := core.NewChatHub(20)
 	emailHub := NewEmailHubMock()
 	embhub := NewEmbeddingMock()
 	recHub := NewRecommendationMock()
 
 	go chathub.Run()
-	service := handlers.NewService(db, rdb, emailHub, git, embhub, recHub, &http.Client{}, chathub)
+	service := handlers.NewService(db, rdb, emailHub, git, transc, embhub, recHub, &http.Client{}, chathub)
 
 	var skills []model.Skill
 	_ = service.DB.FetchAllSkills(&skills)

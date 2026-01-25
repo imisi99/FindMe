@@ -41,7 +41,7 @@ func main() {
 	db := core.NewGormDB(dbClient)
 	rdb := core.NewRDB(rdbClient)
 
-	// setup git, chat, email and embedding hub
+	// setup chat, email rec and embedding hub
 	client := &http.Client{Timeout: 10 * time.Minute}
 	email := core.NewEmailService("smtp.gmail.com", os.Getenv("EMAIL"), os.Getenv("EMAIL_APP_PASSWORD"), 587)
 
@@ -50,8 +50,10 @@ func main() {
 	embHub := core.NewEmbeddingHub(100, 10, "emb:8000")
 	recHub := core.NewRecommendationHub(10, 100, "rec:8050")
 
+	// set up git and transc service
 	git := handlers.NewGitService(os.Getenv("GIT_CLIENT_ID"), os.Getenv("GIT_CLIENT_SECRET"), os.Getenv("GIT_CALLBACK_URL"), db, embHub, client)
-	service := handlers.NewService(db, rdb, emailHub, git, embHub, recHub, client, chathub)
+	transc := handlers.NewTranscService(db, os.Getenv("PAYSTACK_API_KEY"), client)
+	service := handlers.NewService(db, rdb, emailHub, git, transc, embHub, recHub, client, chathub)
 
 	go chathub.Run()
 	go embHub.Run()

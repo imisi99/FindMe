@@ -13,14 +13,15 @@ type Service struct {
 	RDB    core.Cache
 	Email  core.Email
 	Git    Git
+	Transc Transc
 	Emb    core.Embedding
 	Rec    core.Recommendation
 	Chat   *core.ChatHub
 	Client *http.Client
 }
 
-func NewService(db core.DB, rdb core.Cache, email core.Email, git Git, embHub core.Embedding, recHub core.Recommendation, client *http.Client, chat *core.ChatHub) *Service {
-	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Emb: embHub, Rec: recHub, Client: client, Chat: chat}
+func NewService(db core.DB, rdb core.Cache, email core.Email, git Git, transc Transc, embHub core.Embedding, recHub core.Recommendation, client *http.Client, chat *core.ChatHub) *Service {
+	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Transc: transc, Emb: embHub, Rec: recHub, Client: client, Chat: chat}
 }
 
 func SetupHandler(router *gin.Engine, service *Service) {
@@ -78,7 +79,8 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedUserRoutes.DELETE("/delete-friend-req", service.DeleteSentReq)
 	protectedUserRoutes.DELETE("/delete-user-friend", service.DeleteUserFriend)
 
-	protectedTranscRoutes.GET("/view", service.GetTransactions)
+	protectedTranscRoutes.GET("/view", service.Transc.GetTransactions)
+	protectedTranscRoutes.POST("/initialize", service.Transc.InitializeTransaction)
 
 	protectedMsgRoutes.GET("/ws/chat", service.WSChat)
 
