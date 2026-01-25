@@ -76,4 +76,5 @@ func (s *Service) CreateTransaction(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{"msg": "ok"})
+	// Add it
 }
