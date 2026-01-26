@@ -2623,7 +2623,7 @@
                     "202": {
                         "description": "User updated",
                         "schema": {
-                            "$ref": "#/definitions/schema.DocUserResponse"
+                            "$ref": "#/definitions/schema.DocNormalResponse"
                         }
                     },
                     "401": {
@@ -2686,7 +2686,7 @@
                     "202": {
                         "description": "User updated",
                         "schema": {
-                            "$ref": "#/definitions/schema.DocUserResponse"
+                            "$ref": "#/definitions/schema.DocNormalResponse"
                         }
                     },
                     "401": {
@@ -4291,6 +4291,7 @@
         "schema.SignupRequest": {
             "type": "object",
             "required": [
+                "country",
                 "email",
                 "fullname",
                 "password",
@@ -4300,6 +4301,9 @@
                 "bio": {
                     "type": "string",
                     "maxLength": 50
+                },
+                "country": {
+                    "type": "string"
                 },
                 "email": {
                     "type": "string"
@@ -4404,18 +4408,19 @@
         "schema.UserProfileRequest": {
             "type": "object",
             "required": [
+                "country",
                 "email",
                 "fullname",
                 "username"
             ],
             "properties": {
+                "country": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
                 "fullname": {
-                    "type": "string"
-                },
-                "gitusername": {
                     "type": "string"
                 },
                 "username": {
@@ -4430,6 +4435,9 @@
                     "type": "boolean"
                 },
                 "bio": {
+                    "type": "string"
+                },
+                "country": {
                     "type": "string"
                 },
                 "email": {

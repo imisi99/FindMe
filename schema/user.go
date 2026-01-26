@@ -6,6 +6,7 @@ type SignupRequest struct {
 	FullName  string   `json:"fullname" binding:"required"`
 	UserName  string   `json:"username" binding:"required"`
 	Email     string   `json:"email" binding:"required,email"`
+	Country   string   `json:"country" binding:"required"`
 	Password  string   `json:"password" binding:"required,min=8"`
 	Bio       string   `json:"bio" binding:"omitempty,max=50"`
 	Skills    []string `json:"skills"`
@@ -26,10 +27,10 @@ type LoginRequest struct {
 }
 
 type UserProfileRequest struct {
-	UserName    string  `json:"username" binding:"required"`
-	FullName    string  `json:"fullname" binding:"required"`
-	Email       string  `json:"email" binding:"required,email"`
-	GitUserName *string `json:"gitusername" binding:"omitempty"`
+	UserName string `json:"username" binding:"required"`
+	FullName string `json:"fullname" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Country  string `json:"country" binding:"required"`
 }
 
 type UpdateUserBio struct {
@@ -90,6 +91,7 @@ type UserProfileResponse struct {
 	UserName     string
 	FullName     string
 	Email        string
+	Country      string
 	GitUserName  *string
 	Gituser      bool
 	Bio          string
