@@ -2631,7 +2631,7 @@ const docTemplate = `{
                     "202": {
                         "description": "User updated",
                         "schema": {
-                            "$ref": "#/definitions/schema.DocUserResponse"
+                            "$ref": "#/definitions/schema.DocNormalResponse"
                         }
                     },
                     "401": {
@@ -2694,7 +2694,7 @@ const docTemplate = `{
                     "202": {
                         "description": "User updated",
                         "schema": {
-                            "$ref": "#/definitions/schema.DocUserResponse"
+                            "$ref": "#/definitions/schema.DocNormalResponse"
                         }
                     },
                     "401": {
@@ -4299,6 +4299,7 @@ const docTemplate = `{
         "schema.SignupRequest": {
             "type": "object",
             "required": [
+                "country",
                 "email",
                 "fullname",
                 "password",
@@ -4308,6 +4309,9 @@ const docTemplate = `{
                 "bio": {
                     "type": "string",
                     "maxLength": 50
+                },
+                "country": {
+                    "type": "string"
                 },
                 "email": {
                     "type": "string"
@@ -4412,18 +4416,19 @@ const docTemplate = `{
         "schema.UserProfileRequest": {
             "type": "object",
             "required": [
+                "country",
                 "email",
                 "fullname",
                 "username"
             ],
             "properties": {
+                "country": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
                 "fullname": {
-                    "type": "string"
-                },
-                "gitusername": {
                     "type": "string"
                 },
                 "username": {
@@ -4438,6 +4443,9 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "bio": {
+                    "type": "string"
+                },
+                "country": {
                     "type": "string"
                 },
                 "email": {

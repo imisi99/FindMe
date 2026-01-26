@@ -396,6 +396,8 @@ definitions:
       bio:
         maxLength: 50
         type: string
+      country:
+        type: string
       email:
         type: string
       fullname:
@@ -415,6 +417,7 @@ definitions:
       username:
         type: string
     required:
+    - country
     - email
     - fullname
     - password
@@ -470,15 +473,16 @@ definitions:
     type: object
   schema.UserProfileRequest:
     properties:
+      country:
+        type: string
       email:
         type: string
       fullname:
         type: string
-      gitusername:
-        type: string
       username:
         type: string
     required:
+    - country
     - email
     - fullname
     - username
@@ -488,6 +492,8 @@ definitions:
       availability:
         type: boolean
       bio:
+        type: string
+      country:
         type: string
       email:
         type: string
@@ -2269,7 +2275,7 @@ paths:
         "202":
           description: User updated
           schema:
-            $ref: '#/definitions/schema.DocUserResponse'
+            $ref: '#/definitions/schema.DocNormalResponse'
         "401":
           description: Unauthorized
           schema:
@@ -2310,7 +2316,7 @@ paths:
         "202":
           description: User updated
           schema:
-            $ref: '#/definitions/schema.DocUserResponse'
+            $ref: '#/definitions/schema.DocNormalResponse'
         "401":
           description: Unauthorized
           schema:

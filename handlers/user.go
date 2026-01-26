@@ -15,7 +15,7 @@ import (
 )
 
 // TODO:
-// Add a country field for the signup
+// Add a link to the transaction ID on the subscription
 
 // AddUser godoc
 // @Summary			Register a new user
@@ -174,7 +174,7 @@ func (s *Service) GetUser(ctx *gin.Context) {
 		ID:           user.ID,
 		UserName:     user.UserName,
 		FullName:     user.FullName,
-		Email:        user.Email,
+		Country:      user.Country,
 		GitUserName:  user.GitUserName,
 		Gituser:      user.GitUser,
 		Bio:          user.Bio,
@@ -191,10 +191,13 @@ func (s *Service) GetUser(ctx *gin.Context) {
 		}
 		posts = append(posts, schema.ProjectResponse{
 			ID:          post.ID,
+			Title:       post.Title,
 			Description: post.Description,
+			Available:   post.Availability,
 			Tags:        tags,
 			CreatedAt:   post.CreatedAt,
 			UpdatedAt:   post.UpdatedAt,
+			Views:       post.Views,
 		})
 	}
 
@@ -238,6 +241,7 @@ func (s *Service) GetUserInfo(ctx *gin.Context) {
 		UserName:     user.UserName,
 		FullName:     user.FullName,
 		Email:        user.Email,
+		Country:      user.Country,
 		GitUserName:  user.GitUserName,
 		Gituser:      user.GitUser,
 		Bio:          user.Bio,
@@ -315,6 +319,7 @@ func (s *Service) RecommendProjects(ctx *gin.Context) {
 				ID:          project.ID,
 				Title:       project.Title,
 				Description: project.Description,
+				Available:   project.Availability,
 				Tags:        tags,
 				CreatedAt:   project.CreatedAt,
 				UpdatedAt:   project.UpdatedAt,
@@ -367,11 +372,10 @@ func (s *Service) ViewUser(ctx *gin.Context) {
 	userprofile := schema.UserProfileResponse{
 		ID:           user.ID,
 		UserName:     user.UserName,
-		FullName:     user.FullName,
+		Country:      user.Country,
 		GitUserName:  user.GitUserName,
 		Gituser:      user.GitUser,
 		Bio:          user.Bio,
-		Email:        user.Email,
 		Skills:       skills,
 		Interests:    user.Interests,
 		Availability: user.Availability,
@@ -385,7 +389,9 @@ func (s *Service) ViewUser(ctx *gin.Context) {
 		}
 		posts = append(posts, schema.ProjectResponse{
 			ID:          post.ID,
+			Title:       post.Title,
 			Description: post.Description,
+			Available:   post.Availability,
 			Tags:        tags,
 			CreatedAt:   post.CreatedAt,
 			UpdatedAt:   post.UpdatedAt,
@@ -437,11 +443,11 @@ func (s *Service) ViewGitUser(ctx *gin.Context) {
 	profile := schema.UserProfileResponse{
 		ID:           user.ID,
 		UserName:     user.UserName,
-		FullName:     user.FullName,
 		GitUserName:  user.GitUserName,
 		Gituser:      user.GitUser,
 		Bio:          user.Bio,
 		Email:        user.Email,
+		Country:      user.Country,
 		Skills:       skills,
 		Interests:    user.Interests,
 		Availability: user.Availability,
@@ -1092,6 +1098,7 @@ func (s *Service) UpdateUserInfo(ctx *gin.Context) {
 	user.Email = payload.Email
 	user.FullName = payload.FullName
 	user.UserName = payload.UserName
+	user.Country = payload.Country
 
 	if err := s.DB.SaveUser(&user); err != nil {
 		cm := err.(*core.CustomMessage)
@@ -1105,6 +1112,7 @@ func (s *Service) UpdateUserInfo(ctx *gin.Context) {
 		FullName:     user.FullName,
 		Email:        user.Email,
 		Bio:          user.Bio,
+		Country:      user.Country,
 		GitUserName:  user.GitUserName,
 		Gituser:      user.GitUser,
 		Availability: user.Availability,
@@ -1121,7 +1129,7 @@ func (s *Service) UpdateUserInfo(ctx *gin.Context) {
 // @Produce json
 // @Param payload body schema.UpdateUserBio true "new details"
 // @Security BearerAuth
-// @Success 202 {object} schema.DocUserResponse "User updated"
+// @Success 202 {object} schema.DocNormalResponse "User updated"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
 // @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
@@ -1172,7 +1180,7 @@ func (s *Service) UpdateUserBio(ctx *gin.Context) {
 // @Produce json
 // @Param payload body schema.UpdateUserInterests true "new details"
 // @Security BearerAuth
-// @Success 202 {object} schema.DocUserResponse "User updated"
+// @Success 202 {object} schema.DocNormalResponse "User updated"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
 // @Failure 422 {object} schema.DocNormalResponse "Invalid payload"
 // @Failure 404 {object} schema.DocNormalResponse "Record not found"
