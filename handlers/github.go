@@ -146,7 +146,7 @@ func (g *GitService) SelectCallback(ctx *gin.Context) {
 
 // GitHubAddUserCallback -> callback for the github sign-up/sign-in endpoint
 func (g *GitService) GitHubAddUserCallback(token, code, state, storedState string) (string, string, error) {
-	if token == "" {
+	if token == "" || !g.isTokenValid(token) {
 		if state != storedState {
 			return "", "", &core.CustomMessage{Code: http.StatusBadRequest, Message: "Invalid or expired state."}
 		}
@@ -261,7 +261,7 @@ func (g *GitService) GitHubAddUserCallback(token, code, state, storedState strin
 
 	g.EmbHub.QueueUserCreate(newUser.ID, newUser.Bio, []string{""}, []string{""})
 
-	userToken, err := GenerateJWT(newUser.ID, "login", false, JWTExpiry)
+	userToken, err := GenerateJWT(newUser.ID, "login", true, JWTExpiry)
 	if err != nil {
 		return "", "", &core.CustomMessage{Code: http.StatusInternalServerError, Message: "Failed to generate jwt token for user."}
 	}
@@ -384,4 +384,17 @@ func (g *GitService) ViewRepo(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"repos": repos})
+}
+
+// isTokenValid -> Checks if a git access token is valid
+func (g *GitService) isTokenValid(token string) bool {
+	req, _ := http.NewRequest(http.MethodGet, "https://api.github.com/user", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := g.Client.Do(req)
+	if err != nil {
+		return false
+	}
+
+	defer resp.Body.Close()
+	return resp.StatusCode == http.StatusOK
 }
