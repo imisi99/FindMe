@@ -190,7 +190,7 @@ func TestViewUser(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "isongrichard234@gmail.com")
+	assert.Contains(t, w.Body.String(), superUserName)
 	assert.Contains(t, w.Body.String(), defProjectDescription)
 }
 

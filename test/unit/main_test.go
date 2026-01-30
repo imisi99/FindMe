@@ -87,6 +87,7 @@ func superUser(db *core.GormDB) {
 		Skills:       []*model.Skill{&be, &ml},
 		Password:     hashpass,
 		Availability: true,
+		Country:      "NGN",
 	}
 
 	super1 := model.User{
@@ -97,6 +98,7 @@ func superUser(db *core.GormDB) {
 		Availability: true,
 		Skills:       []*model.Skill{&be},
 		Bio:          "I'm the second super user",
+		Country:      "NGN",
 	}
 
 	users := []*model.User{&super, &super1}

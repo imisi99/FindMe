@@ -15,6 +15,8 @@ type EmailS interface {
 	SendProjectApplicationEmail(fromUsername, toUsername, message, viewURL string) (string, string)
 	SendProjectApplicationAccept(fromUsername, toUsername, message, chatURL string) (string, string)
 	SendProjectApplicationReject(fromUsername, toUsername, message, reason string) (string, string)
+	SendTransactionFailedEmail() (string, string)
+	SendTransactionSuccessEmail() (string, string)
 }
 
 type Email interface {
@@ -24,6 +26,8 @@ type Email interface {
 	QueueProjectApplication(fromUsername, toUsername, message, viewURL, to string)
 	QueueProjectApplicationAccept(fromUsername, toUsername, message, chatURL, to string)
 	QueueProjectApplicationReject(fromUsername, toUsername, message, reason, to string)
+	QueueTransactionFailedEmail()
+	QueueTransactionSuccessEmail()
 }
 
 type EmailService struct {

@@ -2,10 +2,15 @@ package handlers
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha512"
+	"encoding/hex"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"findme/core"
 	"findme/model"
@@ -22,6 +27,7 @@ type Transc interface {
 }
 
 type TranscService struct {
+	Email     core.Email
 	DB        core.DB
 	SecretKey string
 	Client    *http.Client
@@ -100,12 +106,6 @@ func (t *TranscService) InitializeTransaction(ctx *gin.Context) {
 		return
 	}
 
-	intAmount, err := strconv.ParseInt(amount, 10, 64)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid transaction amount."})
-		return
-	}
-
 	var user model.User
 	if err := t.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
@@ -144,26 +144,99 @@ func (t *TranscService) InitializeTransaction(ctx *gin.Context) {
 		return
 	}
 
-	authURL := paystack.Data["authorization_url"]
-	token := paystack.Data["access_code"]
-	reference := paystack.Data["reference"]
-
-	if authURL == "" || token == "" || reference == "" || !paystack.Status {
+	if !paystack.Status || paystack.Data.AuthorizationURL == "" || paystack.Data.AccessCode == "" || paystack.Data.Reference == "" {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "An error occured while interacting with paystack api."})
+		return } ctx.JSON(http.StatusOK, gin.H{"uri": paystack.Data.AuthorizationURL, "token": paystack.Data.AccessCode}) }
+
+// VerifyTranscWebhook godoc
+func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
+	body, err := io.ReadAll(ctx.Request.Body)
+	if err != nil {
+		ctx.Status(http.StatusBadRequest)
 		return
 	}
 
-	transc := model.Transactions{
-		PaystackRef: reference,
-		Amount:      intAmount,
-		UserID:      user.ID,
-	}
+	signature := ctx.GetHeader("x-paystack-signature")
 
-	if err := t.DB.AddTransaction(&transc); err != nil {
-		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+	mac := hmac.New(sha512.New, []byte(t.SecretKey))
+	mac.Write(body)
+	expectedHash := hex.EncodeToString(mac.Sum(nil))
+
+	if !hmac.Equal([]byte(expectedHash), []byte(signature)) {
+		ctx.Status(http.StatusUnauthorized)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"uri": authURL, "token": token})
+	var event schema.PaystackEvent
+	if err := json.Unmarshal(body, &event); err != nil {
+		log.Println("[TRANSACTION] An error occured in the webhook for the transaction while parsing payload, err -> ", err.Error())
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+
+	var user model.User
+	if err := t.DB.FetchUser(&user, event.Data.Customer.Email); err != nil {
+		log.Println("[TRANSACTION] Failed to complete transaction as the customer could not be identified, err -> ", err.Error())
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+
+	var transc model.Transactions
+	switch event.Event {
+	case model.PaystackChargeSuccess:
+		if err := t.DB.FetchTransaction(event.Data.Reference, &transc); err != nil {
+			cm := err.(*core.CustomMessage)
+			if cm.Code == http.StatusNotFound {
+				amount, _ := strconv.ParseInt(event.Data.Amount, 10, 64)
+
+				transc.UserID = user.ID
+				transc.PaystackRef = event.Data.Reference
+				transc.Amount = amount
+				transc.Status = event.Data.Status
+				transc.Channel = event.Data.Channel
+				transc.Curency = event.Data.Currency
+				transc.PaidAt = &event.Data.PaidAt
+
+				sub := model.Subscriptions{
+					UserID:    user.ID,
+					StartDate: time.Now(),
+					EndDate:   time.Now().Add(time.Hour * 24 * 30),
+				}
+
+				if err := t.DB.AddTranscSub(&transc, &sub); err != nil {
+					ctx.Status(http.StatusInternalServerError)
+					return
+				}
+
+			} else {
+				ctx.Status(cm.Code)
+				return
+			}
+		} else {
+			transc.Status = event.Data.Status
+			transc.Channel = event.Data.Channel
+			transc.Curency = event.Data.Currency
+			transc.PaidAt = &event.Data.PaidAt
+
+			sub := model.Subscriptions{
+				TransactionID: transc.ID,
+				UserID:        user.ID,
+				StartDate:     time.Now(),
+				EndDate:       time.Now().Add(time.Hour * 24 * 30),
+			}
+
+			if err := t.DB.SaveTranscAddSub(&transc, &sub); err != nil {
+				ctx.Status(http.StatusInternalServerError)
+				return
+			}
+		}
+		ctx.Status(http.StatusOK)
+	case model.InvoiceUpdate:
+		if !event.Data.Paid {
+				t.Email.QueueTransactionFailedEmail()
+		}
+		t.Email.QueueTransactionSuccessEmail()
+	default:
+		return
+	}
 }

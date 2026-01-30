@@ -42,7 +42,6 @@ type Subscriptions struct {
 	GormModel
 	UserID        string
 	TransactionID string
-	Status        string
 	StartDate     time.Time
 	EndDate       time.Time
 
@@ -55,7 +54,7 @@ type Transactions struct {
 	UserID      string
 	Amount      int64
 	Curency     string `gorm:"default:'NGN'"`
-	PaystackRef string `gorm:"uniqueIndex"`
+	PaystackRef string `gorm:"column:paystackref;uniqueIndex"`
 	Status      string `gorm:"default:'pending'"`
 	Channel     string
 	PaidAt      *time.Time
@@ -104,6 +103,12 @@ const (
 	StatusFailed   = "failed"
 	StatusSuccess  = "success"
 	StatusExpired  = "expired"
+)
+
+const (
+	PaystackChargeSuccess = "charge.success"
+	InvoiceCreate         = "invoice.create"
+	InvoiceUpdate         = "invoice.update"
 )
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {

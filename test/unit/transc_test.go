@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// MOCK tests for the transaction service
+
 func TestGetTransactions(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/transc/view", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)
