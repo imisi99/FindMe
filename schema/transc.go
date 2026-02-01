@@ -43,5 +43,28 @@ type PaystackEvent struct {
 			Status          string    `json:"status" binding:"omitempty"`
 			NextPaymentDate time.Time `json:"next_payment_date" binding:"omitempty"`
 		}
+		Plan struct {
+			Name string
+		}
 	} `json:"data" binding:"required"`
+}
+
+type PaystackUpdateCard struct {
+	Status  bool   `json:"status" binding:"required"`
+	Message string `json:"message" binding:"required"`
+	Data    struct {
+		Link string `json:"link" binding:"omitempty"`
+	} `json:"data" binding:"omitempty"`
+}
+
+type PaystackViewSub struct {
+	Status bool `json:"status" binding:"required"`
+	Data   struct {
+		EmailToken string `json:"email_token" binding:"omitempty"`
+	} `json:"data" binding:"omitempty"`
+}
+
+type PaystackSubResp struct {
+	Status  bool   `json:"status" binding:"required"`
+	Message string `json:"message" binding:"required"`
 }

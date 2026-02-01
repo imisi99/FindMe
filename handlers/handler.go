@@ -80,7 +80,10 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedUserRoutes.DELETE("/delete-user-friend", service.DeleteUserFriend)
 
 	protectedTranscRoutes.GET("/view", service.Transc.GetTransactions)
-	protectedTranscRoutes.POST("/initialize", service.Transc.InitializeTransaction)
+	protectedTranscRoutes.GET("/initialize", service.Transc.InitializeTransaction)
+	protectedTranscRoutes.GET("/update-card", service.Transc.UpdateSubscriptionCard)
+	protectedTranscRoutes.PATCH("/cancel-sub", service.Transc.CancelSubscription)
+	protectedTranscRoutes.PATCH("/enable-sub", service.Transc.EnableSubscription)
 
 	protectedMsgRoutes.GET("/ws/chat", service.WSChat)
 

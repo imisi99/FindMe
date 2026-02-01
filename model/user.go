@@ -22,7 +22,16 @@ type User struct {
 	GitUser      bool           `gorm:"column:gituser"`
 	Availability bool
 
-	FreeTrial time.Time `gorm:"column:trial"`
+	// Sub Details
+	FreeTrial    time.Time
+	LastSubEnd   *time.Time
+	RecurringSub bool
+
+	// Paystack Details
+	PaystackSubCode    *string
+	PaystackEmailToken *string
+
+	// Card Details
 
 	// Relations:
 	Skills         []*Skill         `gorm:"many2many:user_skills"`
@@ -36,30 +45,6 @@ type User struct {
 	RecProjectReq  []*ProjectReq    `gorm:"foreignKey:ToID"`
 	Subscriptions  []*Subscriptions `gorm:"foreignKey:UserID"`
 	Transactions   []*Transactions  `gorm:"foreignKey:UserID"`
-}
-
-type Subscriptions struct {
-	GormModel
-	UserID        string
-	TransactionID string
-	StartDate     time.Time
-	EndDate       time.Time
-
-	User        *User         `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-	Transaction *Transactions `gorm:"foreignKey:TransactionID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
-}
-
-type Transactions struct {
-	GormModel
-	UserID      string
-	Amount      int64
-	Curency     string `gorm:"default:'NGN'"`
-	PaystackRef string `gorm:"column:paystackref;uniqueIndex"`
-	Status      string `gorm:"default:'pending'"`
-	Channel     string
-	PaidAt      *time.Time
-
-	User *User `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 type UserFriend struct {
@@ -103,12 +88,7 @@ const (
 	StatusFailed   = "failed"
 	StatusSuccess  = "success"
 	StatusExpired  = "expired"
-)
-
-const (
-	PaystackChargeSuccess = "charge.success"
-	InvoiceCreate         = "invoice.create"
-	InvoiceUpdate         = "invoice.update"
+	StatusLogin    = "login"
 )
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {

@@ -91,8 +91,9 @@ type DB interface {
 	AddTransaction(transc *model.Transactions) error
 	FetchTransaction(paystackRef string, transc *model.Transactions) error
 	AddSubscription(sub *model.Subscriptions) error
-	AddTranscSub(transc *model.Transactions, sub *model.Subscriptions) error
-	SaveTranscAddSub(transc *model.Transactions, sub *model.Subscriptions) error
+	AddTranscSub(transc *model.Transactions, sub *model.Subscriptions, user *model.User) error
+	SaveTranscAddSub(transc *model.Transactions, sub *model.Subscriptions, user *model.User) error
+	AddFailedSub(sub *model.Subscriptions, user *model.User) error
 }
 
 type GormDB struct {
@@ -1024,7 +1025,7 @@ func (db *GormDB) AddSubscription(sub *model.Subscriptions) error {
 	return nil
 }
 
-func (db *GormDB) AddTranscSub(transc *model.Transactions, sub *model.Subscriptions) error {
+func (db *GormDB) AddTranscSub(transc *model.Transactions, sub *model.Subscriptions, user *model.User) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(transc).Error; err != nil {
 			return err
@@ -1032,6 +1033,10 @@ func (db *GormDB) AddTranscSub(transc *model.Transactions, sub *model.Subscripti
 
 		sub.TransactionID = transc.ID
 		if err := tx.Create(sub).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Save(user).Error; err != nil {
 			return err
 		}
 
@@ -1043,7 +1048,7 @@ func (db *GormDB) AddTranscSub(transc *model.Transactions, sub *model.Subscripti
 	return nil
 }
 
-func (db *GormDB) SaveTranscAddSub(transc *model.Transactions, sub *model.Subscriptions) error {
+func (db *GormDB) SaveTranscAddSub(transc *model.Transactions, sub *model.Subscriptions, user *model.User) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(transc).Error; err != nil {
 			return err
@@ -1053,10 +1058,32 @@ func (db *GormDB) SaveTranscAddSub(transc *model.Transactions, sub *model.Subscr
 			return err
 		}
 
+		if err := tx.Save(user).Error; err != nil {
+			return err
+		}
+
 		return nil
 	}); err != nil {
 		log.Println("[DB TRANSACTION] An error occured, err -> ", err.Error())
 		return &CustomMessage{http.StatusInternalServerError, "Failed to finish transaction and create subscription"}
+	}
+	return nil
+}
+
+func (db *GormDB) AddFailedSub(sub *model.Subscriptions, user *model.User) error {
+	if err := db.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(sub).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Save(user).Error; err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		log.Println("[DB TRANSACTION] An error occured, err -> ", err.Error())
+		return &CustomMessage{http.StatusInternalServerError, "Failed to create a Failed subscription"}
 	}
 	return nil
 }

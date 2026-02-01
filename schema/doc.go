@@ -103,3 +103,8 @@ type DocInitTranscResponse struct {
 	URI   string `json:"uri"`
 	Token string `json:"token"`
 }
+
+type DocUpdateCardSub struct {
+	Msg  string `json:"msg"`
+	Link string `json:"link"`
+}

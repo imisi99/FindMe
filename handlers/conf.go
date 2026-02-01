@@ -91,21 +91,15 @@ func Authorization(user *model.User, password string) (string, error) {
 
 // CheckSubscription -> Checks if a user has a current subscription
 func CheckSubscription(user *model.User) bool {
-	premium := false
-
 	if time.Now().Before(user.FreeTrial) {
 		return true
 	}
 
-	if len(user.Subscriptions) > 0 {
-		for _, sub := range user.Subscriptions { // TODO: This is probably not the best way to do this (not efficient) but works for now
-			if time.Now().Before(sub.EndDate) {
-				premium = true
-				break
-			}
-		}
+	if time.Now().Before(*user.LastSubEnd) {
+		return true
 	}
-	return premium
+
+	return false
 }
 
 // Authentication -> Authenticate user
