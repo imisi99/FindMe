@@ -68,3 +68,8 @@ type PaystackSubResp struct {
 	Status  bool   `json:"status" binding:"required"`
 	Message string `json:"message" binding:"required"`
 }
+
+type PaystackViewPlans struct {
+	Name     string `json:"name" binding:"required"`
+	PlanCode string `json:"plan_code" binding:"omitempty"`
+}

@@ -398,6 +398,8 @@ func (t *TranscService) CancelSubscription(ctx *gin.Context) {
 	defer resp.Body.Close()
 	var sub schema.PaystackSubResp
 
+	body, _ = io.ReadAll(resp.Body)
+
 	if err := json.Unmarshal(body, &sub); err != nil {
 		log.Println("[TRANSACTION] An error occured while trying to Unmarshal payload from paystack, err -> ", err.Error())
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse response from paystack"})
@@ -466,6 +468,8 @@ func (t *TranscService) EnableSubscription(ctx *gin.Context) {
 	defer resp.Body.Close()
 	var sub schema.PaystackSubResp
 
+	body, _ = io.ReadAll(resp.Body)
+
 	if err := json.Unmarshal(body, &sub); err != nil {
 		log.Println("[TRANSACTION] An error occured while trying to Unmarshal payload from paystack, err -> ", err.Error())
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse response from paystack"})
@@ -478,4 +482,31 @@ func (t *TranscService) EnableSubscription(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"msg": sub.Message})
+}
+
+func (t *TranscService) ViewPlans(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if !model.IsValidUUID(uid) || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+	}
+
+	req, _ := http.NewRequest(http.MethodGet, "", nil)
+	req.Header.Set("Authorization", "Bearer "+t.SecretKey)
+
+	resp, err := t.Client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		ctx.JSON(http.StatusBadGateway, gin.H{"msg": "Failed to communicate with paystack."})
+		return
+	}
+
+	defer resp.Body.Close()
+	var plans schema.PaystackViewPlans
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if err := json.Unmarshal(body, &plans); err != nil {
+		log.Println("[TRANSACTION] An error occured while trying to Unmarshal payload from paystack, err -> ", err.Error())
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse response from paystack."})
+		return
+	}
 }
