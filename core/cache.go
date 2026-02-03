@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"findme/model"
+	"findme/schema"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -16,6 +17,8 @@ import (
 type Cache interface {
 	CheckHealth() error
 	CacheSkills(skills []model.Skill)
+	CachePlans(plans []schema.ViewPlansResp) error
+	RetrieveCachedPlans() ([]schema.ViewPlansResp, error)
 	RetrieveCachedSkills(skills []string) (map[string]string, error)
 	AddNewSkillToCache(skill []*model.Skill)
 	SetOTP(otp string, uid string) error
@@ -128,4 +131,26 @@ func (c *RDB) GetOTP(otp string) (string, error) {
 		return "", &CustomMessage{http.StatusNotFound, "Invalid otp."}
 	}
 	return userID[0], nil
+}
+
+func (c *RDB) CachePlans(plans []schema.ViewPlansResp) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if _, err := c.Cache.HSet(ctx, "plans", plans).Result(); err != nil {
+		log.Printf("An error occured while trying to set plans in redis -> %v", err.Error())
+		return &CustomMessage{http.StatusInternalServerError, "Failed to set plans in cache."}
+	}
+	return nil
+}
+
+func (c *RDB) RetrieveCachedPlans() ([]schema.ViewPlansResp, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if _, err := c.Cache.HGetAll(ctx, "plans").Result(); err != nil {
+		log.Printf("An error occured while trying to get plans from redis -> %v", err.Error())
+		return nil, &CustomMessage{http.StatusInternalServerError, "Failed to get plans from cache."}
+	}
+	return nil, nil
 }

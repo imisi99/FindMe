@@ -1,6 +1,8 @@
 package schema
 
-import "time"
+import (
+	"time"
+)
 
 type TransactionResponse struct {
 	ID      string
@@ -70,6 +72,21 @@ type PaystackSubResp struct {
 }
 
 type PaystackViewPlans struct {
-	Name     string `json:"name" binding:"required"`
-	PlanCode string `json:"plan_code" binding:"omitempty"`
+	Status  bool   `json:"status" binding:"required"`
+	Message string `json:"message" binding:"required"`
+	Data    []struct {
+		Name     string `json:"name" binding:"required"`
+		Interval string `json:"Interval" binding:"required"`
+		PlanCode string `json:"plan_code" binding:"omitempty"`
+		Currency string `json:"currency" binding:"required"`
+		Amount   int64  `json:"amount" binding:"required"`
+	} `json:"data" binding:"omitempty"`
+}
+
+type ViewPlansResp struct {
+	ID       string
+	Name     string
+	Amount   int64
+	Interval string
+	Currency string
 }

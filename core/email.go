@@ -16,7 +16,8 @@ type EmailS interface {
 	SendProjectApplicationAccept(fromUsername, toUsername, message, chatURL string) (string, string)
 	SendProjectApplicationReject(fromUsername, toUsername, message, reason string) (string, string)
 	SendTransactionFailedEmail(username, amount, currency, planName, retryURL string) (string, string)
-	SendCancelSubscription(username, planName string, renewalDate time.Time)
+	SendSubscriptionReEnabledEmail(username, planName, currency, amount, nextBillingDate string) (string, string)
+	SendSubscriptionCancelledEmail(username, planName, endDate string) (string, string)
 }
 
 type Email interface {
@@ -27,7 +28,8 @@ type Email interface {
 	QueueProjectApplicationAccept(fromUsername, toUsername, message, chatURL, to string)
 	QueueProjectApplicationReject(fromUsername, toUsername, message, reason, to string)
 	QueueTransactionFailedEmail(username, amount, currency, planName, retryURL, to string)
-	QueueCancelSubscription(username, planName string, renewalDate time.Time, to string)
+	QueueSubscriptionReEnabled(username, planName, currency, amount, nextBillingDate, to string)
+	QueueSubscriptionCancelled(username, planName, endDate, to string)
 }
 
 type EmailService struct {
@@ -153,6 +155,26 @@ func (h *EmailHub) QueueProjectApplicationReject(fromUsername, toUsername, messa
 
 func (h *EmailHub) QueueTransactionFailedEmail(username, amount, currency, planName, retryURL, to string) {
 	body, subject := h.Service.SendTransactionFailedEmail(username, amount, currency, planName, retryURL)
+	h.Jobs <- &EmailJob{
+		To:          to,
+		Subject:     subject,
+		Body:        body,
+		MaxAttempts: 2,
+	}
+}
+
+func (h *EmailHub) QueueSubscriptionReEnabled(username, planName, currency, amount, nextBillingDate, to string) {
+	body, subject := h.Service.SendSubscriptionReEnabledEmail(username, planName, currency, amount, nextBillingDate)
+	h.Jobs <- &EmailJob{
+		To:          to,
+		Subject:     subject,
+		Body:        body,
+		MaxAttempts: 2,
+	}
+}
+
+func (h *EmailHub) QueueSubscriptionCancelled(username, planName, endDate, to string) {
+	body, subject := h.Service.SendSubscriptionCancelledEmail(username, planName, endDate)
 	h.Jobs <- &EmailJob{
 		To:          to,
 		Subject:     subject,
@@ -468,6 +490,7 @@ func (e *EmailService) SendProjectApplicationReject(fromUsername, toUsername, me
 	return htmlBody, "Project Application Update"
 }
 
+// SendTransactionFailedEmail -> Sends notification about a failed transaction for a subscription
 func (e *EmailService) SendTransactionFailedEmail(username, amount, currency, planName, retryURL string) (string, string) {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
@@ -535,6 +558,131 @@ func (e *EmailService) SendTransactionFailedEmail(username, amount, currency, pl
 		retryURL,
 	)
 	return htmlBody, "Action Required: Payment Failed - FindMe"
+}
+
+// SendSubscriptionReEnabledEmail -> Sends a notification about a re-enabled subscription
+func (e *EmailService) SendSubscriptionReEnabledEmail(username, planName, currency, amount, nextBillingDate string) (string, string) {
+	htmlBody := fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+	<meta charset="UTF-8">
+	<title>Subscription Re-enabled</title>
+	</head>
+	<body style="margin:0; padding:0; background:#f9fafb; font-family:Arial, sans-serif;">
+	<table width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f9fafb; padding:40px 0;">
+		<tr>
+		<td align="center">
+			<table width="600" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+			<tr>
+				<td style="background:#059669; padding:20px; text-align:center; border-top-left-radius:8px; border-top-right-radius:8px;">
+					<h1 style="margin:0; font-size:22px; color:#ffffff;">Welcome Back!</h1>
+				</td>
+			</tr>
+			<tr>
+				<td style="padding:30px;">
+					<p style="font-size:16px; color:#111827; margin-bottom:20px;">Hello %s,</p>
+					<p style="font-size:15px; color:#374151; margin-bottom:20px;">
+						Great news! Your subscription for plan %s has been re-enabled. You'll continue to enjoy uninterrupted access to all premium features.
+					</p>
+					<table width="100%%" cellpadding="10" cellspacing="0" border="0" style="background:#ecfdf5; border-radius:6px; border:1px solid #a7f3d0; margin-bottom:20px;">
+						<tr>
+							<td style="font-size:14px; color:#6b7280;">Status</td>
+							<td style="font-size:14px; color:#059669; font-weight:bold; text-align:right;">Active</td>
+						</tr>
+						<tr>
+							<td style="font-size:14px; color:#6b7280; border-top:1px solid #a7f3d0;">Next Billing Date</td>
+							<td style="font-size:14px; color:#111827; font-weight:bold; text-align:right; border-top:1px solid #a7f3d0;">%s</td>
+							<td style="font-size:14px; color:#111827; font-weight:bold; text-align:right; border-top:1px solid #a7f3d0;">%s %s</td>
+						</tr>
+					</table>
+					<p style="font-size:14px; color:#6b7280; margin-bottom:30px;">
+						Your card on file will be charged automatically on the next billing date.
+					</p>
+					<div style="text-align:center; margin-bottom:30px;">
+						<a href="https://findme.app/dashboard" style="background:#4f46e5; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:6px; font-size:15px; font-weight:bold;">Go to Dashboard</a>
+					</div>
+				</td>
+			</tr>
+			<tr>
+				<td style="padding:20px; text-align:center; font-size:12px; color:#9ca3af;">
+					Thank you for staying with us!<br/><br/>
+					This is an automated email, please do not reply.
+				</td>
+			</tr>
+			</table>
+		</td>
+		</tr>
+	</table>
+	</body>
+	</html>`,
+		username,
+		planName,
+		nextBillingDate,
+		currency,
+		amount,
+	)
+	return htmlBody, "Your FindMe Subscription Has Been Re-enabled"
+}
+
+func (e *EmailService) SendSubscriptionCancelledEmail(username, planName, endDate string) (string, string) {
+	htmlBody := fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+	<meta charset="UTF-8">
+	<title>Subscription Cancelled</title>
+	</head>
+	<body style="margin:0; padding:0; background:#f9fafb; font-family:Arial, sans-serif;">
+	<table width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f9fafb; padding:40px 0;">
+		<tr>
+		<td align="center">
+			<table width="600" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+			<tr>
+				<td style="background:#6b7280; padding:20px; text-align:center; border-top-left-radius:8px; border-top-right-radius:8px;">
+					<h1 style="margin:0; font-size:22px; color:#ffffff;">Subscription Cancelled</h1>
+				</td>
+			</tr>
+			<tr>
+				<td style="padding:30px;">
+					<p style="font-size:16px; color:#111827; margin-bottom:20px;">Hello %s,</p>
+					<p style="font-size:15px; color:#374151; margin-bottom:20px;">
+						Your subscription for plan %s has been cancelled. You will <b>not</b> be billed on your next payment date.
+					</p>
+					<table width="100%%" cellpadding="10" cellspacing="0" border="0" style="background:#f3f4f6; border-radius:6px; margin-bottom:20px;">
+						<tr>
+							<td style="font-size:14px; color:#6b7280;">Access Until</td>
+							<td style="font-size:14px; color:#111827; font-weight:bold; text-align:right;">%s</td>
+						</tr>
+					</table>
+					<p style="font-size:14px; color:#374151; margin-bottom:20px;">
+						You'll continue to have full access to all premium features until this date. After that, your account will revert to the free plan.
+					</p>
+					<p style="font-size:14px; color:#6b7280; margin-bottom:30px;">
+						Changed your mind? You can re-enable your subscription anytime before it expires.
+					</p>
+					<div style="text-align:center; margin-bottom:30px;">
+						<a href="https://findme.app/settings/subscription" style="background:#4f46e5; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:6px; font-size:15px; font-weight:bold;">Manage Subscription</a>
+					</div>
+				</td>
+			</tr>
+			<tr>
+				<td style="padding:20px; text-align:center; font-size:12px; color:#9ca3af;">
+					We're sorry to see you go. If you have any feedback, we'd love to hear it.<br/><br/>
+					This is an automated email, please do not reply.
+				</td>
+			</tr>
+			</table>
+		</td>
+		</tr>
+	</table>
+	</body>
+	</html>`,
+		username,
+		planName,
+		endDate,
+	)
+	return htmlBody, "Your FindMe Subscription Has Been Cancelled"
 }
 
 func (e *EmailService) SendEmail(to, subject, body string) error {

@@ -108,3 +108,7 @@ type DocUpdateCardSub struct {
 	Msg  string `json:"msg"`
 	Link string `json:"link"`
 }
+
+type DocViewPlansResponse struct {
+	Plans []ViewPlansResp `json:"plans"`
+}

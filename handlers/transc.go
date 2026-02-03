@@ -37,11 +37,13 @@ type Transc interface {
 	UpdateSubscriptionCard(ctx *gin.Context)
 	CancelSubscription(ctx *gin.Context)
 	EnableSubscription(ctx *gin.Context)
+	ViewPlans(ctx *gin.Context)
 }
 
 type TranscService struct {
 	Email     core.Email
 	DB        core.DB
+	RDB       core.Cache
 	SecretKey string
 	Client    *http.Client
 }
@@ -484,13 +486,29 @@ func (t *TranscService) EnableSubscription(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"msg": sub.Message})
 }
 
+// ViewPlans godoc
+// @Summary An endpoint to view available plans
+// @Description An endpoint to view available plans
+// @Tags Transaction
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} schema.DocViewPlansResponse "Success"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 422 {object} schema.DocNormalResponse "Failed to parse payload"
+// @Failure 502 {object} schema.DocNormalResponse "Bad Gateway"
 func (t *TranscService) ViewPlans(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 	}
 
-	req, _ := http.NewRequest(http.MethodGet, "", nil)
+	if plan, err := t.RDB.RetrieveCachedPlans(); err == nil {
+		ctx.JSON(http.StatusOK, gin.H{"plans": plan})
+		return
+	}
+
+	req, _ := http.NewRequest(http.MethodGet, "https://api.paystack.co/plan", nil)
 	req.Header.Set("Authorization", "Bearer "+t.SecretKey)
 
 	resp, err := t.Client.Do(req)
@@ -509,4 +527,25 @@ func (t *TranscService) ViewPlans(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse response from paystack."})
 		return
 	}
+
+	if !plans.Status {
+		ctx.JSON(http.StatusBadGateway, gin.H{"msg": plans.Message})
+		return
+	}
+
+	var res []schema.ViewPlansResp
+
+	for _, plan := range plans.Data {
+		res = append(res, schema.ViewPlansResp{
+			ID:       plan.PlanCode,
+			Amount:   plan.Amount,
+			Name:     plan.Name,
+			Interval: plan.Interval,
+			Currency: plan.Currency,
+		})
+	}
+
+	_ = t.RDB.CachePlans(res)
+
+	ctx.JSON(http.StatusOK, gin.H{"plans": res})
 }
