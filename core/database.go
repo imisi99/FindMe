@@ -92,7 +92,6 @@ type DB interface {
 	FetchTransaction(paystackRef string, transc *model.Transactions) error
 	AddSubscription(sub *model.Subscriptions) error
 	AddTranscSub(transc *model.Transactions, sub *model.Subscriptions, user *model.User) error
-	SaveTranscAddSub(transc *model.Transactions, sub *model.Subscriptions, user *model.User) error
 	AddFailedSub(sub *model.Subscriptions, user *model.User) error
 }
 

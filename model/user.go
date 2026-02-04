@@ -23,15 +23,19 @@ type User struct {
 	Availability bool
 
 	// Sub Details
-	FreeTrial    time.Time
-	LastSubEnd   *time.Time
-	RecurringSub bool
+	FreeTrial       time.Time
+	NextPaymentDate *time.Time
 
 	// Paystack Details
 	PaystackSubCode    *string
 	PaystackEmailToken *string
+	PaystackCusCode    *string
 
 	// Card Details
+	Last4    *string
+	CardType *string
+	ExpMonth *string
+	ExpYear  *string
 
 	// Relations:
 	Skills         []*Skill         `gorm:"many2many:user_skills"`

@@ -16,8 +16,8 @@ type EmailS interface {
 	SendProjectApplicationAccept(fromUsername, toUsername, message, chatURL string) (string, string)
 	SendProjectApplicationReject(fromUsername, toUsername, message, reason string) (string, string)
 	SendTransactionFailedEmail(username, amount, currency, planName, retryURL string) (string, string)
-	SendSubscriptionReEnabledEmail(username, planName, currency, amount, nextBillingDate string) (string, string)
-	SendSubscriptionCancelledEmail(username, planName, endDate string) (string, string)
+	SendSubscriptionReEnabledEmail(username, nextBillingDate string) (string, string)
+	SendSubscriptionCancelledEmail(username, endDate string) (string, string)
 }
 
 type Email interface {
@@ -28,8 +28,8 @@ type Email interface {
 	QueueProjectApplicationAccept(fromUsername, toUsername, message, chatURL, to string)
 	QueueProjectApplicationReject(fromUsername, toUsername, message, reason, to string)
 	QueueTransactionFailedEmail(username, amount, currency, planName, retryURL, to string)
-	QueueSubscriptionReEnabled(username, planName, currency, amount, nextBillingDate, to string)
-	QueueSubscriptionCancelled(username, planName, endDate, to string)
+	QueueSubscriptionReEnabled(username, nextBillingDate, to string)
+	QueueSubscriptionCancelled(username, endDate, to string)
 }
 
 type EmailService struct {
@@ -163,8 +163,8 @@ func (h *EmailHub) QueueTransactionFailedEmail(username, amount, currency, planN
 	}
 }
 
-func (h *EmailHub) QueueSubscriptionReEnabled(username, planName, currency, amount, nextBillingDate, to string) {
-	body, subject := h.Service.SendSubscriptionReEnabledEmail(username, planName, currency, amount, nextBillingDate)
+func (h *EmailHub) QueueSubscriptionReEnabled(username, nextBillingDate, to string) {
+	body, subject := h.Service.SendSubscriptionReEnabledEmail(username, nextBillingDate)
 	h.Jobs <- &EmailJob{
 		To:          to,
 		Subject:     subject,
@@ -173,8 +173,8 @@ func (h *EmailHub) QueueSubscriptionReEnabled(username, planName, currency, amou
 	}
 }
 
-func (h *EmailHub) QueueSubscriptionCancelled(username, planName, endDate, to string) {
-	body, subject := h.Service.SendSubscriptionCancelledEmail(username, planName, endDate)
+func (h *EmailHub) QueueSubscriptionCancelled(username, endDate, to string) {
+	body, subject := h.Service.SendSubscriptionCancelledEmail(username, endDate)
 	h.Jobs <- &EmailJob{
 		To:          to,
 		Subject:     subject,
@@ -561,7 +561,7 @@ func (e *EmailService) SendTransactionFailedEmail(username, amount, currency, pl
 }
 
 // SendSubscriptionReEnabledEmail -> Sends a notification about a re-enabled subscription
-func (e *EmailService) SendSubscriptionReEnabledEmail(username, planName, currency, amount, nextBillingDate string) (string, string) {
+func (e *EmailService) SendSubscriptionReEnabledEmail(username, nextBillingDate string) (string, string) {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -583,7 +583,7 @@ func (e *EmailService) SendSubscriptionReEnabledEmail(username, planName, curren
 				<td style="padding:30px;">
 					<p style="font-size:16px; color:#111827; margin-bottom:20px;">Hello %s,</p>
 					<p style="font-size:15px; color:#374151; margin-bottom:20px;">
-						Great news! Your subscription for plan %s has been re-enabled. You'll continue to enjoy uninterrupted access to all premium features.
+						Great news! Your subscription has been re-enabled. You'll continue to enjoy uninterrupted access to all premium features.
 					</p>
 					<table width="100%%" cellpadding="10" cellspacing="0" border="0" style="background:#ecfdf5; border-radius:6px; border:1px solid #a7f3d0; margin-bottom:20px;">
 						<tr>
@@ -593,7 +593,6 @@ func (e *EmailService) SendSubscriptionReEnabledEmail(username, planName, curren
 						<tr>
 							<td style="font-size:14px; color:#6b7280; border-top:1px solid #a7f3d0;">Next Billing Date</td>
 							<td style="font-size:14px; color:#111827; font-weight:bold; text-align:right; border-top:1px solid #a7f3d0;">%s</td>
-							<td style="font-size:14px; color:#111827; font-weight:bold; text-align:right; border-top:1px solid #a7f3d0;">%s %s</td>
 						</tr>
 					</table>
 					<p style="font-size:14px; color:#6b7280; margin-bottom:30px;">
@@ -617,15 +616,13 @@ func (e *EmailService) SendSubscriptionReEnabledEmail(username, planName, curren
 	</body>
 	</html>`,
 		username,
-		planName,
 		nextBillingDate,
-		currency,
-		amount,
 	)
 	return htmlBody, "Your FindMe Subscription Has Been Re-enabled"
 }
 
-func (e *EmailService) SendSubscriptionCancelledEmail(username, planName, endDate string) (string, string) {
+// SendSubscriptionCancelledEmail -> Sends a notification for a cancelled subscription
+func (e *EmailService) SendSubscriptionCancelledEmail(username, endDate string) (string, string) {
 	htmlBody := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -647,7 +644,7 @@ func (e *EmailService) SendSubscriptionCancelledEmail(username, planName, endDat
 				<td style="padding:30px;">
 					<p style="font-size:16px; color:#111827; margin-bottom:20px;">Hello %s,</p>
 					<p style="font-size:15px; color:#374151; margin-bottom:20px;">
-						Your subscription for plan %s has been cancelled. You will <b>not</b> be billed on your next payment date.
+						Your subscription has been cancelled. You will <b>not</b> be billed on your next payment date.
 					</p>
 					<table width="100%%" cellpadding="10" cellspacing="0" border="0" style="background:#f3f4f6; border-radius:6px; margin-bottom:20px;">
 						<tr>
@@ -679,7 +676,6 @@ func (e *EmailService) SendSubscriptionCancelledEmail(username, planName, endDat
 	</body>
 	</html>`,
 		username,
-		planName,
 		endDate,
 	)
 	return htmlBody, "Your FindMe Subscription Has Been Cancelled"

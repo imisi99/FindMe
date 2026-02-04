@@ -76,6 +76,13 @@ definitions:
       req:
         $ref: '#/definitions/schema.FriendReqStatus'
     type: object
+  schema.DocInitTranscResponse:
+    properties:
+      token:
+        type: string
+      uri:
+        type: string
+    type: object
   schema.DocMsgResponse:
     properties:
       msg:
@@ -138,6 +145,13 @@ definitions:
           $ref: '#/definitions/schema.TransactionResponse'
         type: array
     type: object
+  schema.DocUpdateCardSub:
+    properties:
+      link:
+        type: string
+      msg:
+        type: string
+    type: object
   schema.DocUserResponse:
     properties:
       user:
@@ -184,6 +198,13 @@ definitions:
       friends:
         items:
           $ref: '#/definitions/schema.ViewFriends'
+        type: array
+    type: object
+  schema.DocViewPlansResponse:
+    properties:
+      plans:
+        items:
+          $ref: '#/definitions/schema.ViewPlansResp'
         type: array
     type: object
   schema.DocViewProjectApplications:
@@ -549,6 +570,20 @@ definitions:
       sent:
         type: string
       uid:
+        type: string
+    type: object
+  schema.ViewPlansResp:
+    properties:
+      amount:
+        format: int64
+        type: integer
+      currency:
+        type: string
+      id:
+        type: string
+      interval:
+        type: string
+      name:
         type: string
     type: object
   schema.ViewProjectApplication:
@@ -1785,6 +1820,175 @@ paths:
       summary: View all current user bookmarked projects
       tags:
       - Project
+  /api/transc/cancel-sub:
+    patch:
+      consumes:
+      - application/json
+      description: An endpoint for canceling a subscription
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Failed to parse payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "502":
+          description: Failed communication with external service
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: An endpoint for canceling a subscription
+      tags:
+      - Transaction
+  /api/transc/enable-sub:
+    patch:
+      consumes:
+      - application/json
+      description: An endpoint for re enabling a subscription
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "402":
+          description: Payment required
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Failed to parse payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "502":
+          description: Failed communication with external service
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: An endpoint for enabling a subscription
+      tags:
+      - Transaction
+  /api/transc/initialize:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for initializing a transaction on paystack to receive
+        a checkout url for payment
+      parameters:
+      - description: amount
+        in: query
+        name: amount
+        required: true
+        type: string
+      - description: plan
+        in: query
+        name: amount
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/schema.DocInitTranscResponse'
+        "400":
+          description: Bad Query
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Failed to parse payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: An endpoint for initializing a transaction on paystack
+      tags:
+      - Transaction
+  /api/transc/update-card:
+    get:
+      consumes:
+      - application/json
+      description: This is an endpoint for retrieving link for updating card details
+        used for transaction on paystack
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Link Generated
+          schema:
+            $ref: '#/definitions/schema.DocUpdateCardSub'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Failed to parse payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "502":
+          description: Failed communication with external service
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: This is an endpoint for udpating card details on paystack
+      tags:
+      - Transaction
   /api/transc/view:
     get:
       consumes:
@@ -1815,6 +2019,63 @@ paths:
       summary: Retrieves the transactions for a user
       tags:
       - Transactions
+  /api/transc/view/plans:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint to view available plans
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/schema.DocViewPlansResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Failed to parse payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: An endpoint to view available plans
+      tags:
+      - Transaction
+  /api/transc/webhook:
+    post:
+      consumes:
+      - application/json
+      description: An endpoint for intercepting the paystack webhooks transaction
+        events
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Failed to parse payload
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      summary: This is a webhook for the paystack transaction events
+      tags:
+      - Transaction
   /api/user/connect-github:
     post:
       consumes:

@@ -44,6 +44,8 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	router.POST("/forgot-password", service.ForgotPassword)
 	router.GET("/verify-otp", service.VerifyOTP)
 
+	router.POST("/api/transc/webhook", service.Transc.VerifyTranscWebhook)
+
 	protectedUserRoutes := router.Group("/api/user")
 	protectedProjectRoutes := router.Group("/api/post")
 	protectedMsgRoutes := router.Group("/api/msg")
@@ -81,6 +83,7 @@ func SetupHandler(router *gin.Engine, service *Service) {
 
 	protectedTranscRoutes.GET("/view", service.Transc.GetTransactions)
 	protectedTranscRoutes.GET("/initialize", service.Transc.InitializeTransaction)
+	protectedTranscRoutes.GET("/view/plans", service.Transc.ViewPlans)
 	protectedTranscRoutes.GET("/update-card", service.Transc.UpdateSubscriptionCard)
 	protectedTranscRoutes.PATCH("/cancel-sub", service.Transc.CancelSubscription)
 	protectedTranscRoutes.PATCH("/enable-sub", service.Transc.EnableSubscription)

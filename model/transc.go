@@ -7,6 +7,7 @@ type Subscriptions struct {
 	UserID        string
 	TransactionID string
 	Status        string
+	PlanName      string
 	StartDate     time.Time
 	EndDate       time.Time
 
@@ -33,8 +34,7 @@ type Plan struct {
 }
 
 const (
-	PaystackChargeSuccess = "charge.success"
-	PaystackInvoiceUpdate = "invoice.update"
-	PaystackExpiringCards = "subscription.expiring_cards"
-	PaystackCancelSub     = "subscription.not_renew"
+	PaystackChargeSuccess      = "charge.success"
+	PaystackInvoiceUpdate      = "invoice.update"
+	PaystackSubscriptionCreate = "subscription.create"
 )

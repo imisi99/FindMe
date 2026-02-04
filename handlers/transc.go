@@ -22,14 +22,15 @@ import (
 // TODO: Check on the Closing of the resp for keeping alive requests
 
 // TODO:
-// Create Plan and add plan to DB
 // Add Sub Code for paystack to user Model and Sub plan to Sub model from plan Model
-// Notify user with the Cancel Sub, Failed Transaction, Ending Sub soon email
 // Augmented Data for user (card ending , date and month, card type, next payment date)
 
 // DONE:
 // Write email for the successful / failed surcharge for Subscriptions
 // Cancel sub event and also endpoint(if it uses one)
+// Notify user with the Cancel Sub, Failed Transaction
+// Create Plan and add plan to RDB
+//
 
 type Transc interface {
 	GetTransactions(ctx *gin.Context)
@@ -38,6 +39,7 @@ type Transc interface {
 	CancelSubscription(ctx *gin.Context)
 	EnableSubscription(ctx *gin.Context)
 	ViewPlans(ctx *gin.Context)
+	VerifyTranscWebhook(ctx *gin.Context)
 }
 
 type TranscService struct {
@@ -168,6 +170,16 @@ func (t *TranscService) InitializeTransaction(ctx *gin.Context) {
 }
 
 // VerifyTranscWebhook godoc
+// @Summary This is a webhook for the paystack transaction events
+// @Description An endpoint for intercepting the paystack webhooks transaction events
+// @Tags Transaction
+// @Accept json
+// @Produce json
+// @Success 200 {object} schema.DocNormalResponse "Success"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 422 {object} schema.DocNormalResponse "Failed to parse payload"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/transc/webhook [post]
 func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 	body, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
@@ -200,63 +212,51 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 		return
 	}
 
-	var transc model.Transactions
 	switch event.Event {
-	case model.PaystackChargeSuccess:
-		if err := t.DB.FetchTransaction(event.Data.Reference, &transc); err != nil {
-			cm := err.(*core.CustomMessage)
-			if cm.Code == http.StatusNotFound {
-				amount, _ := strconv.ParseInt(event.Data.Amount, 10, 64)
+	case model.PaystackSubscriptionCreate:
+		user.PaystackSubCode = &event.Data.SubCode
+		user.PaystackCusCode = &event.Data.Customer.CusCode
 
-				transc.UserID = user.ID
-				transc.PaystackRef = event.Data.Reference
-				transc.Amount = amount
-				transc.Status = event.Data.Status
-				transc.Channel = event.Data.Channel
-				transc.Curency = event.Data.Currency
-				transc.PaidAt = &event.Data.PaidAt
+		user.Last4 = &event.Data.Authorization.Last4
+		user.CardType = &event.Data.Authorization.Brand
+		user.ExpMonth = &event.Data.Authorization.ExpMonth
+		user.ExpYear = &event.Data.Authorization.ExpYear
 
-				sub := model.Subscriptions{
-					UserID:    user.ID,
-					Status:    model.StatusActive,
-					StartDate: time.Now(),
-					EndDate:   time.Now().Add(time.Hour * 24 * 30),
-				}
-
-				user.LastSubEnd = &sub.EndDate
-				user.RecurringSub = true
-
-				if err := t.DB.AddTranscSub(&transc, &sub, &user); err != nil {
-					ctx.Status(http.StatusInternalServerError)
-					return
-				}
-
-			} else {
-				ctx.Status(cm.Code)
-				return
-			}
-		} else {
-			transc.Status = event.Data.Status
-			transc.Channel = event.Data.Channel
-			transc.Curency = event.Data.Currency
-			transc.PaidAt = &event.Data.PaidAt
-
-			sub := model.Subscriptions{
-				TransactionID: transc.ID,
-				UserID:        user.ID,
-				Status:        model.StatusActive,
-				StartDate:     time.Now(),
-				EndDate:       time.Now().Add(time.Hour * 24 * 30),
-			}
-
-			user.LastSubEnd = &sub.EndDate
-			user.RecurringSub = true
-
-			if err := t.DB.SaveTranscAddSub(&transc, &sub, &user); err != nil {
-				ctx.Status(http.StatusInternalServerError)
-				return
-			}
+		if err := t.DB.SaveUser(&user); err != nil {
+			ctx.Status(http.StatusInternalServerError)
+			return
 		}
+
+		ctx.Status(http.StatusOK)
+		return
+	case model.PaystackChargeSuccess:
+		amount, _ := strconv.ParseInt(event.Data.Amount, 10, 64)
+
+		transc := model.Transactions{
+			UserID:      user.ID,
+			PaystackRef: event.Data.Reference,
+			Amount:      amount,
+			Status:      event.Data.Status,
+			Channel:     event.Data.Channel,
+			Curency:     event.Data.Currency,
+			PaidAt:      &event.Data.PaidAt,
+		}
+
+		sub := model.Subscriptions{
+			UserID:    user.ID,
+			Status:    model.StatusActive,
+			PlanName:  event.Data.Plan.Name,
+			StartDate: time.Now(),
+			EndDate:   time.Now().Add(time.Hour * 24 * 30),
+		}
+
+		user.NextPaymentDate = &sub.EndDate
+
+		if err := t.DB.AddTranscSub(&transc, &sub, &user); err != nil {
+			ctx.Status(http.StatusInternalServerError)
+			return
+		}
+
 		ctx.Status(http.StatusOK)
 		return
 	case model.PaystackInvoiceUpdate:
@@ -264,12 +264,13 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 			sub := model.Subscriptions{
 				UserID:    user.ID,
 				Status:    model.StatusFailed,
+				PlanName:  event.Data.Plan.Name,
 				StartDate: time.Now(),
-				EndDate:   time.Now().Add(time.Hour * 24 * 30),
+				EndDate:   event.Data.Subscription.NextPaymentDate,
 			}
 
-			grace := user.LastSubEnd.Add(time.Hour * 24 * 7)
-			user.LastSubEnd = &grace
+			grace := user.NextPaymentDate.Add(time.Hour * 24 * 7)
+			user.NextPaymentDate = &grace
 
 			if err := t.DB.AddFailedSub(&sub, &user); err != nil {
 				ctx.Status(http.StatusInternalServerError)
@@ -278,15 +279,9 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 
 			t.Email.QueueTransactionFailedEmail(user.UserName, event.Data.Amount, event.Data.Currency, event.Data.Plan.Name, "", user.Email)
 		}
+
 		ctx.Status(http.StatusOK)
 		return
-	case model.PaystackCancelSub:
-		user.RecurringSub = false
-		if err := t.DB.SaveUser(&user); err != nil {
-			ctx.Status(http.StatusInternalServerError)
-			return
-		}
-		t.Email.QueueCancelSubscription(user.UserName, event.Data.Plan.Name, *user.LastSubEnd, user.Email)
 	default:
 		ctx.Status(http.StatusOK)
 		return
@@ -413,6 +408,8 @@ func (t *TranscService) CancelSubscription(ctx *gin.Context) {
 		return
 	}
 
+	t.Email.QueueSubscriptionCancelled(user.UserName, user.NextPaymentDate.Format("January 01 2026"), user.Email)
+
 	ctx.JSON(http.StatusOK, gin.H{"msg": sub.Message})
 }
 
@@ -445,7 +442,7 @@ func (t *TranscService) EnableSubscription(ctx *gin.Context) {
 		return
 	}
 
-	if time.Now().After(*user.LastSubEnd) {
+	if time.Now().After(*user.NextPaymentDate) {
 		ctx.JSON(http.StatusPaymentRequired, gin.H{"msg": "Subscription has expired and needs to be renewed."})
 		return
 	}
@@ -483,6 +480,8 @@ func (t *TranscService) EnableSubscription(ctx *gin.Context) {
 		return
 	}
 
+	t.Email.QueueSubscriptionReEnabled(user.UserName, user.NextPaymentDate.Format("January 01 2026"), user.Email)
+
 	ctx.JSON(http.StatusOK, gin.H{"msg": sub.Message})
 }
 
@@ -497,6 +496,7 @@ func (t *TranscService) EnableSubscription(ctx *gin.Context) {
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
 // @Failure 422 {object} schema.DocNormalResponse "Failed to parse payload"
 // @Failure 502 {object} schema.DocNormalResponse "Bad Gateway"
+// @Router /api/transc/view/plans [get]
 func (t *TranscService) ViewPlans(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {

@@ -29,14 +29,18 @@ type PaystackEvent struct {
 		Channel       string    `json:"channel" binding:"omitempty"`
 		Currency      string    `json:"currency" binding:"omitempty"`
 		Amount        string    `json:"amount" binding:"omitempty"`
+		SubCode       string    `json:"subscription_code" binding:"omitempty"`
 		PaidAt        time.Time `json:"paid_at" binding:"omitempty"`
 		Paid          bool      `json:"paid" binding:"omitempty"`
 		Authorization struct {
-			Last4 string `json:"last_4" binding:"omitempty"`
-			Brand string `json:"brand" binding:"omitempty"`
+			Last4    string `json:"last_4" binding:"omitempty"`
+			Brand    string `json:"brand" binding:"omitempty"`
+			ExpMonth string `json:"exp_month" binding:"omitempty"`
+			ExpYear  string `json:"exp_year" binding:"omitempty"`
 		}
 		Customer struct {
-			Email string `json:"email" binding:"omitempty"`
+			CusCode string `json:"customer_code" binding:"omitempty"`
+			Email   string `json:"email" binding:"omitempty"`
 		}
 		Transaction struct {
 			Reference string `json:"reference" binding:"omitempty"`

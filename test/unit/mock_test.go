@@ -59,6 +59,14 @@ func (mock *CacheMock) GetOTP(otp string) (string, error) {
 	return "", errors.New("missing")
 }
 
+func (mock *CacheMock) CachePlans(plans []schema.ViewPlansResp) error {
+	return nil
+}
+
+func (mock *CacheMock) RetrieveCachedPlans() ([]schema.ViewPlansResp, error) {
+	return nil, nil
+}
+
 func NewCacheMock() *CacheMock {
 	return &CacheMock{
 		Store: make(map[string]map[string]string, 0),
@@ -68,12 +76,15 @@ func NewCacheMock() *CacheMock {
 
 type EmailHub struct{}
 
-func (mock *EmailHub) QueueProjectApplicationReject(_, _, _, _, _ string) {}
-func (mock *EmailHub) QueueProjectApplicationAccept(_, _, _, _, _ string) {}
-func (mock *EmailHub) QueueProjectApplication(_, _, _, _, _ string)       {}
-func (mock *EmailHub) QueueFriendReqEmail(_, _, _, _, _ string)           {}
-func (mock *EmailHub) QueueForgotPassEmail(_, _, _ string)                {}
-func (mock *EmailHub) Worker()                                            {}
+func (mock *EmailHub) QueueProjectApplicationReject(_, _, _, _, _ string)  {}
+func (mock *EmailHub) QueueProjectApplicationAccept(_, _, _, _, _ string)  {}
+func (mock *EmailHub) QueueTransactionFailedEmail(_, _, _, _, _, _ string) {}
+func (mock *EmailHub) QueueProjectApplication(_, _, _, _, _ string)        {}
+func (mock *EmailHub) QueueFriendReqEmail(_, _, _, _, _ string)            {}
+func (mock *EmailHub) QueueForgotPassEmail(_, _, _ string)                 {}
+func (mock *EmailHub) QueueSubscriptionReEnabled(_, _, _ string)           {}
+func (mock *EmailHub) QueueSubscriptionCancelled(_, _, _ string)           {}
+func (mock *EmailHub) Worker()                                             {}
 
 func NewEmailHubMock() *EmailHub {
 	return &EmailHub{}
@@ -91,6 +102,12 @@ func (mock *EmailMock) SendProjectApplicationAccept(_, _, _, _ string) (string, 
 func (mock *EmailMock) SendProjectApplicationReject(_, _, _, _ string) (string, string) {
 	return "", ""
 }
+
+func (mock *EmailMock) SendTransactionFailedEmail(_, _, _, _, _ string) (string, string) {
+	return "", ""
+}
+func (mock *EmailMock) SendSubscriptionCancelledEmail(_, _ string) (string, string) { return "", "" }
+func (mock *EmailMock) SendSubscriptionReEnabledEmail(_, _ string) (string, string) { return "", "" }
 
 func (mock *EmailMock) SendEmail(_, _, _ string) error { return nil }
 
@@ -130,8 +147,13 @@ func NewGitMock() *GitMock {
 
 type TranscMock struct{}
 
-func (mock *TranscMock) InitializeTransaction(ctx *gin.Context) {}
-func (mock *TranscMock) GetTransactions(_ *gin.Context)         {}
+func (mock *TranscMock) InitializeTransaction(_ *gin.Context)    {}
+func (mock *TranscMock) GetTransactions(_ *gin.Context)          {}
+func (mock *TranscMock) UpdateSubscriptionCard(ctx *gin.Context) {}
+func (mock *TranscMock) CancelSubscription(ctx *gin.Context)     {}
+func (mock *TranscMock) EnableSubscription(ctx *gin.Context)     {}
+func (mock *TranscMock) ViewPlans(ctx *gin.Context)              {}
+func (mock *TranscMock) VerifyTranscWebhook(ctx *gin.Context)    {}
 
 func NewTranscMock() *TranscMock {
 	return &TranscMock{}
