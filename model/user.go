@@ -23,7 +23,8 @@ type User struct {
 	Availability bool
 
 	// Sub Details
-	FreeTrial       time.Time
+	FreeTrial       time.Time `gorm:"column:freetrial"`
+	TrialReminder   bool      `gorm:"column:trialreminder"`
 	NextPaymentDate *time.Time
 
 	// Paystack Details

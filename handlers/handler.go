@@ -18,10 +18,11 @@ type Service struct {
 	Rec    core.Recommendation
 	Chat   *core.ChatHub
 	Client *http.Client
+	Cron   core.CronWorker
 }
 
-func NewService(db core.DB, rdb core.Cache, email core.Email, git Git, transc Transc, embHub core.Embedding, recHub core.Recommendation, client *http.Client, chat *core.ChatHub) *Service {
-	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Transc: transc, Emb: embHub, Rec: recHub, Client: client, Chat: chat}
+func NewService(db core.DB, rdb core.Cache, email core.Email, git Git, transc Transc, embHub core.Embedding, recHub core.Recommendation, client *http.Client, chat *core.ChatHub, cron core.CronWorker) *Service {
+	return &Service{DB: db, RDB: rdb, Email: email, Git: git, Transc: transc, Emb: embHub, Rec: recHub, Client: client, Chat: chat, Cron: cron}
 }
 
 func SetupHandler(router *gin.Engine, service *Service) {

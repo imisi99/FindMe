@@ -84,6 +84,7 @@ func (mock *EmailHub) QueueFriendReqEmail(_, _, _, _, _ string)            {}
 func (mock *EmailHub) QueueForgotPassEmail(_, _, _ string)                 {}
 func (mock *EmailHub) QueueSubscriptionReEnabled(_, _, _ string)           {}
 func (mock *EmailHub) QueueSubscriptionCancelled(_, _, _ string)           {}
+func (mock *EmailHub) QueueNotifyFreeTrialEnding(_, _, _, _ string)        {}
 func (mock *EmailHub) Worker()                                             {}
 
 func NewEmailHubMock() *EmailHub {
@@ -108,6 +109,8 @@ func (mock *EmailMock) SendTransactionFailedEmail(_, _, _, _, _ string) (string,
 }
 func (mock *EmailMock) SendSubscriptionCancelledEmail(_, _ string) (string, string) { return "", "" }
 func (mock *EmailMock) SendSubscriptionReEnabledEmail(_, _ string) (string, string) { return "", "" }
+
+func (mock *EmailMock) SendNotifyFreeTrialEnding(_, _, _ string) (string, string) { return "", "" }
 
 func (mock *EmailMock) SendEmail(_, _, _ string) error { return nil }
 
@@ -185,3 +188,11 @@ func (r *RecommendationMock) GetRecommendation(ID string, jobType core.Recommend
 func NewRecommendationMock() *RecommendationMock {
 	return &RecommendationMock{}
 }
+
+type CronMock struct{}
+
+func NewCronMock() *CronMock {
+	return &CronMock{}
+}
+
+func (mock *CronMock) TrialEndingReminders() error { return nil }

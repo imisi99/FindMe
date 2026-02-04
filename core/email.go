@@ -18,6 +18,7 @@ type EmailS interface {
 	SendTransactionFailedEmail(username, amount, currency, planName, retryURL string) (string, string)
 	SendSubscriptionReEnabledEmail(username, nextBillingDate string) (string, string)
 	SendSubscriptionCancelledEmail(username, endDate string) (string, string)
+	SendNotifyFreeTrialEnding(username, endDate, subURL string) (string, string)
 }
 
 type Email interface {
@@ -30,6 +31,7 @@ type Email interface {
 	QueueTransactionFailedEmail(username, amount, currency, planName, retryURL, to string)
 	QueueSubscriptionReEnabled(username, nextBillingDate, to string)
 	QueueSubscriptionCancelled(username, endDate, to string)
+	QueueNotifyFreeTrialEnding(username, endDate, subURL, to string)
 }
 
 type EmailService struct {
@@ -175,6 +177,16 @@ func (h *EmailHub) QueueSubscriptionReEnabled(username, nextBillingDate, to stri
 
 func (h *EmailHub) QueueSubscriptionCancelled(username, endDate, to string) {
 	body, subject := h.Service.SendSubscriptionCancelledEmail(username, endDate)
+	h.Jobs <- &EmailJob{
+		To:          to,
+		Subject:     subject,
+		Body:        body,
+		MaxAttempts: 2,
+	}
+}
+
+func (h *EmailHub) QueueNotifyFreeTrialEnding(username, endDate, subURL, to string) {
+	body, subject := h.Service.SendNotifyFreeTrialEnding(username, endDate, subURL)
 	h.Jobs <- &EmailJob{
 		To:          to,
 		Subject:     subject,
@@ -679,6 +691,64 @@ func (e *EmailService) SendSubscriptionCancelledEmail(username, endDate string) 
 		endDate,
 	)
 	return htmlBody, "Your FindMe Subscription Has Been Cancelled"
+}
+
+// SendNotifyFreeTrialEnding -> Sends an notification for a free trial ending
+func (e *EmailService) SendNotifyFreeTrialEnding(username, endDate, subURL string) (string, string) {
+	htmlBody := fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+	<meta charset="UTF-8">
+	<title>Your Free Trial is Ending</title>
+	</head>
+	<body style="margin:0; padding:0; background:#f9fafb; font-family:Arial, sans-serif;">
+	<table width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f9fafb; padding:40px 0;">
+		<tr>
+		<td align="center">
+			<table width="600" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+			<tr>
+				<td style="background:#f59e0b; padding:20px; text-align:center; border-top-left-radius:8px; border-top-right-radius:8px;">
+					<h1 style="margin:0; font-size:22px; color:#ffffff;">Your Free Trial is Ending Soon</h1>
+				</td>
+			</tr>
+			<tr>
+				<td style="padding:30px;">
+					<p style="font-size:16px; color:#111827; margin-bottom:20px;">Hello %s,</p>
+					<p style="font-size:15px; color:#374151; margin-bottom:20px;">
+						Your free trial ends on <b>%s</b>. We hope you've been enjoying FindMe!
+					</p>
+					<p style="font-size:14px; color:#374151; margin-bottom:10px;">
+						<b>Here's what you'll lose access to:</b>
+					</p>
+					<ul style="font-size:14px; color:#6b7280; margin-bottom:20px; padding-left:20px;">
+						<li style="margin-bottom:8px;">Advanced skill matching algorithms to recommend projects suited to you</li>
+					</ul>
+					<p style="font-size:14px; color:#6b7280; margin-bottom:30px;">
+						Subscribe now to keep your premium access without any interruption.
+					</p>
+					<div style="text-align:center; margin-bottom:30px;">
+						<a href="%s" style="background:#4f46e5; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:6px; font-size:15px; font-weight:bold;">Subscribe Now</a>
+					</div>
+				</td>
+			</tr>
+			<tr>
+				<td style="padding:20px; text-align:center; font-size:12px; color:#9ca3af;">
+					If you have any questions, feel free to reach out to our support team.<br/><br/>
+					This is an automated email, please do not reply.
+				</td>
+			</tr>
+			</table>
+		</td>
+		</tr>
+	</table>
+	</body>
+	</html>`,
+		username,
+		endDate,
+		subURL,
+	)
+	return htmlBody, "Your FindMe Free Trial is Ending Soon"
 }
 
 func (e *EmailService) SendEmail(to, subject, body string) error {

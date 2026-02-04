@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"time"
 
 	"findme/model"
 
@@ -93,6 +94,8 @@ type DB interface {
 	AddSubscription(sub *model.Subscriptions) error
 	AddTranscSub(transc *model.Transactions, sub *model.Subscriptions, user *model.User) error
 	AddFailedSub(sub *model.Subscriptions, user *model.User) error
+	FetchTrialEndingUsers(users *[]model.User, limit, today time.Time) error
+	UpdateSentReminder(ids []string) error
 }
 
 type GormDB struct {
@@ -1084,5 +1087,23 @@ func (db *GormDB) AddFailedSub(sub *model.Subscriptions, user *model.User) error
 		log.Println("[DB TRANSACTION] An error occured, err -> ", err.Error())
 		return &CustomMessage{http.StatusInternalServerError, "Failed to create a Failed subscription"}
 	}
+	return nil
+}
+
+func (db *GormDB) FetchTrialEndingUsers(users *[]model.User, limit, today time.Time) error {
+	if err := db.DB.Where("freetrial <= ? AND freetrial > ? AND trialreminder = ?", limit, today, false).Find(users).Error; err != nil {
+		log.Println("[DB] Failed to retrieve users with ending trial, err -> ", err.Error())
+		return &CustomMessage{http.StatusInternalServerError, "Failed to retrieve users with ending trial"}
+	}
+
+	return nil
+}
+
+func (db *GormDB) UpdateSentReminder(ids []string) error {
+	if err := db.DB.Model(&model.User{}).Where("id IN ?", ids).Update("trialreminder", true).Error; err != nil {
+		log.Println("[DB] Failed to update users trialreminder field, err -> ", err.Error())
+		return &CustomMessage{http.StatusInternalServerError, "Failed to update users trialreminder field"}
+	}
+
 	return nil
 }

@@ -408,7 +408,7 @@ func (t *TranscService) CancelSubscription(ctx *gin.Context) {
 		return
 	}
 
-	t.Email.QueueSubscriptionCancelled(user.UserName, user.NextPaymentDate.Format("January 01 2026"), user.Email)
+	t.Email.QueueSubscriptionCancelled(user.UserName, user.NextPaymentDate.Format("January 02, 2006"), user.Email)
 
 	ctx.JSON(http.StatusOK, gin.H{"msg": sub.Message})
 }
@@ -480,7 +480,7 @@ func (t *TranscService) EnableSubscription(ctx *gin.Context) {
 		return
 	}
 
-	t.Email.QueueSubscriptionReEnabled(user.UserName, user.NextPaymentDate.Format("January 01 2026"), user.Email)
+	t.Email.QueueSubscriptionReEnabled(user.UserName, user.NextPaymentDate.Format("January 02, 2006"), user.Email)
 
 	ctx.JSON(http.StatusOK, gin.H{"msg": sub.Message})
 }
