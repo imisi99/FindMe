@@ -200,6 +200,11 @@ definitions:
           $ref: '#/definitions/schema.ViewFriends'
         type: array
     type: object
+  schema.DocViewPaymentInfo:
+    properties:
+      info:
+        $ref: '#/definitions/schema.PaymentInfo'
+    type: object
   schema.DocViewPlansResponse:
     properties:
       plans:
@@ -294,6 +299,19 @@ definitions:
     - description
     - tags
     - title
+    type: object
+  schema.PaymentInfo:
+    properties:
+      card:
+        type: string
+      last4:
+        type: string
+      month:
+        type: string
+      nextPaymentDate:
+        type: string
+      year:
+        type: string
     type: object
   schema.ProjectApplication:
     properties:
@@ -1912,7 +1930,7 @@ paths:
         type: string
       - description: plan
         in: query
-        name: amount
+        name: plan
         required: true
         type: string
       produces:
@@ -2289,6 +2307,35 @@ paths:
       security:
       - BearerAuth: []
       summary: Get a user by their ID
+      tags:
+      - User
+  /api/user/payment-info:
+    get:
+      consumes:
+      - application/json
+      description: An endpoint for retreiving a user saved payment info used for subscription
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/schema.DocViewPaymentInfo'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Retreives a user saved payment info used for subscription
       tags:
       - User
   /api/user/profile:

@@ -143,6 +143,17 @@ func TestGetUserProfile(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "johndoe@gmail.com")
 }
 
+func TestGetUserPaymentInfo(t *testing.T) {
+	newToken, _ := handlers.GenerateJWT(id2, "login", true, 2*time.Minute)
+	req, _ := http.NewRequest(http.MethodGet, "/api/user/payment-info", nil)
+	req.Header.Set("Authorization", "Bearer "+newToken)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
 func TestRecommendProjects(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/user/recommend", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)

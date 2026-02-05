@@ -112,3 +112,7 @@ type DocUpdateCardSub struct {
 type DocViewPlansResponse struct {
 	Plans []ViewPlansResp `json:"plans"`
 }
+
+type DocViewPaymentInfo struct {
+	Info PaymentInfo `json:"info"`
+}

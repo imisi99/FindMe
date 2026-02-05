@@ -2022,7 +2022,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "plan",
-                        "name": "amount",
+                        "name": "plan",
                         "in": "query",
                         "required": true
                     }
@@ -2578,6 +2578,52 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized user",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/payment-info": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for retreiving a user saved payment info used for subscription",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Retreives a user saved payment info used for subscription",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocViewPaymentInfo"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/schema.DocNormalResponse"
                         }
@@ -4353,6 +4399,14 @@ const docTemplate = `{
                 }
             }
         },
+        "schema.DocViewPaymentInfo": {
+            "type": "object",
+            "properties": {
+                "info": {
+                    "$ref": "#/definitions/schema.PaymentInfo"
+                }
+            }
+        },
         "schema.DocViewPlansResponse": {
             "type": "object",
             "properties": {
@@ -4494,6 +4548,26 @@ const docTemplate = `{
                     }
                 },
                 "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.PaymentInfo": {
+            "type": "object",
+            "properties": {
+                "card": {
+                    "type": "string"
+                },
+                "last4": {
+                    "type": "string"
+                },
+                "month": {
+                    "type": "string"
+                },
+                "nextPaymentDate": {
+                    "type": "string"
+                },
+                "year": {
                     "type": "string"
                 }
             }

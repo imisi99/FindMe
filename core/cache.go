@@ -3,6 +3,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -133,24 +134,43 @@ func (c *RDB) GetOTP(otp string) (string, error) {
 	return userID[0], nil
 }
 
+// CachePlans -> Caches the plans in rdb
 func (c *RDB) CachePlans(plans []schema.ViewPlansResp) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if _, err := c.Cache.HSet(ctx, "plans", plans).Result(); err != nil {
+	data, err := json.Marshal(plans)
+	if err != nil {
+		log.Printf("Failed to marshal plans -> %v", err.Error())
+		return &CustomMessage{http.StatusInternalServerError, "Failed to cache plans."}
+	}
+
+	if _, err := c.Cache.Set(ctx, "plans", data, 24*time.Hour).Result(); err != nil {
 		log.Printf("An error occured while trying to set plans in redis -> %v", err.Error())
 		return &CustomMessage{http.StatusInternalServerError, "Failed to set plans in cache."}
 	}
+
 	return nil
 }
 
+// RetrieveCachedPlans -> Retreives the cached plans from rdb
 func (c *RDB) RetrieveCachedPlans() ([]schema.ViewPlansResp, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if _, err := c.Cache.HGetAll(ctx, "plans").Result(); err != nil {
-		log.Printf("An error occured while trying to get plans from redis -> %v", err.Error())
-		return nil, &CustomMessage{http.StatusInternalServerError, "Failed to get plans from cache."}
+	data, err := c.Cache.Get(ctx, "plans").Result()
+	if err != nil {
+		if err == redis.Nil {
+			return nil, nil
+		}
+		return nil, &CustomMessage{http.StatusInternalServerError, "Failed to retrieve cahced plans."}
 	}
-	return nil, nil
+
+	var plans []schema.ViewPlansResp
+	if err := json.Unmarshal([]byte(data), &plans); err != nil {
+		log.Printf("Failed to Unmarshal cached plans -> %v", err.Error())
+		return nil, &CustomMessage{http.StatusInternalServerError, "Failed to parse cached plans."}
+	}
+
+	return plans, nil
 }

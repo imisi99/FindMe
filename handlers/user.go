@@ -14,9 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO:
-// Add a link to the transaction ID on the subscription
-
 // AddUser godoc
 // @Summary			Register a new user
 // @Description  Sign up endpoint for new users it internally calls a service to create a vector for the user
@@ -251,6 +248,49 @@ func (s *Service) GetUserInfo(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"user": profile})
+}
+
+// GetUserPaymentInfo godoc
+// @Summary Retreives a user saved payment info used for subscription
+// @Description An endpoint for retreiving a user saved payment info used for subscription
+// @Tags User
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} schema.DocViewPaymentInfo "Success"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Router /api/user/payment-info [get]
+func (s *Service) GetUserPaymentInfo(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+
+	if !model.IsValidUUID(uid) || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
+	}
+
+	var user model.User
+	if err := s.DB.FetchUser(&user, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if user.NextPaymentDate == nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"msg": "No payment info exists for this user."})
+		return
+	}
+
+	info := schema.PaymentInfo{
+		Last4:           *user.Last4,
+		Month:           *user.ExpMonth,
+		Year:            *user.ExpYear,
+		Card:            *user.CardType,
+		NextPaymentDate: *user.NextPaymentDate,
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"info": info})
 }
 
 // RecommendProjects godoc

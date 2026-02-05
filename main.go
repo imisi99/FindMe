@@ -7,6 +7,15 @@
 // @BasePath /
 package main
 
+// TODO:
+// Test the Paystack service
+// Add a readme docs
+
+//DONE:
+// Fix the cache plans to store the struct directly (or a work around)
+// The Email token for the paystack stuff does it come with the sub create event (fix this)
+//
+
 import (
 	"log"
 	"net/http"
@@ -41,7 +50,7 @@ func main() {
 	rdbClient := database.ConnectRedis()
 	db := core.NewGormDB(dbClient)
 	rdb := core.NewRDB(rdbClient)
-	cron := &cron.Cron{}
+	cron := cron.New()
 
 	// setup chat, email rec and embedding hub
 	client := &http.Client{Timeout: 10 * time.Minute}
@@ -56,7 +65,7 @@ func main() {
 
 	// set up git and transc service
 	git := handlers.NewGitService(os.Getenv("GIT_CLIENT_ID"), os.Getenv("GIT_CLIENT_SECRET"), os.Getenv("GIT_CALLBACK_URL"), db, embHub, client)
-	transc := handlers.NewTranscService(db, os.Getenv("PAYSTACK_API_KEY"), client)
+	transc := handlers.NewTranscService(db, rdb, emailHub, os.Getenv("PAYSTACK_API_KEY"), client)
 	service := handlers.NewService(db, rdb, emailHub, git, transc, embHub, recHub, client, chathub, worker)
 
 	go chathub.Run()

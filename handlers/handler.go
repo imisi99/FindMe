@@ -67,6 +67,7 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedUserRoutes.GET("/view-repo", service.Git.ViewRepo)
 	protectedUserRoutes.GET("/recommend", service.RecommendProjects)
 	protectedUserRoutes.GET("/view-subs", service.ViewSubscriptions)
+	protectedUserRoutes.GET("/payment-info", service.GetUserPaymentInfo)
 	protectedUserRoutes.POST("/send-user-req", service.SendFriendReq)
 	protectedUserRoutes.POST("/connect-github", service.Git.ConnectGitHub)
 	protectedUserRoutes.PUT("/update-profile", service.UpdateUserInfo)

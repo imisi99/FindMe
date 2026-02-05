@@ -1,6 +1,11 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
 
 type Subscriptions struct {
 	GormModel
@@ -38,3 +43,19 @@ const (
 	PaystackInvoiceUpdate      = "invoice.update"
 	PaystackSubscriptionCreate = "subscription.create"
 )
+
+func (s *Subscriptions) BeforeCreate(tx *gorm.DB) (err error) {
+	if s.ID == "" {
+		s.ID = uuid.NewString()
+	}
+
+	return err
+}
+
+func (t *Transactions) BeforeCreate(tx *gorm.DB) (err error) {
+	if t.ID == "" {
+		t.ID = uuid.NewString()
+	}
+
+	return err
+}

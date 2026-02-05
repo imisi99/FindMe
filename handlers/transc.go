@@ -6,10 +6,10 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"findme/core"
@@ -21,15 +21,13 @@ import (
 
 // TODO: Check on the Closing of the resp for keeping alive requests
 
-// TODO:
-// Add Sub Code for paystack to user Model and Sub plan to Sub model from plan Model
-// Augmented Data for user (card ending , date and month, card type, next payment date)
-
 // DONE:
 // Write email for the successful / failed surcharge for Subscriptions
 // Cancel sub event and also endpoint(if it uses one)
 // Notify user with the Cancel Sub, Failed Transaction
 // Create Plan and add plan to RDB
+// Augmented Data for user (card ending , date and month, card type, next payment date)
+// Add Sub Code for paystack to user Model and Sub plan to Sub model from plan Model
 //
 
 type Transc interface {
@@ -50,8 +48,8 @@ type TranscService struct {
 	Client    *http.Client
 }
 
-func NewTranscService(db core.DB, secret string, client *http.Client) *TranscService {
-	return &TranscService{DB: db, SecretKey: secret, Client: client}
+func NewTranscService(db core.DB, rdb core.Cache, email core.Email, secret string, client *http.Client) *TranscService {
+	return &TranscService{DB: db, RDB: rdb, Email: email, SecretKey: secret, Client: client}
 }
 
 // GetTransactions godoc
@@ -103,7 +101,7 @@ func (t *TranscService) GetTransactions(ctx *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param amount query string true "amount"
-// @Param amount query string true "plan"
+// @Param plan query string true "plan"
 // @Success 200 {object} schema.DocInitTranscResponse "Success"
 // @Failure 400 {object} schema.DocNormalResponse "Bad Query"
 // @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
@@ -132,20 +130,20 @@ func (t *TranscService) InitializeTransaction(ctx *gin.Context) {
 		return
 	}
 
-	payload := map[string]string{
+	payload := map[string]any{
 		"email":  user.Email,
 		"amount": amount,
 		"plan":   plan,
+		// "channels": []string{"card"},
 	}
 
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest(http.MethodPost, "https://api.paystack.co/transactions/initialize", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, "https://api.paystack.co/transaction/initialize", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+t.SecretKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := t.Client.Do(req)
-
 	if err != nil || resp.StatusCode != http.StatusOK {
 		log.Println("[TRANSACTION] Failed to initialize paystack transaction, err -> ", err)
 		ctx.JSON(http.StatusBadGateway, gin.H{"msg": "Failed to initialize paystack transaction"})
@@ -156,10 +154,11 @@ func (t *TranscService) InitializeTransaction(ctx *gin.Context) {
 
 	var paystack schema.InitTransaction
 
-	if err := json.NewDecoder(resp.Body).Decode(&paystack); err != nil {
-		log.Println("[TRANSACTION] Failed to parse the response of the paystack init transaction, err -> ", err)
+	data, _ := io.ReadAll(resp.Body)
+
+	if err := json.Unmarshal(data, &paystack); err != nil {
+		log.Println("[TRANSACTION] Failed to unmarshal the response of the paystack init transaction, err -> ", err)
 		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse paystack response"})
-		return
 	}
 
 	if !paystack.Status || paystack.Data.AuthorizationURL == "" || paystack.Data.AccessCode == "" || paystack.Data.Reference == "" {
@@ -199,6 +198,7 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 	}
 
 	var event schema.PaystackEvent
+	log.Println(string(body))
 	if err := json.Unmarshal(body, &event); err != nil {
 		log.Println("[TRANSACTION] An error occured in the webhook for the transaction while parsing payload, err -> ", err.Error())
 		ctx.Status(http.StatusUnprocessableEntity)
@@ -206,7 +206,7 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 	}
 
 	var user model.User
-	if err := t.DB.FetchUser(&user, event.Data.Customer.Email); err != nil {
+	if err := t.DB.SearchUserEmail(&user, event.Data.Customer.Email); err != nil {
 		log.Println("[TRANSACTION] Failed to complete transaction as the customer could not be identified, err -> ", err.Error())
 		ctx.Status(http.StatusUnauthorized)
 		return
@@ -214,6 +214,7 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 
 	switch event.Event {
 	case model.PaystackSubscriptionCreate:
+		user.PaystackEmailToken = &event.Data.EmailToken
 		user.PaystackSubCode = &event.Data.SubCode
 		user.PaystackCusCode = &event.Data.Customer.CusCode
 
@@ -230,12 +231,10 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 		ctx.Status(http.StatusOK)
 		return
 	case model.PaystackChargeSuccess:
-		amount, _ := strconv.ParseInt(event.Data.Amount, 10, 64)
-
 		transc := model.Transactions{
 			UserID:      user.ID,
 			PaystackRef: event.Data.Reference,
-			Amount:      amount,
+			Amount:      event.Data.Amount,
 			Status:      event.Data.Status,
 			Channel:     event.Data.Channel,
 			Curency:     event.Data.Currency,
@@ -247,7 +246,7 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 			Status:    model.StatusActive,
 			PlanName:  event.Data.Plan.Name,
 			StartDate: time.Now(),
-			EndDate:   time.Now().Add(time.Hour * 24 * 30),
+			EndDate:   time.Now().Add(time.Hour * 24 * 30), // TODO: Make a call to figure out the actual expiring date for that subscription
 		}
 
 		user.NextPaymentDate = &sub.EndDate
@@ -260,7 +259,7 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 		ctx.Status(http.StatusOK)
 		return
 	case model.PaystackInvoiceUpdate:
-		if !event.Data.Paid {
+		if event.Data.Paid == 0 {
 			sub := model.Subscriptions{
 				UserID:    user.ID,
 				Status:    model.StatusFailed,
@@ -277,7 +276,9 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 				return
 			}
 
-			t.Email.QueueTransactionFailedEmail(user.UserName, event.Data.Amount, event.Data.Currency, event.Data.Plan.Name, "", user.Email)
+			amount := fmt.Sprintf("%d", event.Data.Amount)
+
+			t.Email.QueueTransactionFailedEmail(user.UserName, amount, event.Data.Currency, event.Data.Plan.Name, "", user.Email)
 		}
 
 		ctx.Status(http.StatusOK)
@@ -460,6 +461,7 @@ func (t *TranscService) EnableSubscription(ctx *gin.Context) {
 
 	resp, err := t.Client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
+		log.Println("[TRANSACTION] An error occured while trying to enable a subscription, err -> ", err)
 		ctx.JSON(http.StatusBadGateway, gin.H{"msg": "Failed to communicate with paystack."})
 		return
 	}
@@ -503,7 +505,7 @@ func (t *TranscService) ViewPlans(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
 	}
 
-	if plan, err := t.RDB.RetrieveCachedPlans(); err == nil {
+	if plan, err := t.RDB.RetrieveCachedPlans(); err == nil && plan != nil && len(plan) != 0 {
 		ctx.JSON(http.StatusOK, gin.H{"plans": plan})
 		return
 	}

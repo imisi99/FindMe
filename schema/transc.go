@@ -22,37 +22,40 @@ type InitTransaction struct {
 }
 
 type PaystackEvent struct {
-	Event string `json:"event" binding:"required"`
+	Event string `json:"event"`
 	Data  struct {
-		Status        string    `json:"status" binding:"omitempty"`
-		Reference     string    `json:"reference" binding:"omitempty"`
-		Channel       string    `json:"channel" binding:"omitempty"`
-		Currency      string    `json:"currency" binding:"omitempty"`
-		Amount        string    `json:"amount" binding:"omitempty"`
-		SubCode       string    `json:"subscription_code" binding:"omitempty"`
-		PaidAt        time.Time `json:"paid_at" binding:"omitempty"`
-		Paid          bool      `json:"paid" binding:"omitempty"`
+		Status        string    `json:"status"`
+		Reference     string    `json:"reference"`
+		Channel       string    `json:"channel"`
+		Currency      string    `json:"currency"`
+		Amount        int64     `json:"amount"`
+		SubCode       string    `json:"subscription_code"`
+		EmailToken    string    `json:"email_token"`
+		PaidAt        time.Time `json:"paid_at"`
+		Paid          int       `json:"paid"`
 		Authorization struct {
-			Last4    string `json:"last_4" binding:"omitempty"`
-			Brand    string `json:"brand" binding:"omitempty"`
-			ExpMonth string `json:"exp_month" binding:"omitempty"`
-			ExpYear  string `json:"exp_year" binding:"omitempty"`
-		}
+			Last4    string `json:"last4"`
+			Brand    string `json:"brand"`
+			ExpMonth string `json:"exp_month"`
+			ExpYear  string `json:"exp_year"`
+		} `json:"authorization"`
 		Customer struct {
-			CusCode string `json:"customer_code" binding:"omitempty"`
-			Email   string `json:"email" binding:"omitempty"`
-		}
+			CusCode string `json:"customer_code"`
+			Email   string `json:"email"`
+		} `json:"customer"`
 		Transaction struct {
-			Reference string `json:"reference" binding:"omitempty"`
-		} `json:"transaction" binding:"omitempty"`
+			Reference string `json:"reference"`
+		} `json:"transaction"`
 		Subscription struct {
-			Status          string    `json:"status" binding:"omitempty"`
-			NextPaymentDate time.Time `json:"next_payment_date" binding:"omitempty"`
-		}
+			Status          string    `json:"status"`
+			SubCode         string    `json:"subscription_code"`
+			EmailToken      string    `json:"email_token"`
+			NextPaymentDate time.Time `json:"next_payment_date"`
+		} `json:"subscription"`
 		Plan struct {
 			Name string
-		}
-	} `json:"data" binding:"required"`
+		} `json:"plan"`
+	} `json:"data"`
 }
 
 type PaystackUpdateCard struct {
@@ -93,4 +96,12 @@ type ViewPlansResp struct {
 	Amount   int64
 	Interval string
 	Currency string
+}
+
+type PaymentInfo struct {
+	Last4           string
+	Month           string
+	Year            string
+	Card            string
+	NextPaymentDate time.Time
 }

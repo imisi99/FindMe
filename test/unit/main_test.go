@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"findme/core"
 	"findme/handlers"
@@ -90,15 +91,23 @@ func superUser(db *core.GormDB) {
 		Country:      "NGN",
 	}
 
+	period := time.Now()
+	val := "someVal"
+
 	super1 := model.User{
-		FullName:     "Isong Imisioluwa",
-		UserName:     "knightmares23",
-		Email:        "knightmares234@gmail.com",
-		Password:     hashpass,
-		Availability: true,
-		Skills:       []*model.Skill{&be},
-		Bio:          "I'm the second super user",
-		Country:      "NGN",
+		FullName:        "Isong Imisioluwa",
+		UserName:        "knightmares23",
+		Email:           "knightmares234@gmail.com",
+		Password:        hashpass,
+		Availability:    true,
+		Skills:          []*model.Skill{&be},
+		Bio:             "I'm the second super user",
+		Country:         "NGN",
+		NextPaymentDate: &period,
+		Last4:           &val,
+		ExpMonth:        &val,
+		ExpYear:         &val,
+		CardType:        &val,
 	}
 
 	users := []*model.User{&super, &super1}
