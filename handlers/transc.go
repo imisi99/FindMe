@@ -347,6 +347,27 @@ func (t *TranscService) UpdateSubscriptionCard(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"msg": card.Message, "link": card.Data.Link})
 }
 
+func (t *TranscService) RetryFailedPayment(ctx *gin.Context) {
+	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
+	if !model.IsValidUUID(uid) || tp != "login" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized"})
+		return
+	}
+
+	subID := ctx.Query("id")
+	if !model.IsValidUUID(subID) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Invalid sub id."})
+		return
+	}
+
+	var sub model.Subscriptions
+	if err := t.DB.FetchUserPreloadFailedSub(&sub, uid); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+}
+
 // CancelSubscription godoc
 // @Summary An endpoint for canceling a subscription
 // @Description An endpoint for canceling a subscription
@@ -443,8 +464,8 @@ func (t *TranscService) EnableSubscription(ctx *gin.Context) {
 		return
 	}
 
-	if time.Now().After(*user.NextPaymentDate) {
-		ctx.JSON(http.StatusPaymentRequired, gin.H{"msg": "Subscription has expired and needs to be renewed."})
+	if *user.SubStatus != model.StatusAttention {
+		ctx.JSON(http.StatusForbidden, gin.H{"msg": "Can't enable this subscription."})
 		return
 	}
 
@@ -460,16 +481,18 @@ func (t *TranscService) EnableSubscription(ctx *gin.Context) {
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := t.Client.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		log.Println("[TRANSACTION] An error occured while trying to enable a subscription, err -> ", err)
+	if err != nil {
+		log.Println("[TRANSACTION] An error occured while trying to enable a subscription, err -> ", err, resp.StatusCode)
 		ctx.JSON(http.StatusBadGateway, gin.H{"msg": "Failed to communicate with paystack."})
 		return
 	}
 
+	log.Println(resp.StatusCode)
 	defer resp.Body.Close()
 	var sub schema.PaystackSubResp
 
 	body, _ = io.ReadAll(resp.Body)
+	log.Println(string(body))
 
 	if err := json.Unmarshal(body, &sub); err != nil {
 		log.Println("[TRANSACTION] An error occured while trying to Unmarshal payload from paystack, err -> ", err.Error())

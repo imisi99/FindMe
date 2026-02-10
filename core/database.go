@@ -96,6 +96,7 @@ type DB interface {
 	AddFailedSub(sub *model.Subscriptions, user *model.User) error
 	FetchTrialEndingUsers(users *[]model.User, limit, today time.Time) error
 	UpdateSentReminder(ids []string) error
+	FetchUserPreloadFailedSub(sub *model.Subscriptions, uid string) error
 }
 
 type GormDB struct {

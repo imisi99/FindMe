@@ -26,6 +26,7 @@ type User struct {
 	FreeTrial       time.Time `gorm:"column:freetrial"`
 	TrialReminder   bool      `gorm:"column:trialreminder"`
 	NextPaymentDate *time.Time
+	SubStatus       *string
 
 	// Paystack Details
 	PaystackSubCode    *string
@@ -86,14 +87,15 @@ type FriendReq struct {
 }
 
 const (
-	StatusAccepted = "accepted"
-	StatusRejected = "rejected"
-	StatusPending  = "pending"
-	StatusActive   = "active"
-	StatusFailed   = "failed"
-	StatusSuccess  = "success"
-	StatusExpired  = "expired"
-	StatusLogin    = "login"
+	StatusAccepted  = "accepted"
+	StatusRejected  = "rejected"
+	StatusAttention = "attention"
+	StatusPending   = "pending"
+	StatusActive    = "active"
+	StatusFailed    = "failed"
+	StatusSuccess   = "success"
+	StatusExpired   = "expired"
+	StatusLogin     = "login"
 )
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
