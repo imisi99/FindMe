@@ -83,6 +83,13 @@ definitions:
       uri:
         type: string
     type: object
+  schema.DocMsgResResponse:
+    properties:
+      msg:
+        type: string
+      reason:
+        type: string
+    type: object
   schema.DocMsgResponse:
     properties:
       msg:
@@ -1969,6 +1976,57 @@ paths:
       summary: An endpoint for initializing a transaction on paystack
       tags:
       - Transaction
+  /api/transc/retry-payment:
+    post:
+      consumes:
+      - application/json
+      description: An endpoint for retrying a failed subscription payment
+      parameters:
+      - description: Sub ID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "402":
+          description: Payment required
+          schema:
+            $ref: '#/definitions/schema.DocMsgResResponse'
+        "404":
+          description: Record not found
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "422":
+          description: Failed to parse payload / response
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+        "502":
+          description: External server error
+          schema:
+            $ref: '#/definitions/schema.DocNormalResponse'
+      security:
+      - BearerAuth: []
+      summary: Retries a failed payment for subscription
+      tags:
+      - Transaction
   /api/transc/update-card:
     get:
       consumes:
@@ -2036,7 +2094,7 @@ paths:
       - BearerAuth: []
       summary: Retrieves the transactions for a user
       tags:
-      - Transactions
+      - Transaction
   /api/transc/view/plans:
     get:
       consumes:

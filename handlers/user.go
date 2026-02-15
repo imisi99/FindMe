@@ -277,17 +277,20 @@ func (s *Service) GetUserPaymentInfo(ctx *gin.Context) {
 		return
 	}
 
-	if user.NextPaymentDate == nil {
+	if user.LastSub == nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"msg": "No payment info exists for this user."})
 		return
 	}
 
 	info := schema.PaymentInfo{
-		Last4:           *user.Last4,
-		Month:           *user.ExpMonth,
-		Year:            *user.ExpYear,
-		Card:            *user.CardType,
-		NextPaymentDate: *user.NextPaymentDate,
+		Last4: *user.Last4,
+		Month: *user.ExpMonth,
+		Year:  *user.ExpYear,
+		Card:  *user.CardType,
+	}
+
+	if user.NextPaymentDate != nil {
+		info.NextPaymentDate = *user.NextPaymentDate
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"info": info})

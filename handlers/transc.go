@@ -19,16 +19,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO: Check on the Closing of the resp for keeping alive requests
-
-// DONE:
-// Write email for the successful / failed surcharge for Subscriptions
-// Cancel sub event and also endpoint(if it uses one)
-// Notify user with the Cancel Sub, Failed Transaction
-// Create Plan and add plan to RDB
-// Augmented Data for user (card ending , date and month, card type, next payment date)
-// Add Sub Code for paystack to user Model and Sub plan to Sub model from plan Model
-//
+// TODO:
+// Initiate Subscription
+// Handle Automatic Subscription
+// Handle Failed Subscription
+// Cancel Subscription
+// Enable Subscription
+// Add a Sub Create email for notifying new sub users
+// Maintain a correct card info on user updating card
 
 type Transc interface {
 	GetTransactions(ctx *gin.Context)
@@ -38,6 +36,7 @@ type Transc interface {
 	EnableSubscription(ctx *gin.Context)
 	ViewPlans(ctx *gin.Context)
 	VerifyTranscWebhook(ctx *gin.Context)
+	RetryFailedPayment(ctx *gin.Context)
 }
 
 type TranscService struct {
@@ -55,7 +54,7 @@ func NewTranscService(db core.DB, rdb core.Cache, email core.Email, secret strin
 // GetTransactions godoc
 // @Summary   Retrieves the transactions for a user
 // @Description An endpoint that retrieves all the transactions of the current user
-// @Tags Transactions
+// @Tags Transaction
 // @Accept json
 // @Produce json
 // @Security BearerAuth
@@ -217,6 +216,7 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 		user.PaystackEmailToken = &event.Data.EmailToken
 		user.PaystackSubCode = &event.Data.SubCode
 		user.PaystackCusCode = &event.Data.Customer.CusCode
+		user.PaystackAuthCode = &event.Data.Authorization.AuthCode
 
 		user.Last4 = &event.Data.Authorization.Last4
 		user.CardType = &event.Data.Authorization.Brand
@@ -228,9 +228,30 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 			return
 		}
 
+		t.Email.QueueSubscriptionCreate(user.UserName, "", event.Data.Currency, event.Data.Plan.Name, "", user.Email)
+
 		ctx.Status(http.StatusOK)
 		return
 	case model.PaystackChargeSuccess:
+
+		// Handling charges for updating card and stuff
+		if event.Data.Amount == 5000 {
+			user.PaystackAuthCode = &event.Data.Authorization.AuthCode
+
+			user.Last4 = &event.Data.Authorization.Last4
+			user.CardType = &event.Data.Authorization.Brand
+			user.ExpMonth = &event.Data.Authorization.ExpMonth
+			user.ExpYear = &event.Data.Authorization.ExpYear
+
+			if err := t.DB.SaveUser(&user); err != nil {
+				ctx.Status(http.StatusInternalServerError)
+				return
+			}
+
+			ctx.Status(http.StatusOK)
+			return
+		}
+
 		transc := model.Transactions{
 			UserID:      user.ID,
 			PaystackRef: event.Data.Reference,
@@ -241,19 +262,58 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 			PaidAt:      &event.Data.PaidAt,
 		}
 
-		sub := model.Subscriptions{
-			UserID:    user.ID,
-			Status:    model.StatusActive,
-			PlanName:  event.Data.Plan.Name,
-			StartDate: time.Now(),
-			EndDate:   time.Now().Add(time.Hour * 24 * 30), // TODO: Make a call to figure out the actual expiring date for that subscription
+		isManual := false
+		sid := ""
+
+		if event.Data.Metadata != nil {
+			if metadata, ok := event.Data.Metadata.(map[string]any); ok {
+				if chargeType, exists := metadata["charge_type"]; exists && chargeType == "manual_retry" {
+					isManual = true
+					if subID, ok := metadata["sub_id"]; ok {
+						sid = subID.(string)
+					}
+				}
+			}
 		}
 
-		user.NextPaymentDate = &sub.EndDate
+		if isManual && model.IsValidUUID(sid) {
+			var sub model.Subscriptions
+			if err := t.DB.FetchSub(&sub, sid); err != nil {
+				log.Println("[TRANSACTION] An error occured while trying to fetch sub for manual retry payment, err -> ", err.Error())
+				ctx.Status(http.StatusInternalServerError)
+				return
+			}
 
-		if err := t.DB.AddTranscSub(&transc, &sub, &user); err != nil {
-			ctx.Status(http.StatusInternalServerError)
-			return
+			sub.Status = model.StatusActive
+			user.LastSub = &sub.EndDate
+			user.NextPaymentDate = user.LastSub
+
+			if err := t.DB.AddTranscSaveSub(&transc, &sub, &user); err != nil {
+				ctx.Status(http.StatusInternalServerError)
+				return
+			}
+		} else {
+			details, err := t.FetchSubscriptionDetails(*user.PaystackSubCode)
+			if err != nil || details == nil {
+				ctx.Status(http.StatusInternalServerError)
+				return
+			}
+
+			sub := model.Subscriptions{
+				UserID:    user.ID,
+				Status:    model.StatusActive,
+				PlanName:  event.Data.Plan.Name,
+				StartDate: time.Now(),
+				EndDate:   details.Data.NextPaymentDate,
+			}
+
+			user.NextPaymentDate = &sub.EndDate
+			user.LastSub = user.NextPaymentDate
+
+			if err := t.DB.AddTranscSub(&transc, &sub, &user); err != nil {
+				ctx.Status(http.StatusInternalServerError)
+				return
+			}
 		}
 
 		ctx.Status(http.StatusOK)
@@ -268,8 +328,8 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 				EndDate:   event.Data.Subscription.NextPaymentDate,
 			}
 
-			grace := user.NextPaymentDate.Add(time.Hour * 24 * 7)
-			user.NextPaymentDate = &grace
+			grace := user.LastSub.Add(time.Hour * 24 * 7)
+			user.LastSub = &grace
 
 			if err := t.DB.AddFailedSub(&sub, &user); err != nil {
 				ctx.Status(http.StatusInternalServerError)
@@ -277,12 +337,18 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 			}
 
 			amount := fmt.Sprintf("%d", event.Data.Amount)
-
 			t.Email.QueueTransactionFailedEmail(user.UserName, amount, event.Data.Currency, event.Data.Plan.Name, "", user.Email)
 		}
 
 		ctx.Status(http.StatusOK)
 		return
+	case model.PaystackSubscriptionNotRenew:
+		t.Email.QueueSubscriptionCancelled(user.UserName, user.NextPaymentDate.Format("January 02, 2006"), user.Email)
+
+		user.NextPaymentDate = nil
+		if err := t.DB.SaveUser(&user); err != nil {
+			ctx.Status(http.StatusInternalServerError)
+		}
 	default:
 		ctx.Status(http.StatusOK)
 		return
@@ -347,6 +413,23 @@ func (t *TranscService) UpdateSubscriptionCard(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"msg": card.Message, "link": card.Data.Link})
 }
 
+// RetryFailedPayment godoc
+// @Summary Retries a failed payment for subscription
+// @Description An endpoint for retrying a failed subscription payment
+// @Tags Transaction
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id query string true "Sub ID"
+// @Success 200 {object} schema.DocNormalResponse "Success"
+// @Failure 400 {object} schema.DocNormalResponse "Bad Request"
+// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
+// @Failure 402 {object} schema.DocMsgResResponse "Payment required"
+// @Failure 404 {object} schema.DocNormalResponse "Record not found"
+// @Failure 422 {object} schema.DocNormalResponse "Failed to parse payload / response"
+// @Failure 500 {object} schema.DocNormalResponse "Server error"
+// @Failure 502 {object} schema.DocNormalResponse "External server error"
+// @Router /api/transc/retry-payment [post]
 func (t *TranscService) RetryFailedPayment(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
@@ -360,12 +443,80 @@ func (t *TranscService) RetryFailedPayment(ctx *gin.Context) {
 		return
 	}
 
-	var sub model.Subscriptions
-	if err := t.DB.FetchUserPreloadFailedSub(&sub, uid); err != nil {
+	var user model.User
+	if err := t.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
+
+	var sub model.Subscriptions
+	if err := t.DB.FetchSub(&sub, subID); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	if sub.Status != model.StatusFailed {
+		ctx.JSON(http.StatusBadRequest, gin.H{"msg": "Subscription is not failed and can't be retried."})
+		return
+	}
+
+	plans, err := t.RetrievePlans()
+	if err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+		return
+	}
+
+	var subPlan schema.ViewPlansResp
+	for _, plan := range plans {
+		if sub.PlanName == plan.Name {
+			subPlan = plan
+			break
+		}
+	}
+
+	amount := fmt.Sprintf("%d", subPlan.Amount)
+	chargePayload := map[string]any{
+		"email":              user.Email,
+		"amount":             amount,
+		"authorization_code": *user.PaystackAuthCode,
+		"metadata": map[string]any{
+			"charge_type": "manual_retry",
+			"sub_id":      subID,
+		},
+	}
+
+	chargeBody, _ := json.Marshal(chargePayload)
+
+	chargeReq, _ := http.NewRequest(http.MethodPost, "https://api.paystack.co/transaction/charge_authorization", bytes.NewBuffer(chargeBody))
+	chargeReq.Header.Set("Authorization", "Bearer "+t.SecretKey)
+	chargeReq.Header.Set("Content-Type", "application/json")
+
+	chargeResp, err := t.Client.Do(chargeReq)
+	if err != nil {
+		ctx.JSON(http.StatusBadGateway, gin.H{"msg": "Failed to communicate with paystack to make payment."})
+		return
+	}
+
+	defer chargeResp.Body.Close()
+
+	var chargeResponse schema.AuthCharge
+	chargeData, _ := io.ReadAll(chargeResp.Body)
+
+	if err := json.Unmarshal(chargeData, &chargeResponse); err != nil {
+		log.Println("[TRANSACTION] An error occured while trying to unmarshal the response of paystack, err -> ", err.Error())
+		ctx.JSON(http.StatusBadGateway, gin.H{"msg": "Unable to communicate with paystack to initiate transaction."})
+		return
+	}
+
+	if !chargeResponse.Status || chargeResponse.Data.Status != model.StatusSuccess {
+		ctx.JSON(http.StatusPaymentRequired, gin.H{"msg": "Failed payment!", "reason": chargeResponse.Message})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"msg": "Payment successful your subscription will be renewed."})
 }
 
 // CancelSubscription godoc
@@ -430,8 +581,6 @@ func (t *TranscService) CancelSubscription(ctx *gin.Context) {
 		return
 	}
 
-	t.Email.QueueSubscriptionCancelled(user.UserName, user.NextPaymentDate.Format("January 02, 2006"), user.Email)
-
 	ctx.JSON(http.StatusOK, gin.H{"msg": sub.Message})
 }
 
@@ -461,11 +610,6 @@ func (t *TranscService) EnableSubscription(ctx *gin.Context) {
 	if err := t.DB.FetchUser(&user, uid); err != nil {
 		cm := err.(*core.CustomMessage)
 		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
-		return
-	}
-
-	if *user.SubStatus != model.StatusAttention {
-		ctx.JSON(http.StatusForbidden, gin.H{"msg": "Can't enable this subscription."})
 		return
 	}
 
@@ -526,11 +670,23 @@ func (t *TranscService) ViewPlans(ctx *gin.Context) {
 	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
 	if !model.IsValidUUID(uid) || tp != "login" {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
+		return
 	}
 
-	if plan, err := t.RDB.RetrieveCachedPlans(); err == nil && plan != nil && len(plan) != 0 {
-		ctx.JSON(http.StatusOK, gin.H{"plans": plan})
+	plans, err := t.RetrievePlans()
+	if err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"plans": plans})
+}
+
+// RetrievePlans -> A helper func to retrieve plans from cache if available or fetch from paystack
+func (t *TranscService) RetrievePlans() ([]schema.ViewPlansResp, error) {
+	if plan, err := t.RDB.RetrieveCachedPlans(); err == nil && plan != nil && len(plan) != 0 {
+		return plan, nil
 	}
 
 	req, _ := http.NewRequest(http.MethodGet, "https://api.paystack.co/plan", nil)
@@ -538,8 +694,7 @@ func (t *TranscService) ViewPlans(ctx *gin.Context) {
 
 	resp, err := t.Client.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
-		ctx.JSON(http.StatusBadGateway, gin.H{"msg": "Failed to communicate with paystack."})
-		return
+		return nil, &core.CustomMessage{Code: http.StatusBadGateway, Message: "Failed to communicate with paystack."}
 	}
 
 	defer resp.Body.Close()
@@ -549,13 +704,11 @@ func (t *TranscService) ViewPlans(ctx *gin.Context) {
 
 	if err := json.Unmarshal(body, &plans); err != nil {
 		log.Println("[TRANSACTION] An error occured while trying to Unmarshal payload from paystack, err -> ", err.Error())
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse response from paystack."})
-		return
+		return nil, &core.CustomMessage{Code: http.StatusUnprocessableEntity, Message: "Failed to parse response from paystack."}
 	}
 
 	if !plans.Status {
-		ctx.JSON(http.StatusBadGateway, gin.H{"msg": plans.Message})
-		return
+		return nil, &core.CustomMessage{Code: http.StatusBadGateway, Message: plans.Message}
 	}
 
 	var res []schema.ViewPlansResp
@@ -571,6 +724,28 @@ func (t *TranscService) ViewPlans(ctx *gin.Context) {
 	}
 
 	_ = t.RDB.CachePlans(res)
+	return res, nil
+}
 
-	ctx.JSON(http.StatusOK, gin.H{"plans": res})
+// FetchSubscriptionDetails -> A helper func to fetch the subscription details from paystack
+func (t *TranscService) FetchSubscriptionDetails(subCode string) (*schema.SubscriptionDetails, error) {
+	req, _ := http.NewRequest(http.MethodGet, "https://api.paystack.co/subscription/"+subCode, nil)
+	req.Header.Set("Authorization", "Bearer "+t.SecretKey)
+
+	resp, err := t.Client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return nil, &core.CustomMessage{Code: http.StatusBadGateway, Message: "Failed to communicate with paystack."}
+	}
+
+	defer resp.Body.Close()
+
+	var sub schema.SubscriptionDetails
+	body, _ := io.ReadAll(resp.Body)
+
+	if err := json.Unmarshal(body, &sub); err != nil {
+		log.Println("[TRANSACTION] Failed to unmarshal paystack response for subscription details, err -> ", err.Error())
+		return nil, &core.CustomMessage{Code: http.StatusUnprocessableEntity, Message: "Failed to unmarshal paystack response"}
+	}
+
+	return &sub, nil
 }

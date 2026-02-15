@@ -26,12 +26,13 @@ type User struct {
 	FreeTrial       time.Time `gorm:"column:freetrial"`
 	TrialReminder   bool      `gorm:"column:trialreminder"`
 	NextPaymentDate *time.Time
-	SubStatus       *string
+	LastSub         *time.Time
 
 	// Paystack Details
 	PaystackSubCode    *string
 	PaystackEmailToken *string
 	PaystackCusCode    *string
+	PaystackAuthCode   *string
 
 	// Card Details
 	Last4    *string

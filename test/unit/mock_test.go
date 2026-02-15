@@ -76,6 +76,7 @@ func NewCacheMock() *CacheMock {
 
 type EmailHub struct{}
 
+func (mock *EmailHub) QueueSubscriptionCreate(_, _, _, _, _, _ string)     {}
 func (mock *EmailHub) QueueProjectApplicationReject(_, _, _, _, _ string)  {}
 func (mock *EmailHub) QueueProjectApplicationAccept(_, _, _, _, _ string)  {}
 func (mock *EmailHub) QueueTransactionFailedEmail(_, _, _, _, _, _ string) {}
@@ -101,6 +102,10 @@ func (mock *EmailMock) SendProjectApplicationAccept(_, _, _, _ string) (string, 
 }
 
 func (mock *EmailMock) SendProjectApplicationReject(_, _, _, _ string) (string, string) {
+	return "", ""
+}
+
+func (mock *EmailMock) SendSubscriptionCreateEmail(_, _, _, _, _ string) (string, string) {
 	return "", ""
 }
 
@@ -157,6 +162,7 @@ func (mock *TranscMock) CancelSubscription(ctx *gin.Context)     {}
 func (mock *TranscMock) EnableSubscription(ctx *gin.Context)     {}
 func (mock *TranscMock) ViewPlans(ctx *gin.Context)              {}
 func (mock *TranscMock) VerifyTranscWebhook(ctx *gin.Context)    {}
+func (mock *TranscMock) RetryFailedPayment(ctx *gin.Context)     {}
 
 func NewTranscMock() *TranscMock {
 	return &TranscMock{}

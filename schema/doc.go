@@ -116,3 +116,8 @@ type DocViewPlansResponse struct {
 type DocViewPaymentInfo struct {
 	Info PaymentInfo `json:"info"`
 }
+
+type DocMsgResResponse struct {
+	Msg    string `json:"msg"`
+	Reason string `json:"reason"`
+}

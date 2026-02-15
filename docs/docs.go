@@ -2073,6 +2073,85 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/transc/retry-payment": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An endpoint for retrying a failed subscription payment",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transaction"
+                ],
+                "summary": "Retries a failed payment for subscription",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Sub ID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "402": {
+                        "description": "Payment required",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocMsgResResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Record not found",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Failed to parse payload / response",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    },
+                    "502": {
+                        "description": "External server error",
+                        "schema": {
+                            "$ref": "#/definitions/schema.DocNormalResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/transc/update-card": {
             "get": {
                 "security": [
@@ -2146,7 +2225,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Transactions"
+                    "Transaction"
                 ],
                 "summary": "Retrieves the transactions for a user",
                 "responses": {
@@ -4211,6 +4290,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "uri": {
+                    "type": "string"
+                }
+            }
+        },
+        "schema.DocMsgResResponse": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "reason": {
                     "type": "string"
                 }
             }

@@ -93,10 +93,11 @@ type DB interface {
 	FetchTransaction(paystackRef string, transc *model.Transactions) error
 	AddSubscription(sub *model.Subscriptions) error
 	AddTranscSub(transc *model.Transactions, sub *model.Subscriptions, user *model.User) error
+	AddTranscSaveSub(transc *model.Transactions, sub *model.Subscriptions, user *model.User) error
 	AddFailedSub(sub *model.Subscriptions, user *model.User) error
 	FetchTrialEndingUsers(users *[]model.User, limit, today time.Time) error
 	UpdateSentReminder(ids []string) error
-	FetchUserPreloadFailedSub(sub *model.Subscriptions, uid string) error
+	FetchSub(sub *model.Subscriptions, sid string) error
 }
 
 type GormDB struct {
@@ -1051,13 +1052,14 @@ func (db *GormDB) AddTranscSub(transc *model.Transactions, sub *model.Subscripti
 	return nil
 }
 
-func (db *GormDB) SaveTranscAddSub(transc *model.Transactions, sub *model.Subscriptions, user *model.User) error {
+func (db *GormDB) AddTranscSaveSub(transc *model.Transactions, sub *model.Subscriptions, user *model.User) error {
 	if err := db.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Save(transc).Error; err != nil {
+		if err := tx.Create(transc).Error; err != nil {
 			return err
 		}
 
-		if err := tx.Create(sub).Error; err != nil {
+		sub.TransactionID = transc.ID
+		if err := tx.Save(sub).Error; err != nil {
 			return err
 		}
 
@@ -1106,5 +1108,16 @@ func (db *GormDB) UpdateSentReminder(ids []string) error {
 		return &CustomMessage{http.StatusInternalServerError, "Failed to update users trialreminder field"}
 	}
 
+	return nil
+}
+
+func (db *GormDB) FetchSub(sub *model.Subscriptions, sid string) error {
+	if err := db.DB.Where("id = ?", sid).First(sub).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &CustomMessage{http.StatusNotFound, "Subscription not found."}
+		} else {
+			return &CustomMessage{http.StatusInternalServerError, "Failed to retrieve subscription."}
+		}
+	}
 	return nil
 }

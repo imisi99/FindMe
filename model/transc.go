@@ -39,9 +39,10 @@ type Plan struct {
 }
 
 const (
-	PaystackChargeSuccess      = "charge.success"
-	PaystackInvoiceUpdate      = "invoice.update"
-	PaystackSubscriptionCreate = "subscription.create"
+	PaystackChargeSuccess        = "charge.success"
+	PaystackInvoiceUpdate        = "invoice.update"
+	PaystackSubscriptionCreate   = "subscription.create"
+	PaystackSubscriptionNotRenew = "subscription.not_renew"
 )
 
 func (s *Subscriptions) BeforeCreate(tx *gorm.DB) (err error) {

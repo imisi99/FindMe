@@ -15,6 +15,7 @@ type EmailS interface {
 	SendProjectApplicationEmail(fromUsername, toUsername, message, viewURL string) (string, string)
 	SendProjectApplicationAccept(fromUsername, toUsername, message, chatURL string) (string, string)
 	SendProjectApplicationReject(fromUsername, toUsername, message, reason string) (string, string)
+	SendSubscriptionCreateEmail(username, amount, currency, planName, manageURL string) (string, string)
 	SendTransactionFailedEmail(username, amount, currency, planName, retryURL string) (string, string)
 	SendSubscriptionReEnabledEmail(username, nextBillingDate string) (string, string)
 	SendSubscriptionCancelledEmail(username, endDate string) (string, string)
@@ -28,6 +29,7 @@ type Email interface {
 	QueueProjectApplication(fromUsername, toUsername, message, viewURL, to string)
 	QueueProjectApplicationAccept(fromUsername, toUsername, message, chatURL, to string)
 	QueueProjectApplicationReject(fromUsername, toUsername, message, reason, to string)
+	QueueSubscriptionCreate(username, amount, currency, planName, manageURL, to string)
 	QueueTransactionFailedEmail(username, amount, currency, planName, retryURL, to string)
 	QueueSubscriptionReEnabled(username, nextBillingDate, to string)
 	QueueSubscriptionCancelled(username, endDate, to string)
@@ -147,6 +149,16 @@ func (h *EmailHub) QueueProjectApplicationAccept(fromUsername, toUsername, messa
 
 func (h *EmailHub) QueueProjectApplicationReject(fromUsername, toUsername, message, reason, to string) {
 	body, subject := h.Service.SendProjectApplicationReject(fromUsername, toUsername, message, reason)
+	h.Jobs <- &EmailJob{
+		To:          to,
+		Subject:     subject,
+		Body:        body,
+		MaxAttempts: 2,
+	}
+}
+
+func (h *EmailHub) QueueSubscriptionCreate(username, amount, currency, planName, manageURL, to string) {
+	body, subject := h.Service.SendSubscriptionCreateEmail(username, amount, currency, planName, manageURL)
 	h.Jobs <- &EmailJob{
 		To:          to,
 		Subject:     subject,
@@ -502,6 +514,76 @@ func (e *EmailService) SendProjectApplicationReject(fromUsername, toUsername, me
 	return htmlBody, "Project Application Update"
 }
 
+// SendSubscriptionCreateEmail -> Sends notification about a subscription creation
+func (e *EmailService) SendSubscriptionCreateEmail(username, amount, currency, planName, manageURL string) (string, string) {
+	htmlBody := fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+	<meta charset="UTF-8">
+	<title>Subscription created</title>
+	</head>
+	<body style="margin:0; padding:0; background:#f9fafb; font-family:Arial, sans-serif;">
+	<table width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f9fafb; padding:40px 0;">
+		<tr>
+		<td align="center">
+			<table width="600" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+			<tr>
+				<td style="background:#dc2626; padding:20px; text-align:center; border-top-left-radius:8px; border-top-right-radius:8px;">
+					<h1 style="margin:0; font-size:22px; color:#ffffff;">Subscription created</h1>
+				</td>
+			</tr>
+			<tr>
+				<td style="padding:30px;">
+					<p style="font-size:16px; color:#111827; margin-bottom:20px;">Hello %s,</p>
+					<p style="font-size:15px; color:#374151; margin-bottom:20px;">
+						Your subscription has been successfully created and you now have access to our premium features.
+						We are excited to have you on board
+					</p>
+					<table width="100%%" cellpadding="10" cellspacing="0" border="0" style="background:#fef2f2; border-radius:6px; border:1px solid #fecaca; margin-bottom:20px;">
+						<tr>
+							<td style="font-size:14px; color:#6b7280; border-bottom:1px solid #fecaca;">Plan</td>
+							<td style="font-size:14px; color:#111827; font-weight:bold; border-bottom:1px solid #fecaca; text-align:right;">%s</td>
+						</tr>
+						<tr>
+							<td style="font-size:14px; color:#6b7280;">Amount</td>
+							<td style="font-size:14px; color:#111827; font-weight:bold; text-align:right;">%s %s</td>
+						</tr>
+					</table>
+					<p style="font-size:14px; color:#374151; margin-bottom:10px;">
+						<b>What happens next?</b>
+					</p>
+					<ul style="font-size:14px; color:#6b7280; margin-bottom:20px; padding-left:20px;">
+						<li style="margin-bottom:8px;">You now have access to all our premium features</li>
+						<li style="margin-bottom:8px;">You will have a recurring payment for this subscription and can cancel at anytime</li>
+					</ul>
+					<div style="text-align:center; margin-bottom:30px;">
+						<a href="%s" style="background:#4f46e5; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:6px; font-size:15px; font-weight:bold;">Manage Subscription</a>
+					</div>
+				</td>
+			</tr>
+			<tr>
+				<td style="padding:20px; text-align:center; font-size:12px; color:#9ca3af;">
+					You are receiving this email because you have a subscription on <b>FindMe</b>.<br/>
+					If you believe this is an error, please contact our support team.<br/><br/>
+					This is an automated email, please do not reply.
+				</td>
+			</tr>
+			</table>
+		</td>
+		</tr>
+	</table>
+	</body>
+	</html>`,
+		username,
+		planName,
+		currency,
+		amount,
+		manageURL,
+	)
+	return htmlBody, "Subscription Created - FindMe"
+}
+
 // SendTransactionFailedEmail -> Sends notification about a failed transaction for a subscription
 func (e *EmailService) SendTransactionFailedEmail(username, amount, currency, planName, retryURL string) (string, string) {
 	htmlBody := fmt.Sprintf(`
@@ -546,7 +628,7 @@ func (e *EmailService) SendTransactionFailedEmail(username, amount, currency, pl
 						<li>After the grace period, your subscription will be paused</li>
 					</ul>
 					<div style="text-align:center; margin-bottom:30px;">
-						<a href="%s" style="background:#4f46e5; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:6px; font-size:15px; font-weight:bold;">Update Payment Method</a>
+						<a href="%s" style="background:#4f46e5; color:#ffffff; padding:12px 24px; text-decoration:none; border-radius:6px; font-size:15px; font-weight:bold;">Manage your subscription</a>
 					</div>
 				</td>
 			</tr>

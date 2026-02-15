@@ -34,6 +34,7 @@ type PaystackEvent struct {
 		PaidAt        time.Time `json:"paid_at"`
 		Paid          int       `json:"paid"`
 		Authorization struct {
+			AuthCode string `json:"authorization_code"`
 			Last4    string `json:"last4"`
 			Brand    string `json:"brand"`
 			ExpMonth string `json:"exp_month"`
@@ -55,6 +56,7 @@ type PaystackEvent struct {
 		Plan struct {
 			Name string
 		} `json:"plan"`
+		Metadata any `json:"metadata"`
 	} `json:"data"`
 }
 
@@ -104,4 +106,21 @@ type PaymentInfo struct {
 	Year            string
 	Card            string
 	NextPaymentDate time.Time
+}
+
+type AuthCharge struct {
+	Status  bool   `json:"status"`
+	Message string `json:"message"`
+	Data    struct {
+		Status string `json:"status"`
+	} `json:"data"`
+}
+
+type SubscriptionDetails struct {
+	Status  bool   `json:"status"`
+	Message string `json:"message"`
+	Data    struct {
+		Status          string    `json:"status"`
+		NextPaymentDate time.Time `json:"next_payment_date"`
+	}
 }

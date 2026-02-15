@@ -95,7 +95,7 @@ func CheckSubscription(user *model.User) bool {
 		return true
 	}
 
-	if user.NextPaymentDate != nil {
+	if user.LastSub != nil {
 		if time.Now().Before(*user.NextPaymentDate) {
 			return true
 		}
