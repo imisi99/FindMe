@@ -1516,9 +1516,10 @@ func (s *Service) ViewSubscriptions(ctx *gin.Context) {
 
 	for _, sub := range user.Subscriptions {
 		response = append(response, schema.ViewSubscriptions{
-			ID:    sub.ID,
-			Start: sub.StartDate,
-			End:   sub.EndDate,
+			ID:     sub.ID,
+			Start:  sub.StartDate,
+			End:    sub.EndDate,
+			Status: sub.Status,
 		})
 	}
 

@@ -89,7 +89,6 @@ func SetupHandler(router *gin.Engine, service *Service) {
 	protectedTranscRoutes.GET("/update-card", service.Transc.UpdateSubscriptionCard)
 	protectedTranscRoutes.POST("/retry-payment", service.Transc.RetryFailedPayment)
 	protectedTranscRoutes.PATCH("/cancel-sub", service.Transc.CancelSubscription)
-	protectedTranscRoutes.PATCH("/enable-sub", service.Transc.EnableSubscription)
 
 	protectedMsgRoutes.GET("/ws/chat", service.WSChat)
 

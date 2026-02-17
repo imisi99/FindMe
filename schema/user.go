@@ -101,9 +101,10 @@ type UserProfileResponse struct {
 }
 
 type ViewSubscriptions struct {
-	ID    string
-	Start time.Time
-	End   time.Time
+	ID     string
+	Status string
+	Start  time.Time
+	End    time.Time
 }
 
 type FriendReqStatus struct {
