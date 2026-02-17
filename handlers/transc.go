@@ -33,7 +33,6 @@ type Transc interface {
 	InitializeTransaction(ctx *gin.Context)
 	UpdateSubscriptionCard(ctx *gin.Context)
 	CancelSubscription(ctx *gin.Context)
-	EnableSubscription(ctx *gin.Context)
 	ViewPlans(ctx *gin.Context)
 	VerifyTranscWebhook(ctx *gin.Context)
 	RetryFailedPayment(ctx *gin.Context)
@@ -580,76 +579,6 @@ func (t *TranscService) CancelSubscription(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadGateway, gin.H{"msg": sub.Message})
 		return
 	}
-
-	ctx.JSON(http.StatusOK, gin.H{"msg": sub.Message})
-}
-
-// EnableSubscription godoc
-// @Summary An endpoint for enabling a subscription
-// @Description An endpoint for re enabling a subscription
-// @Tags Transaction
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} schema.DocNormalResponse "Success"
-// @Failure 401 {object} schema.DocNormalResponse "Unauthorized"
-// @Failure 402 {object} schema.DocNormalResponse "Payment required"
-// @Failure 404 {object} schema.DocNormalResponse "Record not found"
-// @Failure 422 {object} schema.DocNormalResponse "Failed to parse payload"
-// @Failure 500 {object} schema.DocNormalResponse "Server error"
-// @Failure 502 {object} schema.DocNormalResponse "Failed communication with external service"
-// @Router /api/transc/enable-sub [patch]
-func (t *TranscService) EnableSubscription(ctx *gin.Context) {
-	uid, tp := ctx.GetString("userID"), ctx.GetString("purpose")
-	if !model.IsValidUUID(uid) || tp != "login" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"msg": "Unauthorized user."})
-		return
-	}
-
-	var user model.User
-	if err := t.DB.FetchUser(&user, uid); err != nil {
-		cm := err.(*core.CustomMessage)
-		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
-		return
-	}
-
-	payload := map[string]string{
-		"code":  *user.PaystackSubCode,
-		"token": *user.PaystackEmailToken,
-	}
-
-	body, _ := json.Marshal(payload)
-
-	req, _ := http.NewRequest(http.MethodPost, "https://api.paystack.co/subscription/enable", bytes.NewBuffer(body))
-	req.Header.Set("Authorization", "Bearer "+t.SecretKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := t.Client.Do(req)
-	if err != nil {
-		log.Println("[TRANSACTION] An error occured while trying to enable a subscription, err -> ", err, resp.StatusCode)
-		ctx.JSON(http.StatusBadGateway, gin.H{"msg": "Failed to communicate with paystack."})
-		return
-	}
-
-	log.Println(resp.StatusCode)
-	defer resp.Body.Close()
-	var sub schema.PaystackSubResp
-
-	body, _ = io.ReadAll(resp.Body)
-	log.Println(string(body))
-
-	if err := json.Unmarshal(body, &sub); err != nil {
-		log.Println("[TRANSACTION] An error occured while trying to Unmarshal payload from paystack, err -> ", err.Error())
-		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"msg": "Failed to parse response from paystack"})
-		return
-	}
-
-	if !sub.Status {
-		ctx.JSON(http.StatusBadGateway, gin.H{"msg": sub.Message})
-		return
-	}
-
-	t.Email.QueueSubscriptionReEnabled(user.UserName, user.NextPaymentDate.Format("January 02, 2006"), user.Email)
 
 	ctx.JSON(http.StatusOK, gin.H{"msg": sub.Message})
 }
