@@ -6,10 +6,10 @@
 
 ## Overview
 
-FindMe is a microservices-based application that connects developers with projects and other developers based on their skills, interests, and bios. This repository contains the **core backend service** — a REST API built in Go that handles user management, project listings, messaging, subscriptions, and coordinates with two supporting services via gRPC:
+[FindMe](https://findmeapi.duckdns.org/swagger/index.html) is a microservices-based application that connects developers with projects and other developers based on their skills, interests, and bios. This repository contains the **core backend service** — a REST API built in Go that handles user management, project listings, messaging, subscriptions, and coordinates with two supporting services via gRPC:
 
-- **Embedding Service** (`emb`) — generates and maintains vector embeddings for users and projects
-- **Recommendation Service** (`rec`) — returns ranked recommendations of users/projects using vector similarity
+- **[Embedding Service](https://github.com/imisi99/FindMeML)** (`emb`) — generates and maintains vector embeddings for users and projects
+- **[Recommendation Service](https://github.com/imisi99/FindMeMLR)** (`rec`) — returns ranked recommendations of users/projects using vector similarity
 
 ---
 
@@ -216,14 +216,14 @@ The test suite uses mocks for the DB, cache, email, embedding, and recommendatio
 
 This service communicates with two companion services over gRPC. Both services should be deployed on the same Docker network.
 
-### Embedding Service (`emb:8000`)
+### [Embedding Service](https://github.com/imisi99/FindMeML) (`emb:8000`)
 
 Maintains vector representations of users and projects. Called automatically when:
 
 - A user registers, updates their bio/skills/interests, changes availability, or is deleted
 - A project is created, updated, changes availability, or is deleted
 
-### Recommendation Service (`rec:8050`)
+### [Recommendation Service](https://github.com/imisi99/FindMeMLR) (`rec:8050`)
 
 Returns ranked similarity scores for user and project recommendations. Called when:
 

@@ -521,7 +521,7 @@ func (e *EmailService) SendSubscriptionCreateEmail(username, amount, currency, p
 	<html>
 	<head>
 	<meta charset="UTF-8">
-	<title>Subscription created</title>
+	<title>Subscription Created</title>
 	</head>
 	<body style="margin:0; padding:0; background:#f9fafb; font-family:Arial, sans-serif;">
 	<table width="100%%" cellpadding="0" cellspacing="0" border="0" style="background:#f9fafb; padding:40px 0;">
@@ -529,8 +529,8 @@ func (e *EmailService) SendSubscriptionCreateEmail(username, amount, currency, p
 		<td align="center">
 			<table width="600" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
 			<tr>
-				<td style="background:#dc2626; padding:20px; text-align:center; border-top-left-radius:8px; border-top-right-radius:8px;">
-					<h1 style="margin:0; font-size:22px; color:#ffffff;">Subscription created</h1>
+				<td style="background:#4f46e5; padding:20px; text-align:center; border-top-left-radius:8px; border-top-right-radius:8px;">
+					<h1 style="margin:0; font-size:22px; color:#ffffff;">Subscription Created</h1>
 				</td>
 			</tr>
 			<tr>
@@ -540,10 +540,10 @@ func (e *EmailService) SendSubscriptionCreateEmail(username, amount, currency, p
 						Your subscription has been successfully created and you now have access to our premium features.
 						We are excited to have you on board
 					</p>
-					<table width="100%%" cellpadding="10" cellspacing="0" border="0" style="background:#fef2f2; border-radius:6px; border:1px solid #fecaca; margin-bottom:20px;">
+					<table width="100%%" cellpadding="10" cellspacing="0" border="0" style="background:#eef2ff; border-radius:6px; border:1px solid #c7d2fe; margin-bottom:20px;">
 						<tr>
-							<td style="font-size:14px; color:#6b7280; border-bottom:1px solid #fecaca;">Plan</td>
-							<td style="font-size:14px; color:#111827; font-weight:bold; border-bottom:1px solid #fecaca; text-align:right;">%s</td>
+							<td style="font-size:14px; color:#6b7280; border-bottom:1px solid #c7d2fe;">Plan</td>
+							<td style="font-size:14px; color:#111827; font-weight:bold; border-bottom:1px solid #c7d2fe; text-align:right;">%s</td>
 						</tr>
 						<tr>
 							<td style="font-size:14px; color:#6b7280;">Amount</td>

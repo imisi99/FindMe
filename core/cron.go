@@ -45,6 +45,8 @@ func (c *Cron) TrialEndingReminders() error {
 			c.Email.QueueNotifyFreeTrialEnding(user.UserName, user.FreeTrial.Format("January 2, 2006"), "", user.Email)
 		}
 
+		log.Printf("[CRON] Sent Trial ending reminders to %v users", len(users))
+
 		if err := c.DB.UpdateSentReminder(ids); err != nil {
 			return
 		}

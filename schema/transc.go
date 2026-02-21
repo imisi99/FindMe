@@ -124,3 +124,25 @@ type SubscriptionDetails struct {
 		NextPaymentDate time.Time `json:"next_payment_date"`
 	}
 }
+
+type CustomerDetails struct {
+	Status  bool   `json:"status"`
+	Message string `json:"message"`
+	Data    struct {
+		Authorizations []struct {
+			AuthorizationCode string `json:"authorization_code"`
+			Last4             string `json:"last4"`
+			ExpMonth          string `json:"exp_month"`
+			ExpYear           string `json:"exp_year"`
+			Card              string `json:"card_type"`
+		}
+	} `json:"data"`
+}
+
+type UpdatedPaymentInfo struct {
+	AuthorizationCode string
+	Last4             string
+	ExpMonth          string
+	ExpYear           string
+	Card              string
+}

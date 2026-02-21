@@ -19,15 +19,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO:
-// Initiate Subscription
-// Handle Automatic Subscription
-// Handle Failed Subscription
-// Cancel Subscription
-// Enable Subscription
-// Add a Sub Create email for notifying new sub users
-// Maintain a correct card info on user updating card
-
 type Transc interface {
 	GetTransactions(ctx *gin.Context)
 	InitializeTransaction(ctx *gin.Context)
@@ -36,6 +27,7 @@ type Transc interface {
 	ViewPlans(ctx *gin.Context)
 	VerifyTranscWebhook(ctx *gin.Context)
 	RetryFailedPayment(ctx *gin.Context)
+	FetchCustomerDetails(cusCode string) (*schema.UpdatedPaymentInfo, error)
 }
 
 type TranscService struct {
@@ -227,30 +219,12 @@ func (t *TranscService) VerifyTranscWebhook(ctx *gin.Context) {
 			return
 		}
 
-		t.Email.QueueSubscriptionCreate(user.UserName, "", event.Data.Currency, event.Data.Plan.Name, "", user.Email)
+		amount := fmt.Sprintf("%d", event.Data.Amount)
+		t.Email.QueueSubscriptionCreate(user.UserName, amount, event.Data.Currency, event.Data.Plan.Name, "", user.Email)
 
 		ctx.Status(http.StatusOK)
 		return
 	case model.PaystackChargeSuccess:
-
-		// Handling charges for updating card and stuff
-		if event.Data.Amount == 5000 {
-			user.PaystackAuthCode = &event.Data.Authorization.AuthCode
-
-			user.Last4 = &event.Data.Authorization.Last4
-			user.CardType = &event.Data.Authorization.Brand
-			user.ExpMonth = &event.Data.Authorization.ExpMonth
-			user.ExpYear = &event.Data.Authorization.ExpYear
-
-			if err := t.DB.SaveUser(&user); err != nil {
-				ctx.Status(http.StatusInternalServerError)
-				return
-			}
-
-			ctx.Status(http.StatusOK)
-			return
-		}
-
 		transc := model.Transactions{
 			UserID:      user.ID,
 			PaystackRef: event.Data.Reference,
@@ -406,6 +380,13 @@ func (t *TranscService) UpdateSubscriptionCard(ctx *gin.Context) {
 
 	if !card.Status {
 		ctx.JSON(resp.StatusCode, gin.H{"msg": card.Message})
+		return
+	}
+
+	user.PaystackCardUpdate = true
+	if err := t.DB.SaveUser(&user); err != nil {
+		cm := err.(*core.CustomMessage)
+		ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
 		return
 	}
 
@@ -677,4 +658,42 @@ func (t *TranscService) FetchSubscriptionDetails(subCode string) (*schema.Subscr
 	}
 
 	return &sub, nil
+}
+
+// FetchCustomerDetails -> A helper func to fetch the customer details from paystack
+func (t *TranscService) FetchCustomerDetails(cusCode string) (*schema.UpdatedPaymentInfo, error) {
+	req, _ := http.NewRequest(http.MethodGet, "https://api.paystack.co/customer/"+cusCode, nil)
+	req.Header.Set("Authorization", "Bearer "+t.SecretKey)
+
+	resp, err := t.Client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return nil, &core.CustomMessage{Code: http.StatusBadGateway, Message: "Failed to communicate with paystack."}
+	}
+
+	defer resp.Body.Close()
+
+	var cus schema.CustomerDetails
+	body, _ := io.ReadAll(resp.Body)
+
+	if err := json.Unmarshal(body, &cus); err != nil {
+		log.Println("[TRANSACTION] Failed to unmarshal paystack response for customer details, err -> ", err.Error())
+		return nil, &core.CustomMessage{Code: http.StatusUnprocessableEntity, Message: "Failed to unmarshal paystack response"}
+	}
+
+	auths := len(cus.Data.Authorizations)
+	if auths == 0 {
+		return nil, &core.CustomMessage{Code: http.StatusNotFound, Message: "No authorizations for user"}
+	}
+
+	info := cus.Data.Authorizations[auths-1]
+
+	res := schema.UpdatedPaymentInfo{
+		AuthorizationCode: info.AuthorizationCode,
+		Last4:             info.Last4,
+		ExpMonth:          info.ExpMonth,
+		ExpYear:           info.ExpYear,
+		Card:              info.Card,
+	}
+
+	return &res, nil
 }

@@ -282,6 +282,45 @@ func (s *Service) GetUserPaymentInfo(ctx *gin.Context) {
 		return
 	}
 
+	if user.PaystackCardUpdate {
+		if user.PaystackCusCode != nil {
+			if cus, err := s.Transc.FetchCustomerDetails(*user.PaystackCusCode); err != nil {
+				user.Last4 = &cus.Last4
+				user.ExpMonth = &cus.ExpMonth
+				user.ExpYear = &cus.ExpYear
+				user.CardType = &cus.Card
+				user.PaystackAuthCode = &cus.AuthorizationCode
+				user.PaystackCardUpdate = false
+
+				if err := s.DB.SaveUser(&user); err != nil {
+					cm := err.(*core.CustomMessage)
+					ctx.JSON(cm.Code, gin.H{"msg": cm.Message})
+					return
+				}
+
+				info := schema.PaymentInfo{
+					Last4: cus.Last4,
+					Month: cus.ExpMonth,
+					Year:  cus.ExpYear,
+					Card:  cus.Card,
+				}
+
+				if user.NextPaymentDate != nil {
+					info.NextPaymentDate = *user.NextPaymentDate
+				}
+
+				ctx.JSON(http.StatusOK, gin.H{"info": info})
+				return
+			} else {
+				ctx.JSON(http.StatusInternalServerError, gin.H{"msg": "Failed to retreive user authorizations."})
+				return
+			}
+		} else {
+			ctx.JSON(http.StatusNotFound, gin.H{"msg": "No payment info exists for this user."})
+			return
+		}
+	}
+
 	info := schema.PaymentInfo{
 		Last4: *user.Last4,
 		Month: *user.ExpMonth,

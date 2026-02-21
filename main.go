@@ -7,15 +7,6 @@
 // @BasePath /
 package main
 
-// TODO:
-// Test the Paystack service
-// Add a readme docs
-
-//DONE:
-// Fix the cache plans to store the struct directly (or a work around)
-// The Email token for the paystack stuff does it come with the sub create event (fix this)
-//
-
 import (
 	"log"
 	"net/http"

@@ -155,7 +155,10 @@ func NewGitMock() *GitMock {
 
 type TranscMock struct{}
 
-func (mock *TranscMock) InitializeTransaction(_ *gin.Context)    {}
+func (mock *TranscMock) InitializeTransaction(_ *gin.Context) {}
+func (mock *TranscMock) FetchCustomerDetails(cusCode string) (*schema.UpdatedPaymentInfo, error) {
+	return nil, nil
+}
 func (mock *TranscMock) GetTransactions(_ *gin.Context)          {}
 func (mock *TranscMock) UpdateSubscriptionCard(ctx *gin.Context) {}
 func (mock *TranscMock) CancelSubscription(ctx *gin.Context)     {}

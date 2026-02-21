@@ -33,6 +33,7 @@ type User struct {
 	PaystackEmailToken *string
 	PaystackCusCode    *string
 	PaystackAuthCode   *string
+	PaystackCardUpdate bool
 
 	// Card Details
 	Last4    *string

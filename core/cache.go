@@ -145,7 +145,7 @@ func (c *RDB) CachePlans(plans []schema.ViewPlansResp) error {
 		return &CustomMessage{http.StatusInternalServerError, "Failed to cache plans."}
 	}
 
-	if _, err := c.Cache.Set(ctx, "plans", data, 24*time.Hour).Result(); err != nil {
+	if _, err := c.Cache.SetEx(ctx, "plans", data, 24*time.Hour).Result(); err != nil {
 		log.Printf("An error occured while trying to set plans in redis -> %v", err.Error())
 		return &CustomMessage{http.StatusInternalServerError, "Failed to set plans in cache."}
 	}

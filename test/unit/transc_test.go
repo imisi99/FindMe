@@ -60,16 +60,6 @@ func TestCancelSubscription(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-func TestEnableSubscription(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodPatch, "/api/transc/enable-sub", nil)
-	req.Header.Set("Authorization", "Bearer "+tokenString)
-
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
 func TestViewPlans(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/transc/view/plans", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenString)

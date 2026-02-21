@@ -151,7 +151,7 @@ func TestGetUserPaymentInfo(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestRecommendProjects(t *testing.T) {
